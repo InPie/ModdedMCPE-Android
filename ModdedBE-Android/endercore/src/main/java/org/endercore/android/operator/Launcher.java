@@ -48,6 +48,7 @@ public final class Launcher {
     private final static String NAME_SUBSTRATE = "libsubstrate.so";
     private final static String NAME_XHOOK = "libxhook.so";
     private final static String NAME_FMOD = "libfmod.so";
+    private final static String NAME_GNUSTL_SHARED = "libgnustl_shared.so";
     private final static String NAME_MINECRAFTPE = "libminecraftpe.so";
     private final static String NAME_ENDERCORE = "libendercore.so";
     private final static String NAME_MJSCRIPT = "libmjscript.so";
@@ -56,6 +57,7 @@ public final class Launcher {
     private final static String LIB_SUBSTRATE = "substrate";
     private final static String LIB_XHOOK = "xhook";
     private final static String LIB_FMOD = "fmod";
+    private final static String LIB_GNUSTL_SHARED = "gnustl_shared";
     private final static String LIB_MINECRAFTPE = "minecraftpe";
     private final static String LIB_ENDERCORE = "endercore";
     private final static String LIB_MJSCRIPT = "mjscript";
@@ -76,7 +78,7 @@ public final class Launcher {
         try {
             // Check Availability
             if (!core.getGamePackageManager().isGameInstalled())
-                throw new LauncherException("Minecraft Game is not installed.Please install game.");
+                throw new LauncherException("Minecraft Game is not installed. Please install game.");
 
             // Set Variants
             IFileEnvironment fileEnvironment = core.getFileEnvironment();
@@ -99,7 +101,7 @@ public final class Launcher {
                     throw new IOException("Failed to list all apk files.");
                 //Copy native libraries
                 String[] supportedAbis = CPUArch.getSystemSupportedAbis();
-                String[] requiredLibs = {NAME_FMOD, NAME_MINECRAFTPE};
+                String[] requiredLibs = {NAME_FMOD, NAME_GNUSTL_SHARED, NAME_MINECRAFTPE};
                 boolean[] libsCopied = new boolean[requiredLibs.length];
                 for (int i = 0; i < requiredLibs.length; ++i)
                     libsCopied[i] = false;
@@ -128,6 +130,8 @@ public final class Launcher {
                 }
                 if (targetArch == null)
                     throw new LauncherException("Abis are not supported by EnderCore.");
+
+                Log.d("EnderCore-Launcher", "Selected architecture: " + targetArch);
 
                 // copy game native libraries
                 for (int i = 0; i < requiredLibs.length; ++i) {
@@ -229,10 +233,12 @@ public final class Launcher {
                 throw new LauncherException("Exception occurred while loading *.so file.", e);
             }
             try {
-                listener.onLoadNativeLibrary(NAME_CPP_SHARED);
-                System.loadLibrary(LIB_CPP_SHARED);
+                //listener.onLoadNativeLibrary(NAME_CPP_SHARED);
+                //System.loadLibrary(LIB_CPP_SHARED);
                 listener.onLoadNativeLibrary(NAME_FMOD);
                 System.loadLibrary(LIB_FMOD);
+                listener.onLoadNativeLibrary(NAME_GNUSTL_SHARED);
+                System.loadLibrary(LIB_GNUSTL_SHARED);
                 listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
                 System.loadLibrary(LIB_MINECRAFTPE);
                 listener.onLoadNativeLibrary(NAME_YURAI);

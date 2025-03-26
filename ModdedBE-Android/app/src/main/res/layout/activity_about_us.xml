@@ -42,70 +42,78 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_source"
+            android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
             android:onClick="onSourcesClicked"
-            android:textSize="18sp"
-            android:textColor="@drawable/text_selector"
-            android:background="@drawable/text_background_selector"/>
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="@string/app_source"
+            android:textColor="@color/text_selector"
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:text="@string/app_text_divider"
-            android:textSize="18sp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"/>
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
             android:onClick="onIssuesClicked"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:text="@string/app_issues"
-            android:textSize="18sp"
-            android:textColor="@drawable/text_selector"
-            android:background="@drawable/text_background_selector"/>
+            android:textColor="@color/text_selector"
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:text="@string/app_text_divider"
-            android:textSize="18sp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"/>
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
             android:onClick="onUpdatesClicked"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:text="@string/app_updates"
-            android:textSize="18sp"
-            android:textColor="@drawable/text_selector"
-            android:background="@drawable/text_background_selector"/>
+            android:textColor="@color/text_selector"
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:text="@string/app_text_divider"
-            android:textSize="18sp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"/>
+            android:textSize="18sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
             android:onClick="onWikiClicked"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:text="@string/app_wiki"
-            android:textSize="18sp"
-            android:textColor="@drawable/text_selector"
-            android:background="@drawable/text_background_selector"/>
+            android:textColor="@color/text_selector"
+            android:textSize="18sp" />
 
     </LinearLayout>
 

@@ -13,9 +13,8 @@ android {
      * compileSdkVersion specifies the Android API level Gradle should use to compile your app. This
      * means your app can use the API features included in this API level and lower.
      */
-    compileSdkVersion 'android-S'
-
-    buildToolsVersion "30.0.3"
+    namespace "me.effently.moddedmcpe"
+    compileSdkVersion 35 // Android 15
 
     /**
      * The defaultConfig block encapsulates default settings and entries for all build variants, and
@@ -27,23 +26,27 @@ android {
          * should still reference the package name defined by the package attribute in the
          * main/AndroidManifest.xml file.
          */
-        applicationId "net.listerily.moddedbe"
+        applicationId "me.effently.moddedmcpe"
 
         // Defines the minimum API level required to run the app.
-        minSdkVersion 21
+        minSdkVersion 25
 
         // Specifies the API level used to test the app.
-        targetSdkVersion 29
+        targetSdkVersion 35
 
         // Defines the version number of your app.
         versionCode 2
 
         // Defines a user-friendly version name for your app.
-        versionName "1.1"
+        versionName "1.2"
 
         multiDexEnabled true
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters 'armeabi-v7a' // Only 32-bit
+        }
     }
 
     /**
@@ -63,8 +66,16 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     defaultConfig {

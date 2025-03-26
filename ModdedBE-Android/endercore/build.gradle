@@ -2,25 +2,23 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 'android-S'
-    buildToolsVersion "30.0.3"
+    namespace "net.listerily.endercore"
+    compileSdkVersion 35 // Android 15
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 29
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion 25
+        targetSdkVersion 35
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
 
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            abiFilters 'armeabi-v7a', 'x86_64' // 'arm64-v8a', 'x86', 'x86_64'
         }
 
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++11"
+                cppFlags "-std=c++11 -g"
                 arguments "-DANDROID_STL=c++_shared"
             }
         }
@@ -29,7 +27,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.10.2"
+            version "3.31.6"
         }
     }
 
@@ -39,7 +37,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    ndkVersion '22.1.7171670'
+    ndkVersion '29.0.13113456'
 }
 
 dependencies {

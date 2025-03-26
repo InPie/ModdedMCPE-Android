@@ -9,11 +9,11 @@
     android:orientation="horizontal"
     android:gravity="center">
 
-        <ImageView
-            android:layout_width="139dp"
-            android:layout_height="139dp"
-            app:srcCompat="@drawable/ic_logo"
-            android:contentDescription="@string/app_name" />
+    <ImageView
+        android:layout_width="138dp"
+        android:layout_height="138dp"
+        android:contentDescription="@string/app_name"
+        app:srcCompat="@drawable/ic_logo" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -27,65 +27,62 @@
             android:layout_gravity="center_horizontal"
             android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30sp"
-            android:text="@string/app_title" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/app_title"
+                android:textSize="40sp" />
 
-        <TextView
-            android:id="@+id/version_name_textview"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp" />
+            <TextView
+                android:id="@+id/version_name_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:textSize="18sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:gravity="center">
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="50dp"
+            android:paddingEnd="50dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_options"
-                android:clickable="true"
-                android:focusable="true"
-                android:onClick="onMenuClicked"
-                android:textSize="18sp"
-                android:textColor="@drawable/text_selector"
-                android:background="@drawable/text_background_selector"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_text_divider"
-                android:textSize="18sp"
-                android:layout_marginStart="15dp"
-                android:layout_marginEnd="15dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
+            <me.effently.moddedmcpe.ui.GreenButton
+                android:id="@+id/green_button1"
+                style="@style/GreenButton"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clickable="true"
                 android:focusable="true"
                 android:onClick="onStartGameClicked"
-                android:text="@string/app_start_game"
-                android:textSize="18sp"
-                android:textColor="@drawable/text_selector"
-                android:background="@drawable/text_background_selector"/>
+                android:text="@string/app_start_game" />
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="4dp" />
+
+            <me.effently.moddedmcpe.ui.GreenButton
+                android:id="@+id/green_button2"
+                style="@style/GreenButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:onClick="onMenuClicked"
+                android:text="@string/app_options" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/textViewSummary"
-            android:layout_marginTop="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="@string/app_summary" />
+            android:layout_marginTop="16dp"
+            android:text="@string/app_summary"
+            android:textSize="18sp" />
 
     </LinearLayout>
 

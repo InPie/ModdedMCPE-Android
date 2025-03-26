@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_title">ModdedBE</string>
-    <string name="app_summary">Профессиональный NMod лаунчер для Minecraft.</string>
-    <string name="app_version_name">1.0</string>
+    <string name="app_title">Modded MCPE</string>
+    <string name="app_summary">Профессиональный лаунчер для Minecraft PE.</string>
     <string name="app_start_game">Начать игру</string>
     <string name="app_manage_nmods">Мененджер NMods</string>
     <string name="app_info">Информация</string>
@@ -12,7 +11,7 @@
     <string name="app_fatal_message_title">Критическая ошибка</string>
     <string name="app_fatal_message_summary">При запуске игры произошла критическая ошибка. Пожалуйста, проанализируйте эту ошибку или отправьте ее разработчикам. Если это произойдет снова, попробуйте очистить данные приложения.</string>
     <string name="app_text_divider">|</string>
-    <string name="app_name">ModdedBE</string>
+    <string name="app_name">Modded MCPE</string>
     <string name="app_app_data_cleared">Очищено</string>
     <string name="app_clear_data">Очистить данные</string>
     <string name="app_copy">Копировать</string>
@@ -25,7 +24,7 @@
     <string name="app_fatal_brand">Brand: %1$s</string>
     <string name="app_exit">Выйти</string>
     <string name="app_permission_denied">В доступе отказано</string>
-    <string name="app_message_permission_denied">Упс! ModdedBE запрещён доступ к внутреннему хранилищу. Это важно для запуска приложения. Зайдите в Настройки, чтобы убедиться, что разрешение не отклонено!</string>
+    <string name="app_message_permission_denied">Упс! Modded MCPE запрещён доступ к внутреннему хранилищу. Это важно для запуска приложения. Зайдите в Настройки, чтобы убедиться, что разрешение не отклонено!</string>
     <string name="title_activity_settings">Настройки</string>
     <string name="app_fatal_use_nmods">" Использовать NMods: %1$d"</string>
     <string name="app_fatal_abi">ABI: %1$s</string>

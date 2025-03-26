@@ -1,4 +1,4 @@
-package net.listerily.moddedbe
+package me.effently.moddedmcpe
 
 import android.content.Context
 import android.graphics.drawable.Drawable

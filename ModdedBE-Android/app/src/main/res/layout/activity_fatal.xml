@@ -120,7 +120,7 @@
             android:focusable="true"
             android:onClick="onClearClicked"
             android:textSize="21sp"
-            android:textColor="@drawable/text_selector"
+            android:textColor="@color/text_selector"
             android:background="@drawable/text_background_selector"
             android:gravity="center"
             android:layout_margin="4dp"/>
@@ -133,7 +133,7 @@
                 android:focusable="true"
                 android:onClick="onCopyClicked"
                 android:textSize="21sp"
-                android:textColor="@drawable/text_selector"
+                android:textColor="@color/text_selector"
                 android:background="@drawable/text_background_selector"
                 android:gravity="center"
                 android:layout_margin="4dp"/>
@@ -146,7 +146,7 @@
             android:focusable="true"
             android:onClick="onExitClicked"
             android:textSize="21sp"
-            android:textColor="@drawable/text_selector"
+            android:textColor="@color/text_selector"
             android:background="@drawable/text_background_selector"
             android:gravity="center"
             android:layout_margin="4dp"/>

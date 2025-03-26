@@ -3,14 +3,12 @@ plugins {
 }
 
 android {
-    compileSdkVersion 'android-S'
-    buildToolsVersion "30.0.3"
+    namespace "com.mojang.minecraftpe"
+    compileSdkVersion 35 // Android 15
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion 25
+        targetSdkVersion 35
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"

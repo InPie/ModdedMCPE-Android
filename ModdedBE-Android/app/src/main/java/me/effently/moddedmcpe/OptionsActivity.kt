@@ -1,4 +1,4 @@
-package net.listerily.moddedbe
+package me.effently.moddedmcpe
 
 import android.content.*
 import android.graphics.drawable.Drawable
@@ -39,7 +39,7 @@ class OptionsActivity : AppCompatActivity() {
         supportFragmentManager
                 .beginTransaction()
                 .replace(R.id.viewOptions, OptionsFragment())
-                .commit()
+                .commitNow()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
@@ -78,7 +78,7 @@ class OptionsActivity : AppCompatActivity() {
             }
 
             listener =
-                    SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences: SharedPreferences, key: String ->
+                    SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences: SharedPreferences, key: String? ->
                         run {
                             when (key) {
                                 "auto_license" -> {

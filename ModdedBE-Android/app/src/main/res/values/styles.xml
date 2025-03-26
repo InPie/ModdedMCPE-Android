@@ -1,15 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-        <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-            <item name="colorPrimary">#444444</item>
-            <item name="colorPrimaryDark">#212121</item>
-            <item name="colorAccent">#444444</item>
-            <item name="android:windowFullscreen">true</item>
-        </style>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">#444444</item>
+        <item name="colorPrimaryDark">#212121</item>
+        <item name="colorAccent">#444444</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
 
-        <style name="FullScreenTheme" parent="Theme.AppCompat.Light.NoActionBar">
-            <item name="android:windowFullscreen">true</item>
-            <item name="android:windowContentOverlay">@null</item>
-        </style>
+    <style name="FullScreenTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <style name="GreenButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/green_button</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:shadowColor">#80000000</item>
+        <item name="android:shadowDx">1.5</item>
+        <item name="android:shadowDy">1.5</item>
+        <item name="android:shadowRadius">0</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">20dp</item> <!-- 6dp bottom spadow -->
+        <item name="android:paddingStart">30dp</item>
+        <item name="android:paddingEnd">30dp</item>
+        <item name="android:includeFontPadding">true</item>
+        <item name="android:gravity">center_horizontal|top</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">10dp</item>
+        <!--        <item name="android:fontFamily">@font/minecraft_font</item>-->
+    </style>
+
+    <style name="GreenButton.Small">
+        <item name="android:textSize">18sp</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
 </resources>

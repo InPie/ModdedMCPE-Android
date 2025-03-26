@@ -1,4 +1,4 @@
-package net.listerily.moddedbe
+package me.effently.moddedmcpe
 
 import android.content.Intent
 import android.os.Bundle

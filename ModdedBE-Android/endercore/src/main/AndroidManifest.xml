@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="net.listerily.endercore"
     tools:ignore="MissingClass">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -30,7 +29,11 @@
         <package android:name="com.mojang.minecraftpe" />
     </queries>
 
-    <application>
+    <!-- Force 32-bit -->
+    <uses-sdk android:targetSdkVersion="33" tools:overrideLibrary="android.support.v7.appcompat"/>
+
+    <application
+        android:extractNativeLibs="true">
         <activity
             android:name="com.mojang.minecraftpe.AgentMainActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
@@ -38,6 +41,7 @@
             android:excludeFromRecents="false"
             android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
+            android:exported="true"
             android:configChanges="fontScale|keyboard|keyboardHidden|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
             android:alwaysRetainTaskState="true">
 
@@ -63,7 +67,8 @@
 
         <!-- UNNECESSARY FIELDS AS FOLLOWS. IF THERE IS COMPILE ERRORS,PLEASE REMOVE THEM. -->
         <activity android:name="com.microsoft.xal.browser.IntentHandler"
-            android:exported="true" android:launchMode="singleTask"
+            android:exported="true"
+            android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation">
             <intent-filter>
@@ -124,7 +129,9 @@
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <receiver android:name="com.amazon.device.iap.ResponseReceiver">
+        <receiver
+            android:exported="true"
+            android:name="com.amazon.device.iap.ResponseReceiver">
             <intent-filter>
                 <action
                     android:name="com.amazon.inapp.purchasing.NOTIFY"
@@ -186,6 +193,7 @@
             android:name="com.microsoft.onlineid.interop.xbox.ui.WelcomeActivity"
             android:theme="@style/OnlineidUiTheme" />
         <activity
+            android:exported="true"
             android:name="com.microsoft.onlineid.interop.singleaccount.SingleAccountActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
             <intent-filter>
@@ -281,15 +289,6 @@
         <uses-library
             android:name="xperiaplaycertified"
             android:required="false" />
-        <receiver android:name="com.amazon.device.iap.ResponseReceiver">
-            <intent-filter>
-                <action
-                    android:name="com.amazon.inapp.purchasing.NOTIFY"
-                    android:permission="com.amazon.inapp.purchasing.Permission.NOTIFY"
-                    android:windowSoftInputMode="adjustResize" />
-            </intent-filter>
-        </receiver>
-
         <service
             android:exported="false"
             android:name="com.microsoft.onlineid.internal.sso.client.BackupService">

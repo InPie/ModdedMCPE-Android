@@ -1,4 +1,4 @@
-package net.listerily.moddedbe
+package me.effently.moddedmcpe
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import me.effently.moddedmcpe.BuildConfig
 import org.endercore.android.EnderCore
 import org.endercore.android.utils.CPUArch
 import org.endercore.android.utils.FileUtils
@@ -26,7 +27,7 @@ class FatalActivity : AppCompatActivity() {
         if (message == null) return
         val gamePackageManager = EnderCore.instance.gamePackageManager
         val options = EnderCore.instance.optionsManager
-        appVersionName = getString(R.string.app_version_name)
+        appVersionName = BuildConfig.VERSION_NAME
         gameVersionName = gamePackageManager.versionName
         useNMods = if (options.useNMods) 1 else 0
         val abis: String
@@ -40,7 +41,9 @@ class FatalActivity : AppCompatActivity() {
         abis = builder.toString()
         abisFull = builderFull.toString()
         (findViewById<View>(R.id.textViewFatalMessage) as TextView).text = message
-        (findViewById<View>(R.id.textViewAppVersion) as TextView).text = getString(R.string.app_fatal_version_name, getString(R.string.app_version_name))
+        (findViewById<View>(R.id.textViewAppVersion) as TextView).text = getString(R.string.app_fatal_version_name,
+            BuildConfig.VERSION_NAME
+        )
         (findViewById<View>(R.id.textViewGameVersion) as TextView).text = getString(R.string.app_fatal_game_version, gamePackageManager.versionName)
         (findViewById<View>(R.id.textViewEnderCoreSdk) as TextView).text = getString(R.string.app_fatal_endercore_sdk, EnderCore.SDK_INT)
         (findViewById<View>(R.id.textViewOSSdk) as TextView).text = getString(R.string.app_fatal_os_sdk, Build.VERSION.SDK_INT)
@@ -57,7 +60,7 @@ class FatalActivity : AppCompatActivity() {
     fun onCopyClicked(view: View) {
         val messageHead = """
                -----------------------
-               A fatal error occurred in ModdedBE game initializing.
+               A fatal error occurred in Modded MCPE game initializing.
                Version Name: $appVersionName
                Game Version: $gameVersionName
                EnderCore SDK: ${EnderCore.SDK_INT}
@@ -70,7 +73,7 @@ class FatalActivity : AppCompatActivity() {
                
                """.trimIndent()
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        val mClipData = ClipData.newPlainText("ModdedBE Error Message", messageHead + message)
+        val mClipData = ClipData.newPlainText("Modded MCPE Error Message", messageHead + message)
         cm.setPrimaryClip(mClipData)
         Toast.makeText(this, R.string.app_copied, Toast.LENGTH_LONG).show()
     }
