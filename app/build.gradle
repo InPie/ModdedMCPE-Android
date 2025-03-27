@@ -35,7 +35,7 @@ android {
         targetSdkVersion 35
 
         // Defines the version number of your app.
-        versionCode 2
+        versionCode 3
 
         // Defines a user-friendly version name for your app.
         versionName "1.2"
