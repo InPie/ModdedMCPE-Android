@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.Exec
+import javax.inject.Inject
+
 plugins {
     id 'com.android.library'
 }
@@ -36,45 +39,82 @@ String getSdkPath() {
     return localProperties.getProperty("sdk.dir")
 }
 
-/*  Generate dex files for project endercore.
- *  Notice: Project endercore must exist!
- *  Reference: https://github.com/gelldur/msc-thesis/blob/master/project/SecureMe/app/build.gradle
- */
-task buildDexDebug() {
+String d8Executable() {
+    def buildToolsVersion = "36.0.0" // Check you version
+
+    def sdkPath = getSdkPath()
+    def buildToolsDir = "${sdkPath}/build-tools/${buildToolsVersion}/"
+    return System.properties['os.name'].toLowerCase().contains("windows") ?
+            "${buildToolsDir}d8.bat" : "${buildToolsDir}d8"
+}
+
+def classesDir = "${project.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+def outputDir = "${project.rootDir}/endercore/src/main/assets/endercore/android"
+
+tasks.register('buildAgentMainDex') {
     doLast {
-        String sdkPath = getSdkPath()
-        // Use File.separator instead of '/' whenever possible. It can avoid POTENTIAL problems and
-        // reduce the time used for debugging.
-        String s = File.separator
-        String mWorkingDir = "${projectDir}${s}build${s}intermediates${s}javac${s}debug${s}classes"
-        // Use "dx.bat" instead of "dx" because the latter one may cause build failure on Windows.
-        String dxPath = "${sdkPath}${s}build-tools${s}30.0.3${s}dx.bat"
+        def tempOutput = "${project.buildDir}/d8temp_agent_main"
 
-        println "Project Path: ${projectDir}"
-        println "Android SDK Path: ${sdkPath}"
-        println "File.separator: ${s}"
+        file(tempOutput).mkdirs()
+
+        println "Generating dex for: ${outputDir}/AgentMainActivity.dex"
 
         exec {
-            workingDir mWorkingDir
-            commandLine dxPath,
-                    "--dex",
-                    "--output=..${s}..${s}..${s}..${s}..${s}..${s}endercore${s}src${s}main${s}assets${s}endercore${s}android${s}AgentMainActivity.dex",
-                    "com${s}mojang${s}minecraftpe${s}AgentMainActivity.class"
+            commandLine d8Executable(),
+                    "--output", tempOutput,
+                    "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class"
         }
-        exec {
-            workingDir mWorkingDir
-            commandLine dxPath,
-                    "--dex",
-                    "--output=..${s}..${s}..${s}..${s}..${s}..${s}endercore${s}src${s}main${s}assets${s}endercore${s}android${s}CrackedLicense.dex",
-                    "com${s}mojang${s}minecraftpe${s}store${s}amazonappstore${s}AmazonAppStore.class",
-                    "com${s}mojang${s}minecraftpe${s}store${s}googleplay${s}GooglePlayStore.class"
+
+        copy {
+            from "${tempOutput}/classes.dex"
+            into outputDir
+            rename { "AgentMainActivity.dex" }
         }
+        delete file(tempOutput)
     }
 }
 
-//tasks.getByName("compileDebugJavaWithJavac").finalizedBy(buildDexDebug)
+tasks.register('buildCrackedLicenseDex') {
+    doLast {
+        def tempOutput = "${project.buildDir}/d8temp_cr_license"
+
+        file(tempOutput).mkdirs()
+
+        println "Generating dex for: ${outputDir}/CrackedLicense.dex"
+
+        exec {
+            commandLine d8Executable(),
+                    "--output", tempOutput,
+                    "${classesDir}/com/mojang/minecraftpe/store/amazonappstore/AmazonAppStore.class",
+                    "${classesDir}/com/mojang/minecraftpe/store/googleplay/GooglePlayStore.class"
+        }
+        copy {
+            from "${tempOutput}/classes.dex"
+            into outputDir
+            rename { "CrackedLicense.dex" }
+        }
+        delete file(tempOutput)
+    }
+}
+
+tasks.register('buildDexDebug') {
+    /* println "========"
+    println "[agent_main info]:"
+    // println "Project Path: ${projectDir}"
+    // println "Working directory: ${classesDir}"
+    // println "Output directory: ${outputDir}"
+    // println "Android SDK Path: ${getSdkPath()}"
+    println "Using d8 from: ${d8Executable()}"
+    println "========" */
+
+    dependsOn buildAgentMainDex, buildCrackedLicenseDex
+}
 
 afterEvaluate {
-    // Sometimes it gets stuck, and you have to kill Android Studio to stop building. I have no idea.
-    //tasks.getByName("compileDebugJavaWithJavac").finalizedBy(buildDexDebug)
+    tasks.named("compileDebugJavaWithJavac") {
+        it.finalizedBy(buildDexDebug)
+    }
+    tasks.named("compileReleaseJavaWithJavac") {
+        it.finalizedBy(buildDexDebug)
+    }
 }

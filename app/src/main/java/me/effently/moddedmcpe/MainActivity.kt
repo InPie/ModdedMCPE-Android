@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import me.effently.moddedmcpe.BuildConfig
+import androidx.core.net.toUri
 
 
 class MainActivity : AppCompatActivity() {
@@ -37,7 +38,8 @@ class MainActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))
+                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION,
+                    "package:$packageName".toUri())
                 startActivity(intent)
             }
         }
