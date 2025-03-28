@@ -14,8 +14,8 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import org.endercore.android.EnderCore
 import org.endercore.android.exception.NModException
-import org.endercore.android.nmod.NMod
-import org.endercore.android.nmod.NModPackage
+import org.endercore.android.mod.nmod.NMod
+import org.endercore.android.mod.nmod.NModPackage
 import org.endercore.android.utils.FileUtils
 import java.io.File
 import java.io.FileNotFoundException
@@ -120,7 +120,8 @@ class OptionsActivity : AppCompatActivity() {
                 val copiedFile = File(EnderCore.getInstance().fileEnvironment.codeCacheDirPathForNMods, "package.nmod")
                 FileUtils.copy(inputStream, copiedFile)
                 try {
-                    nmodPackage = NModPackage(copiedFile)
+                    nmodPackage =
+                        NModPackage(copiedFile)
                 } catch (nmodException: NModException) {
                     val msg = Message()
                     msg.what = MSG_READ_FAILED

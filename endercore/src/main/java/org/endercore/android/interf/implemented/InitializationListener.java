@@ -1,7 +1,7 @@
 package org.endercore.android.interf.implemented;
 
 import org.endercore.android.interf.IInitializationListener;
-import org.endercore.android.nmod.NMod;
+import org.endercore.android.mod.nmod.NMod;
 
 public class InitializationListener implements IInitializationListener {
 

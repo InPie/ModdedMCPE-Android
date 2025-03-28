@@ -1,4 +1,4 @@
-package org.endercore.android.nmod.overrider;
+package org.endercore.android.mod.nmod.overrider;
 
 import org.endercore.android.utils.FileUtils;
 

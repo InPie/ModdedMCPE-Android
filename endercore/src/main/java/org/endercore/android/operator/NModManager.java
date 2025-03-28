@@ -3,8 +3,8 @@ package org.endercore.android.operator;
 import org.endercore.android.EnderCore;
 import org.endercore.android.exception.NModException;
 import org.endercore.android.interf.IFileEnvironment;
-import org.endercore.android.nmod.NMod;
-import org.endercore.android.nmod.NModPackage;
+import org.endercore.android.mod.nmod.NMod;
+import org.endercore.android.mod.nmod.NModPackage;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
 

@@ -1,6 +1,6 @@
 package org.endercore.android.interf;
 
-import org.endercore.android.nmod.NMod;
+import org.endercore.android.mod.nmod.NMod;
 
 public interface IInitializationListener {
     void onStart();

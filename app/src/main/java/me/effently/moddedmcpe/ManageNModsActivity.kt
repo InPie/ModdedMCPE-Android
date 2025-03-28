@@ -16,7 +16,7 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.endercore.android.EnderCore
-import org.endercore.android.nmod.NMod
+import org.endercore.android.mod.nmod.NMod
 import org.endercore.android.operator.NModManager
 import java.io.FileNotFoundException
 

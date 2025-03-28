@@ -1,4 +1,4 @@
-package org.endercore.android.nmod;
+package org.endercore.android.mod.nmod;
 
 import com.google.gson.Gson;
 

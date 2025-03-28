@@ -81,6 +81,11 @@ static bool hhbui_Feature_isEnabled( void *_this )
     return true;
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_org_endercore_android_mod_script_ScriptController_executeCustomFunction(JNIEnv* env, jclass clazz) {
+    __android_log_print(ANDROID_LOG_INFO, "MJScript", "Custom function executed from button press!");
+}
+
 //static std::string (*rI18n_get)( std::string const& );
 //static std::string hI18n_get( std::string const &str )
 //{
