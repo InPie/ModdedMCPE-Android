@@ -81,9 +81,25 @@ static bool hhbui_Feature_isEnabled( void *_this )
     return true;
 }
 
+void showToast(JNIEnv* env, jobject activity, const char* message) {
+    jstring jMessage = env->NewStringUTF(message);
+
+    jclass toastClass = env->FindClass("android/widget/Toast");
+    jmethodID makeText = env->GetStaticMethodID(toastClass, "makeText", "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
+    jmethodID show = env->GetMethodID(toastClass, "show", "()V");
+
+    jobject toast = env->CallStaticObjectMethod(toastClass, makeText, activity, jMessage, 0);
+    env->CallVoidMethod(toast, show);
+
+    env->DeleteLocalRef(toastClass);
+    env->DeleteLocalRef(jMessage);
+    env->DeleteLocalRef(toast);
+}
+
 extern "C" JNIEXPORT void JNICALL
-Java_org_endercore_android_mod_script_ScriptController_executeCustomFunction(JNIEnv* env, jclass clazz) {
-    __android_log_print(ANDROID_LOG_INFO, "MJScript", "Custom function executed from button press!");
+Java_org_endercore_android_mod_script_ScriptController_executeCustomFunction(JNIEnv* env, jclass clazz, jobject activity) {
+    __android_log_print(ANDROID_LOG_INFO, "MJScript", "Custom JNI function executed!");
+    showToast(env, activity, "Custom JNI function executed!");
 }
 
 //static std::string (*rI18n_get)( std::string const& );

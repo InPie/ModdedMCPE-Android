@@ -97,17 +97,17 @@ class OptionsActivity : AppCompatActivity() {
                         }
                         EnderCore.getInstance().optionsManager.saveDataToFile()
                     }
-            preferenceManager.sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+            preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(listener)
         }
 
         override fun onResume() {
             super.onResume()
-            preferenceManager.sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+            preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(listener)
         }
 
         override fun onPause() {
             super.onPause()
-            preferenceManager.sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+            preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(listener)
         }
     }
 

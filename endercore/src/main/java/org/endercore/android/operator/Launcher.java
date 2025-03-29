@@ -14,7 +14,6 @@ import org.endercore.android.mod.nmod.NMod;
 import org.endercore.android.mod.nmod.overrider.FileOverrider;
 import org.endercore.android.mod.nmod.overrider.JsonOverrider;
 import org.endercore.android.mod.nmod.overrider.TextOverrider;
-import org.endercore.android.mod.script.ScriptController;
 import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
@@ -77,6 +76,8 @@ public final class Launcher {
         listener.onStart();
         ArrayList<NModException> nModExceptions = null;
         try {
+            Log.d("EnderCore-Launcher", "Initialization of the game...");
+
             // Check Availability
             if (!core.getGamePackageManager().isGameInstalled())
                 throw new LauncherException("Minecraft Game is not installed. Please install game.");
@@ -370,6 +371,7 @@ public final class Launcher {
             // Arrange
             listener.onArrange();
             patchAssetPath.add(fileEnvironment.getCodeCacheDirPathForAssets());
+            Log.d("EnderCore-Launcher", "Game is initialized.");
 
         } catch (Throwable e) {
             listener.onSuspend();
@@ -397,6 +399,7 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-LIBS", patchLibPath);
             launchIntent.putExtra("ENDERCORE-PATCH-OPT", fileEnvironment.getCodeCacheDirPathForDexOpt());
             context.startActivity(launchIntent);
+            Log.d("EnderCore-Launcher", "Game started.");
         } catch (IOException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new LauncherException("Start game failed.", e);
         }
