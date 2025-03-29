@@ -66,10 +66,10 @@
             android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
-            android:onClick="onIssuesClicked"
+            android:onClick="onDiscordClicked"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
-            android:text="@string/app_issues"
+            android:text="@string/app_discord"
             android:textColor="@color/text_selector"
             android:textSize="18sp" />
 
@@ -87,31 +87,10 @@
             android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
-            android:onClick="onUpdatesClicked"
+            android:onClick="onDiscordClicked"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:text="@string/app_updates"
-            android:textColor="@color/text_selector"
-            android:textSize="18sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:text="@string/app_text_divider"
-            android:textSize="18sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/text_background_selector"
-            android:clickable="true"
-            android:focusable="true"
-            android:onClick="onWikiClicked"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:text="@string/app_wiki"
             android:textColor="@color/text_selector"
             android:textSize="18sp" />
 

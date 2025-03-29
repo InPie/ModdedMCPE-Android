@@ -17,25 +17,19 @@ class AboutUsActivity : AppCompatActivity() {
     }
 
     fun onSourcesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/listerily/ModdedBE")
+        val uri: Uri = Uri.parse("https://github.com/oldminecraftcommunity/Modded-MCPE")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
 
-    fun onIssuesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/listerily/ModdedBE/issues")
+    fun onDiscordClicked(view: View) {
+        val uri: Uri = Uri.parse("https://discord.gg/hex5QrRNqa")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
 
     fun onUpdatesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/listerily/ModdedBE/releases")
-        val intent = Intent(Intent.ACTION_VIEW, uri)
-        startActivity(intent)
-    }
-
-    fun onWikiClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/listerily/ModdedBE/wiki")
+        val uri: Uri = Uri.parse("https://github.com/oldminecraftcommunity/Modded-MCPE/releases")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
