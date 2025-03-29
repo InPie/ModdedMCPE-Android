@@ -3,6 +3,7 @@ package me.effently.moddedmcpe
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.provider.Settings
 import android.os.Environment
 import android.os.Build
@@ -38,11 +39,18 @@ class MainActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION,
-                    "package:$packageName".toUri())
-                startActivity(intent)
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    // val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    // fallbackIntent.data = Uri.fromParts("package", packageName, null)
+                    // startActivity(fallbackIntent)
+                }
             }
         }
+
     }
 
     fun onStartGameClicked(view: View) {
