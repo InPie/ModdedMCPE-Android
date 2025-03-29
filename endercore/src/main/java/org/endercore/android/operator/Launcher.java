@@ -169,8 +169,8 @@ public final class Launcher {
                         break;
                     }
                 }
-                if (!allLibsCopied)
-                    throw new LauncherException("Not all required libs are found int the minecraft game package. Lib " + requiredLibs[notCopiedLibId] + " of arch " + targetArch + " not found.");
+                //if (!allLibsCopied)
+                //    throw new LauncherException("Not all required libs are found int the minecraft game package. Lib " + requiredLibs[notCopiedLibId] + " of arch " + targetArch + " not found.");
 
                 //Copy Dex files
                 for (int i = 9; i >= 0; --i) {
@@ -207,8 +207,12 @@ public final class Launcher {
                     File path = new File(fileEnvironment.getCodeCacheDirPathForDex(), dexLibName);
                     if (dexExists[i]) {
                         listener.onLoadJavaLibrary(dexLibName);
+                        if (!path.setReadOnly()) { // Android 15 fix
+                            throw new LauncherException("Unable to set file to read-only: " + path.getAbsolutePath());
+                        }
                         Patcher.patchDexFile(context.getClassLoader(), path.getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
                         patchDexPath.add(path.getAbsolutePath());
+                        path.setWritable(true);
                     }
                 }
 
@@ -216,9 +220,13 @@ public final class Launcher {
                     //Crack License Checker
                     File licenseCrackerDex = new File(fileEnvironment.getCodeCacheDirPathForDex(), NAME_CRACKER_DEX);
                     FileUtils.copy(context.getAssets().open(ASSETS_FILE_CRACKER_DEX), licenseCrackerDex);
+                    if (!licenseCrackerDex.setReadOnly()) { // Android 15 fix
+                        throw new LauncherException("Unable to set file to read-only: " + licenseCrackerDex.getAbsolutePath());
+                    }
                     listener.onLoadJavaLibrary(NAME_CRACKER_DEX);
                     Patcher.patchDexFile(context.getClassLoader(), licenseCrackerDex.getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
                     patchDexPath.add(licenseCrackerDex.getAbsolutePath());
+                    licenseCrackerDex.setWritable(true);
                 }
             } catch (IllegalAccessException | IOException | NoSuchFieldException e) {
                 throw new LauncherException("Exception occurred while loading *.dex file.", e);
@@ -235,12 +243,29 @@ public final class Launcher {
                 throw new LauncherException("Exception occurred while loading *.so file.", e);
             }
             try {
-                //listener.onLoadNativeLibrary(NAME_CPP_SHARED);
-                //System.loadLibrary(LIB_CPP_SHARED);
-                listener.onLoadNativeLibrary(NAME_FMOD);
-                System.loadLibrary(LIB_FMOD);
-                listener.onLoadNativeLibrary(NAME_GNUSTL_SHARED);
-                System.loadLibrary(LIB_GNUSTL_SHARED);
+                File nativeLibDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
+
+                if (new File(nativeLibDir, NAME_CPP_SHARED).exists()) {
+                    listener.onLoadNativeLibrary(NAME_CPP_SHARED);
+                    System.loadLibrary(LIB_CPP_SHARED);
+                } else {
+                    Log.e("EnderCore-Launcher", "Native library " + NAME_CPP_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
+                }
+
+                if (new File(nativeLibDir, NAME_FMOD).exists()) {
+                    listener.onLoadNativeLibrary(NAME_FMOD);
+                    System.loadLibrary(LIB_FMOD);
+                } else {
+                    Log.e("EnderCore-Launcher", "Native library " + NAME_FMOD + " not found in " + nativeLibDir.getAbsolutePath());
+                }
+
+                if (new File(nativeLibDir, NAME_GNUSTL_SHARED).exists()) {
+                    listener.onLoadNativeLibrary(NAME_GNUSTL_SHARED);
+                    System.loadLibrary(LIB_GNUSTL_SHARED);
+                } else {
+                    Log.e("EnderCore-Launcher", "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
+                }
+
                 listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
                 System.loadLibrary(LIB_MINECRAFTPE);
                 listener.onLoadNativeLibrary(NAME_YURAI);
@@ -389,8 +414,12 @@ public final class Launcher {
             IFileEnvironment fileEnvironment = core.getFileEnvironment();
             File dir = new File(fileEnvironment.getCodeCacheDirPathForDex());
             FileUtils.copy(context.getAssets().open(ASSETS_FILE_AGENT_DEX), new File(dir, NAME_AGENT_DEX));
+            if (!(new File(dir, NAME_AGENT_DEX)).setReadOnly()) { // Android 15 fix
+                throw new LauncherException("Unable to set file to read-only: " + (new File(dir, NAME_AGENT_DEX)).getAbsolutePath());
+            }
             Patcher.patchDexFile(context.getClassLoader(), new File(dir, NAME_AGENT_DEX).getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
             patchDexPath.add(new File(dir, NAME_AGENT_DEX).getAbsolutePath());
+            (new File(dir, NAME_AGENT_DEX)).setWritable(true);
             DexClassLoader dexClassLoader = new DexClassLoader(new File(dir, NAME_AGENT_DEX).getAbsolutePath(), dir.getAbsolutePath(), null, context.getClass().getClassLoader());
             Class<?> activityClass = dexClassLoader.loadClass("com.mojang.minecraftpe.AgentMainActivity");
             Intent launchIntent = new Intent(context, activityClass);
