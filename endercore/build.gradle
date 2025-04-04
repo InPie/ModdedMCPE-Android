@@ -18,8 +18,8 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++11 -g"
-                arguments "-DANDROID_STL=c++_shared"
+                cppFlags "-std=c++11 -g -ggdb3"
+                arguments "-DANDROID_STL=c++_shared", "-DCMAKE_BUILD_TYPE=Debug"
             }
         }
     }
@@ -32,8 +32,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            debuggable true
+        }
         release {
             minifyEnabled false
+            debuggable true
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

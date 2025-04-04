@@ -81,6 +81,13 @@ android {
     defaultConfig {
         buildConfigField "String", "BUILD_DATE", '"' + getCurrentDate() + '"'
     }
+
+    packagingOptions {
+        jniLibs {
+            // If true, all .so files will be compressed, which will cause them to be extracted from the APK to /data/app/...
+            useLegacyPackaging = true
+        }
+    }
 }
 
 /**

@@ -5,6 +5,10 @@ message( "CMAKE_VERSION: ${CMAKE_VERSION}" )
 message( "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}" )
 message( "ANDROID_ABI: ${ANDROID_ABI}" )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fno-omit-frame-pointer -ggdb3")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie")
+
+
 # System libraries
 find_library( log-lib-path
               log )
@@ -42,7 +46,8 @@ add_library( endercore
 # mjscript
 add_library( mjscript
              SHARED
-             mjscript.cpp )
+             mjscript.cpp
+             include/dobby/dobby.cpp)
 
 target_link_libraries( mjscript
                        ${log-lib-path}

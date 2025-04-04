@@ -32,8 +32,7 @@
     <!-- Force 32-bit -->
     <uses-sdk android:targetSdkVersion="33" tools:overrideLibrary="android.support.v7.appcompat"/>
 
-    <application
-        android:extractNativeLibs="true">
+    <application>
         <activity
             android:name="com.mojang.minecraftpe.AgentMainActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
