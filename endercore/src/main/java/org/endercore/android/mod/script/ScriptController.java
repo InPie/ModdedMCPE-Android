@@ -8,4 +8,5 @@ public class ScriptController {
     }
 
     public static native void executeCustomFunction(Activity activity);
+    public static native void shiftPlayer(boolean state);
 }

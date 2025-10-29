@@ -34,6 +34,8 @@ class MyApplication : Application() {
     private var buttonManager: ModButtonManager? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private var shiftState: Boolean = false
+
     override fun onCreate() {
         super.onCreate()
         EnderCore.instance.initialize(this, EnderCore.MODE_PUBLIC)
@@ -90,12 +92,14 @@ class MyApplication : Application() {
                             addModGearMainButton()
 
                             addCustomButton( // Test button for running C++ code via JNI
-                                text = "Run Script JNI Code",
-                                x = 0,
+                                text = "Shift Player",
+                                x = 20,
                                 y = 100,
                                 onClick = {
-                                    Log.d(TAG, "Run Script button clicked")
-                                    ScriptController.executeCustomFunction(activity)
+                                    shiftState = !shiftState
+
+                                    Log.d(TAG, "Shift Player button clicked: " + shiftState)
+                                    ScriptController.shiftPlayer(shiftState)
                                 }
                             )
                             Log.e(TAG, "setupButtonManager done")
