@@ -1,4 +1,4 @@
-# ModdedMCPE
+# ModdedMCPE Android
 A professional free NMod Launcher for Minecraft Pocket Edition and Bedrock Edition (Android ONLY).
 **ModdedMCPE is mostly completed now. If you found bugs, please report to us (in the issues page), then we will fix them.**
 **Pull requests will be much more welcomed than issues. The developers could not manage to fix every issues in time, and they may not want to do it.**
