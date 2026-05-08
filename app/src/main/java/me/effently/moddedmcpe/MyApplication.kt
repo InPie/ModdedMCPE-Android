@@ -87,9 +87,11 @@ class MyApplication : Application() {
                         removeButtonManager()
 
                         buttonManager = ModButtonManager(activity).apply {
-                            addModGearMainButton()
+                            // @TODO: impl
+                            // addModGearMainButton()
 
-                            addCustomButton( // Test button for running C++ code via JNI
+                            // exp buttons for Script / Native modding Testing
+                            /* addCustomButton( // Test button for running C++ code via JNI
                                 text = "Run Script JNI Code",
                                 x = 0,
                                 y = 100,
@@ -98,7 +100,7 @@ class MyApplication : Application() {
                                     ScriptController.executeCustomFunction(activity)
                                 }
                             )
-                            Log.e(TAG, "setupButtonManager done")
+                            Log.e(TAG, "setupButtonManager done") */
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error setting up button manager: ${e.message}")
