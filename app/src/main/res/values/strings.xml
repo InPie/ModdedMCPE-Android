@@ -54,4 +54,6 @@
     <string name="app_nmod_install_failed_title">Installing Failed</string>
     <string name="app_nmod_icon">The Icon of the NMod.</string>
     <string name="app_nmod_remove">Remove</string>
+
+    <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>

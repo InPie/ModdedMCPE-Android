@@ -13,6 +13,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:exported="true"
         android:supportsRtl="true">
+        <meta-data
+            android:name="net.hockeyapp.android.appIdentifier"
+            android:value="@string/hockeyapp_android_id" />
+
         <activity
             android:name="me.effently.moddedmcpe.AboutUsActivity"
             android:screenOrientation="sensorLandscape"
