@@ -266,8 +266,12 @@ public final class Launcher {
                     Log.e("EnderCore-Launcher", "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
+                Log.d("EnderCore-Launcher", "MCPE version: " + core.getGamePackageManager().getVersionName());
                 listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
-                if (core.getGamePackageManager().getVersionName().startsWith("0.6.")) {
+                if (core.getGamePackageManager().getVersionName().startsWith("0.6.")
+                 || core.getGamePackageManager().getVersionName().startsWith("0.7.")
+                 || core.getGamePackageManager().getVersionName().startsWith("0.8.")
+                 || core.getGamePackageManager().getVersionName().startsWith("0.9.")) {
                     Class.forName("com.mojang.minecraftpe.MainActivity", true, context.getClassLoader());
                 } else {
                     System.loadLibrary(LIB_MINECRAFTPE);
