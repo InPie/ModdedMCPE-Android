@@ -1,5 +1,6 @@
 package com.mojang.minecraftpe;
 
+import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.os.Bundle;
@@ -105,6 +106,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         if(patchResources != null)
             return patchResources;
         return super.getResources();
+    }
+
+    @Override
+    public Context getApplicationContext() {
+        if(patchAssetManager != null)
+            return this;
+        return super.getApplicationContext();
     }
 
     private void prepareGameWindow() {
