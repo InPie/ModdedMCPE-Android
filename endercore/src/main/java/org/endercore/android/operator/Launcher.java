@@ -29,6 +29,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import dalvik.system.DexClassLoader;
+//0.8 comp
+import javax.microedition.khronos.egl.EGL10;
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.egl.EGLContext;
+import javax.microedition.khronos.egl.EGLDisplay;
+import javax.microedition.khronos.egl.EGLSurface;
 
 public final class Launcher {
     private final EnderCore core;
@@ -62,6 +68,7 @@ public final class Launcher {
     private final static String LIB_ENDERCORE = "endercore";
     private final static String LIB_MJSCRIPT = "mjscript";
     private final static String DIR_LIB = "lib";
+    private final static String CLASS_MAIN_ACTIVITY = "com.mojang.minecraftpe.MainActivity";
 
     public Launcher(EnderCore core) {
         initializedGame = false;
@@ -266,16 +273,8 @@ public final class Launcher {
                     Log.e("EnderCore-Launcher", "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                Log.d("EnderCore-Launcher", "MCPE version: " + core.getGamePackageManager().getVersionName());
-                listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
-                if (core.getGamePackageManager().getVersionName().startsWith("0.6.")
-                 || core.getGamePackageManager().getVersionName().startsWith("0.7.")
-                 || core.getGamePackageManager().getVersionName().startsWith("0.8.")
-                 || core.getGamePackageManager().getVersionName().startsWith("0.9.")) {
-                    Class.forName("com.mojang.minecraftpe.MainActivity", true, context.getClassLoader());
-                } else {
-                    System.loadLibrary(LIB_MINECRAFTPE);
-                }
+                loadMinecraftNativeLibrary(context, core.getGamePackageManager().getVersionName());
+
                 listener.onLoadNativeLibrary(NAME_YURAI);
                 System.loadLibrary(LIB_YURAI);
                 listener.onLoadNativeLibrary(NAME_SUBSTRATE);
@@ -444,5 +443,139 @@ public final class Launcher {
 
     public void setGameInitializationListener(IInitializationListener listener) {
         this.listener = listener;
+    }
+
+    private void loadMinecraftNativeLibrary(Context context, String gameVersionName) throws ClassNotFoundException {
+        Log.d("EnderCore-Launcher", "MCPE version: " + gameVersionName);
+        listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
+
+        if (isMcpeVersion(gameVersionName, "0.6.")) {
+            Class.forName(CLASS_MAIN_ACTIVITY, true, context.getClassLoader());
+            return;
+        }
+
+        //0.8 comp
+        if (isMcpeVersion(gameVersionName, "0.8.", "0.9.")) {
+            try (TemporaryEglContext ignored = TemporaryEglContext.create()) {
+                Class.forName(CLASS_MAIN_ACTIVITY, true, context.getClassLoader());
+            }
+            return;
+        }
+
+        System.loadLibrary(LIB_MINECRAFTPE);
+    }
+
+    private static boolean isMcpeVersion(String versionName, String... prefixes) {
+        if (versionName == null)
+            return false;
+
+        for (String prefix : prefixes) {
+            if (versionName.startsWith(prefix))
+                return true;
+        }
+        return false;
+    }
+
+    //0.8 comp
+    private static final class TemporaryEglContext implements AutoCloseable {
+        private final EGL10 egl;
+        private final EGLDisplay display;
+        private final EGLSurface surface;
+        private final EGLContext context;
+        private final EGLDisplay previousDisplay;
+        private final EGLSurface previousDrawSurface;
+        private final EGLSurface previousReadSurface;
+        private final EGLContext previousContext;
+
+        private TemporaryEglContext(EGL10 egl, EGLDisplay display, EGLSurface surface, EGLContext context,
+                                    EGLDisplay previousDisplay, EGLSurface previousDrawSurface,
+                                    EGLSurface previousReadSurface, EGLContext previousContext) {
+            this.egl = egl;
+            this.display = display;
+            this.surface = surface;
+            this.context = context;
+            this.previousDisplay = previousDisplay;
+            this.previousDrawSurface = previousDrawSurface;
+            this.previousReadSurface = previousReadSurface;
+            this.previousContext = previousContext;
+        }
+
+        static TemporaryEglContext create() {
+            EGL10 egl = (EGL10) EGLContext.getEGL();
+            EGLDisplay previousDisplay = egl.eglGetCurrentDisplay();
+            EGLSurface previousDrawSurface = egl.eglGetCurrentSurface(EGL10.EGL_DRAW);
+            EGLSurface previousReadSurface = egl.eglGetCurrentSurface(EGL10.EGL_READ);
+            EGLContext previousContext = egl.eglGetCurrentContext();
+
+            EGLDisplay display = egl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
+            if (display == EGL10.EGL_NO_DISPLAY)
+                throw new IllegalStateException("Unable to get EGL display.");
+
+            int[] version = new int[2];
+            if (!egl.eglInitialize(display, version))
+                throw new IllegalStateException("Unable to initialize EGL.");
+
+            EGLConfig config = chooseConfig(egl, display);
+            EGLSurface surface = createSurface(egl, display, config);
+            EGLContext context = egl.eglCreateContext(display, config, EGL10.EGL_NO_CONTEXT, new int[]{EGL10.EGL_NONE});
+            if (context == EGL10.EGL_NO_CONTEXT) {
+                egl.eglDestroySurface(display, surface);
+                egl.eglTerminate(display);
+                throw new IllegalStateException("Unable to create EGL context.");
+            }
+
+            if (!egl.eglMakeCurrent(display, surface, surface, context)) {
+                egl.eglDestroyContext(display, context);
+                egl.eglDestroySurface(display, surface);
+                egl.eglTerminate(display);
+                throw new IllegalStateException("Unable to make temporary EGL context current.");
+            }
+
+            return new TemporaryEglContext(egl, display, surface, context, previousDisplay,
+                    previousDrawSurface, previousReadSurface, previousContext);
+        }
+
+        private static EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
+            int[] configAttributes = {
+                    EGL10.EGL_SURFACE_TYPE, EGL10.EGL_PBUFFER_BIT,
+                    EGL10.EGL_RENDERABLE_TYPE, 1,
+                    EGL10.EGL_RED_SIZE, 5,
+                    EGL10.EGL_GREEN_SIZE, 6,
+                    EGL10.EGL_BLUE_SIZE, 5,
+                    EGL10.EGL_NONE
+            };
+            EGLConfig[] configs = new EGLConfig[1];
+            int[] configCount = new int[1];
+            if (!egl.eglChooseConfig(display, configAttributes, configs, configs.length, configCount)
+                    || configCount[0] == 0) {
+                throw new IllegalStateException("Unable to choose EGL config.");
+            }
+            return configs[0];
+        }
+
+        private static EGLSurface createSurface(EGL10 egl, EGLDisplay display, EGLConfig config) {
+            int[] surfaceAttributes = {
+                    EGL10.EGL_WIDTH, 1,
+                    EGL10.EGL_HEIGHT, 1,
+                    EGL10.EGL_NONE
+            };
+            EGLSurface surface = egl.eglCreatePbufferSurface(display, config, surfaceAttributes);
+            if (surface == EGL10.EGL_NO_SURFACE)
+                throw new IllegalStateException("Unable to create EGL pbuffer surface.");
+
+            return surface;
+        }
+
+        @Override
+        public void close() {
+            if (previousDisplay != EGL10.EGL_NO_DISPLAY && previousContext != EGL10.EGL_NO_CONTEXT) {
+                egl.eglMakeCurrent(previousDisplay, previousDrawSurface, previousReadSurface, previousContext);
+            } else {
+                egl.eglMakeCurrent(display, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_CONTEXT);
+            }
+            egl.eglDestroyContext(display, context);
+            egl.eglDestroySurface(display, surface);
+            egl.eglTerminate(display);
+        }
     }
 }

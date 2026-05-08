@@ -28,9 +28,6 @@ class InitializingActivity : AppCompatActivity() {
                 })
                 try {
                     EnderCore.instance.launcher.initializeGame(this@InitializingActivity)
-                    val finishMessage = Message()
-                    finishMessage.what = LAUNCH_FINISH
-                    handler.sendMessage(finishMessage)
                 } catch (e: LauncherException) {
                     val errorMessage = Message()
                     errorMessage.what = LAUNCH_SUSPEND

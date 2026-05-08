@@ -5,22 +5,28 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
+    // fullsreen code from 0.11, ...Platform19#setSystemUiVisibility(5894)
+    private static final int IMMERSIVE_SYSTEM_UI_FLAGS =
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                        View.SYSTEM_UI_FLAG_FULLSCREEN |
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
+        prepareGameWindow();
 
         ArrayList<String> patchAssetsPath = getIntent().getStringArrayListExtra("ENDERCORE-PATCH-ASSETS");
 
@@ -70,7 +76,21 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i("EnderCore-AgentMain", "Resources patching succeed.");
             Log.i("EnderCore-AgentMain", "Patching finished.Activity creating.");
             super.onCreate(savedInstanceState);
+            applyImmersiveMode();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        applyImmersiveMode();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus)
+            applyImmersiveMode();
     }
 
     @Override
@@ -85,5 +105,21 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         if(patchResources != null)
             return patchResources;
         return super.getResources();
+    }
+
+    private void prepareGameWindow() {
+        Window window = getWindow();
+        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING |
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED);
+
+        View decorView = window.getDecorView();
+        decorView.setOnSystemUiVisibilityChangeListener(visibility -> applyImmersiveMode());
+        applyImmersiveMode();
+    }
+
+    private void applyImmersiveMode() {
+        getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE_SYSTEM_UI_FLAGS);
     }
 }
