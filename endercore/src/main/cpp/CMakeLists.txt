@@ -43,6 +43,9 @@ add_library( endercore
              SHARED
              endercore.cpp )
 
+target_link_libraries( endercore
+                       ${log-lib-path} )
+
 # mjscript
 add_library( mjscript
              SHARED
