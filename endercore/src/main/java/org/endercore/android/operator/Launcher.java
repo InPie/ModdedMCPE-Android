@@ -102,13 +102,17 @@ public final class Launcher {
 
             // Copy Game Files
             try {
+                // fix random crashes:
+                // clear cache [dex, native libs, assets] instead re-writing
+                clearGameCodeCache(fileEnvironment);
+
                 File resPath = new File(core.getGamePackageManager().getPackageResourcePath());
                 if (resPath.getParentFile() == null)
                     throw new IOException("Invalid file path.");
                 File[] allApkFiles = resPath.getParentFile().listFiles();
                 if (allApkFiles == null)
                     throw new IOException("Failed to list all apk files.");
-                //Copy native libraries
+                // copy native libraries
                 String[] supportedAbis = CPUArch.getSystemSupportedAbis();
                 String[] requiredLibs = {NAME_FMOD, NAME_GNUSTL_SHARED, NAME_MINECRAFTPE};
                 boolean[] libsCopied = new boolean[requiredLibs.length];
@@ -474,6 +478,12 @@ public final class Launcher {
                 return true;
         }
         return false;
+    }
+
+    private static void clearGameCodeCache(IFileEnvironment fileEnvironment) {
+        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForDex()));
+        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForNativeLib()));
+        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForAssets()));
     }
 
     //0.8 comp
