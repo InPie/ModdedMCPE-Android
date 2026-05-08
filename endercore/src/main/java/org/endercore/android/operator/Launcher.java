@@ -267,7 +267,11 @@ public final class Launcher {
                 }
 
                 listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
-                System.loadLibrary(LIB_MINECRAFTPE);
+                if (core.getGamePackageManager().getVersionName().startsWith("0.6.")) {
+                    Class.forName("com.mojang.minecraftpe.MainActivity", true, context.getClassLoader());
+                } else {
+                    System.loadLibrary(LIB_MINECRAFTPE);
+                }
                 listener.onLoadNativeLibrary(NAME_YURAI);
                 System.loadLibrary(LIB_YURAI);
                 listener.onLoadNativeLibrary(NAME_SUBSTRATE);
@@ -281,7 +285,7 @@ public final class Launcher {
                     listener.onLoadNativeLibrary(NAME_MJSCRIPT);
                     System.loadLibrary(LIB_MJSCRIPT);
                 }
-            } catch (Error error) {
+            } catch (Error | ClassNotFoundException error) {
                 throw new LauncherException("Load game libraries failed.", error);
             }
             listener.onLoadNativeLibrariesFinish();

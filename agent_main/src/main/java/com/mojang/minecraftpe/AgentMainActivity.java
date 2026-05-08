@@ -15,7 +15,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private Resources patchResources = null;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
                         View.SYSTEM_UI_FLAG_FULLSCREEN |
