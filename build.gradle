@@ -1,11 +1,11 @@
 buildscript {
-    ext.kotlin_version = '1.9.22' // Latest stable version
+    ext.kotlin_version = '2.2.10' // Latest stable version
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.2' // Latest stable version of AGP
+        classpath 'com.android.tools.build:gradle:9.0.1' // Latest stable version of AGP
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 
