@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace "com.mojang.minecraftpe"
-    compileSdkVersion 35 // Android 15
+    namespace = "com.mojang.minecraftpe"
+    compileSdk 35 // Android 15
 
     defaultConfig {
-        minSdkVersion 25
+        minSdk 25
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -34,6 +34,10 @@ android {
 dependencies {
 }
 
+tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
+    options.compilerArgs.add("-Xlint:-options")
+}
+
 String getSdkPath() {
     File localPropertiesFile = new File(project.rootDir, "local.properties")
     Properties localProperties = new Properties()
@@ -50,12 +54,15 @@ String d8Executable() {
             "${buildToolsDir}d8.bat" : "${buildToolsDir}d8"
 }
 
-def classesDir = "${project.buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
-def outputDir = "${project.rootDir}/endercore/src/main/assets/endercore/android"
+def classesDir = layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+        .get().asFile.absolutePath
+def outputDir = new File(rootDir, "endercore/src/main/assets/endercore/android").absolutePath
+def agentMainTempOutputDir = layout.buildDirectory.dir("d8temp_agent_main")
+def crackedLicenseTempOutputDir = layout.buildDirectory.dir("d8temp_cr_license")
 
 tasks.register('buildAgentMainDex') {
     doLast {
-        def tempOutput = "${project.buildDir}/d8temp_agent_main"
+        def tempOutput = agentMainTempOutputDir.get().asFile.absolutePath
 
         file(tempOutput).mkdirs()
 
@@ -80,7 +87,7 @@ tasks.register('buildAgentMainDex') {
 
 tasks.register('buildCrackedLicenseDex') {
     doLast {
-        def tempOutput = "${project.buildDir}/d8temp_cr_license"
+        def tempOutput = crackedLicenseTempOutputDir.get().asFile.absolutePath
 
         file(tempOutput).mkdirs()
 

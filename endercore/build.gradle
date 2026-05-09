@@ -1,12 +1,11 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
 
 android {
-    namespace "net.listerily.endercore"
-    compileSdkVersion 35 // Android 15
+    namespace = "net.listerily.endercore"
+    compileSdk 35 // Android 15
 
     defaultConfig {
-        minSdkVersion 25
+        minSdk 25
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -26,7 +25,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.31.6"
+            version = "3.31.6"
         }
     }
 
@@ -34,12 +33,12 @@ android {
         release {
             minifyEnabled false
             ndk {
-                debugSymbolLevel 'FULL'
+                debugSymbolLevel = 'FULL'
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    ndkVersion '29.0.13113456'
+    ndkVersion = '29.0.13113456'
     lint {
         targetSdk 35
     }
