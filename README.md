@@ -1,10 +1,8 @@
 # ModdedMCPE Android
-A professional free NMod Launcher for Minecraft Pocket Edition and Bedrock Edition (Android ONLY).
-**ModdedMCPE is mostly completed now. If you found bugs, please report to us (in the issues page), then we will fix them.**
-**Pull requests will be much more welcomed than issues. The developers could not manage to fix every issues in time, and they may not want to do it.**
+NMod Launcher for Minecraft Pocket Edition on Android.
 
-This ModdedMCPE project is a completely new NMod launcher compared to the last one "ModdedPE". It is designed to support multi-versions of Minecraft, and there're possibilities for it to become a cross-platform Minecraft Launcher.
-**ATTENTION:** Former NMods for ModdedPE could not be loaded with ModdedMCPE.
+This ModdedMCPE project is a completely new NMod launcher compared to the last one "ModdedPE" (not related). It is designed to support multi-versions of Minecraft, and there're possibilities for it to become a cross-platform Minecraft Launcher.
+*ATTENTION:* Former NMods for ModdedPE could not be loaded with ModdedMCPE.
 
  This is fork of [listerily ModdedBE](https://github.com/listerily/ModdedBE) work.
  Our discord: [ModdedMCPE discord](https://discord.gg/sSNzZykqUR)
@@ -19,27 +17,19 @@ Disclaimer: NOT AN OFFICIAL MINECRAFT LAUNCHER/CLIENT, NOT APPROVED BY OR ASSOCI
  Build,install and run the app.
  **ATTENTION:** Please install Mincraft first. Running on physical devices is recommended, as there are quite a lot opengl problems on android virtual devices on which you cannot open Minecraft even though you don't use ModdedMCPE.
 
-## Repository Structure (deprecated)
- + *ModdedMCPE-Android*
- Source code for ModdedMCPE app.
- + *AgentMainActivity*  
- Source code for AgentMainActivity.dex.
-
 ## What's Available
- + Launch the game (Succeed with Minecraft Bedrock 1.16.201.01, MCPE 0.12.1, Xiaomi Mi10, Android 10, Android 7.1).
- + Auto license the game.
+ + Launch MCPE 0.6 - 1.1 (Minecraft Bedrock 1.16.201.01?).
+ + Auto license the game
  + Multi-version supports for Minecraft.
  + Install NMods.
  + Patch NMods.
  + Manage NMods.
  
-## TODO
+## Maybe TODO
  + Support for lower Android versions.
  + Support for lower and higher Minecraft versions.
  + Create documents and development tools for NMods.
- + Support Minecraft Versions: 0.8 - 1.1, 1.21
  + Modding API Toolbox (JavaScript, C++)
- + ...in our discord full todo list
 
 ## Support us
  + Read our code and helps us to improve it.
