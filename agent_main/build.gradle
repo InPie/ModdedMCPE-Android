@@ -61,11 +61,13 @@ tasks.register('buildAgentMainDex') {
 
         println "Generating dex for: ${outputDir}/AgentMainActivity.dex"
 
-        exec {
-            commandLine d8Executable(),
+        providers.exec { spec ->
+            spec.commandLine(
+                    d8Executable(),
                     "--output", tempOutput,
                     "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class"
-        }
+            )
+        }.result.get()
 
         copy {
             from "${tempOutput}/classes.dex"
@@ -84,12 +86,14 @@ tasks.register('buildCrackedLicenseDex') {
 
         println "Generating dex for: ${outputDir}/CrackedLicense.dex"
 
-        exec {
-            commandLine d8Executable(),
+        providers.exec { spec ->
+            spec.commandLine(
+                    d8Executable(),
                     "--output", tempOutput,
                     "${classesDir}/com/mojang/minecraftpe/store/amazonappstore/AmazonAppStore.class",
                     "${classesDir}/com/mojang/minecraftpe/store/googleplay/GooglePlayStore.class"
-        }
+            )
+        }.result.get()
         copy {
             from "${tempOutput}/classes.dex"
             into outputDir
