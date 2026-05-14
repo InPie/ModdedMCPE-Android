@@ -11,9 +11,6 @@ import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.interf.IInitializationListener;
 import org.endercore.android.interf.implemented.InitializationListener;
 import org.endercore.android.mod.nmod.NMod;
-import org.endercore.android.mod.nmod.overrider.FileOverrider;
-import org.endercore.android.mod.nmod.overrider.JsonOverrider;
-import org.endercore.android.mod.nmod.overrider.TextOverrider;
 import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
@@ -23,10 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import dalvik.system.DexClassLoader;
 //0.8 comp
@@ -67,7 +61,6 @@ public final class Launcher {
     private final static String LIB_MINECRAFTPE = "minecraftpe";
     private final static String LIB_ENDERCORE = "endercore";
     private final static String LIB_MJSCRIPT = "mjscript";
-    private final static String DIR_LIB = "lib";
     private final static String CLASS_MAIN_ACTIVITY = "com.mojang.minecraftpe.MainActivity";
 
     public Launcher(EnderCore core) {
@@ -79,144 +72,34 @@ public final class Launcher {
         listener = new InitializationListener();
     }
 
-    public ArrayList<NModException> initializeGame(Context context) throws LauncherException {
+    public ArrayList<NModException> initializeGame(Context context, GamePackage gamePackage) throws LauncherException {
         listener.onStart();
         ArrayList<NModException> nModExceptions = null;
         try {
             Log.d("EnderCore-Launcher", "Initialization of the game...");
 
-            // Check Availability
-            if (!core.getGamePackageManager().isGameInstalled())
-                throw new LauncherException("Minecraft Game is not installed. Please install game.");
+            if (gamePackage == null) {
+                throw new LauncherException("GamePackage is null.");
+            }
 
-            // Set Variants
             IFileEnvironment fileEnvironment = core.getFileEnvironment();
             NModManager nModManager = core.getNModManager();
             OptionsManager optionsManager = core.getOptionsManager();
-            String targetArch = null;
-            boolean[] dexExists = new boolean[10];
-            for (int i = 0; i < 9; ++i)
-                dexExists[i] = false;
 
             listener.onLoadGameFilesStart();
-
-            // Copy Game Files
-            try {
-                // fix random crashes:
-                // clear cache [dex, native libs, assets] instead re-writing
-                clearGameCodeCache(fileEnvironment);
-
-                File resPath = new File(core.getGamePackageManager().getPackageResourcePath());
-                if (resPath.getParentFile() == null)
-                    throw new IOException("Invalid file path.");
-                File[] allApkFiles = resPath.getParentFile().listFiles();
-                if (allApkFiles == null)
-                    throw new IOException("Failed to list all apk files.");
-                // copy native libraries
-                String[] supportedAbis = CPUArch.getSystemSupportedAbis();
-                String[] requiredLibs = {NAME_FMOD, NAME_GNUSTL_SHARED, NAME_MINECRAFTPE};
-                boolean[] libsCopied = new boolean[requiredLibs.length];
-                for (int i = 0; i < requiredLibs.length; ++i)
-                    libsCopied[i] = false;
-
-                // find target arch
-                for (String abiItem : supportedAbis) {
-                    for (File apkFile : allApkFiles) {
-                        if (!apkFile.isFile())
-                            continue;
-
-                        try {
-                            ZipFile zipFileOfApk;
-                            zipFileOfApk = new ZipFile(apkFile);
-                            Enumeration<? extends ZipEntry> enumeration = zipFileOfApk.entries();
-                            while (enumeration.hasMoreElements()) {
-                                ZipEntry zipEntry = enumeration.nextElement();
-                                if (zipEntry.getName().startsWith(DIR_LIB + File.separator + abiItem) && CPUArch.isEnderCoreSupportedAbi(abiItem))
-                                    targetArch = abiItem;
-                            }
-                        } catch (IOException ignored) {
-                        }
-
-                    }
-                    if (targetArch != null)
-                        break;
-                }
-                if (targetArch == null)
-                    throw new LauncherException("Abis are not supported by EnderCore.");
-
-                Log.d("EnderCore-Launcher", "Selected architecture: " + targetArch);
-
-                // copy game native libraries
-                for (int i = 0; i < requiredLibs.length; ++i) {
-                    String libName = requiredLibs[i];
-                    if (!libsCopied[i]) {
-                        for (File apk : allApkFiles) {
-                            if (!apk.isFile())
-                                continue;
-                            ZipEntry targetEntry;
-                            ZipFile apkFile;
-                            try {
-                                apkFile = new ZipFile(apk);
-                                targetEntry = apkFile.getEntry(DIR_LIB + File.separator + targetArch + File.separator + libName);
-                            } catch (IOException ignored) {
-                                continue;
-                            }
-
-                            if (targetEntry != null) {
-                                listener.onCopyGameFile(libName);
-                                FileUtils.copy(apkFile.getInputStream(targetEntry), new File(fileEnvironment.getCodeCacheDirPathForNativeLib(), libName));
-                                libsCopied[i] = true;
-                            }
-                        }
-                    }
-                }
-                boolean allLibsCopied = true;
-                int notCopiedLibId = -1;
-                for (int i = 0; i < libsCopied.length; ++i) {
-                    boolean copied = libsCopied[i];
-                    if (!copied) {
-                        allLibsCopied = false;
-                        notCopiedLibId = i;
-                        break;
-                    }
-                }
-                //if (!allLibsCopied)
-                //    throw new LauncherException("Not all required libs are found int the minecraft game package. Lib " + requiredLibs[notCopiedLibId] + " of arch " + targetArch + " not found.");
-
-                //Copy Dex files
-                for (int i = 9; i >= 0; --i) {
-                    String libName = "classes" + (i == 0 ? "" : i) + ".dex";
-                    for (File apk : allApkFiles) {
-                        if (!apk.isFile())
-                            continue;
-
-                        ZipEntry targetEntry;
-                        ZipFile apkFile;
-                        try {
-                            apkFile = new ZipFile(apk);
-                            targetEntry = apkFile.getEntry(libName);
-                        } catch (IOException e) {
-                            continue;
-                        }
-
-                        if (targetEntry != null) {
-                            listener.onCopyGameFile(libName);
-                            FileUtils.copy(apkFile.getInputStream(targetEntry), new File(fileEnvironment.getCodeCacheDirPathForDex(), libName));
-                            dexExists[i] = true;
-                        }
-                    }
-                }
-            } catch (IOException ioexception) {
-                throw new LauncherException("Extract game libraries failed.", ioexception);
-            }
-            Log.d("EnderCore-Launcher", "Game Files Copied");
+            Log.d("EnderCore-Launcher", "File extraction skipped (handled by Builder)");
+            // File extraction is handled externally by GamePackageBuilder and NModPreparer
+            listener.onLoadGameFilesFinish();
 
             listener.onLoadJavaLibrariesStart();
+            Log.d("EnderCore-Launcher", "Patching Dex Files...");
             try {
+                // Patch Game Dex
                 for (int i = 9; i >= 0; --i) {
                     String dexLibName = "classes" + (i == 0 ? "" : i) + ".dex";
                     File path = new File(fileEnvironment.getCodeCacheDirPathForDex(), dexLibName);
-                    if (dexExists[i]) {
+                    if (path.exists()) {
+                        Log.d("EnderCore-Launcher", "Patching: " + dexLibName);
                         listener.onLoadJavaLibrary(dexLibName);
                         if (!path.setReadOnly()) { // Android 15 fix
                             throw new LauncherException("Unable to set file to read-only: " + path.getAbsolutePath());
@@ -228,7 +111,8 @@ public final class Launcher {
                 }
 
                 if (optionsManager.getAutoLicense()) {
-                    //Crack License Checker
+                    // Crack License Checker
+                    Log.d("EnderCore-Launcher", "Patching CrackedLicense.dex...");
                     File licenseCrackerDex = new File(fileEnvironment.getCodeCacheDirPathForDex(), NAME_CRACKER_DEX);
                     FileUtils.copy(context.getAssets().open(ASSETS_FILE_CRACKER_DEX), licenseCrackerDex);
                     if (!licenseCrackerDex.setReadOnly()) { // Android 15 fix
@@ -247,6 +131,7 @@ public final class Launcher {
 
             // Load Native Libs
             listener.onLoadNativeLibrariesStart();
+            Log.d("EnderCore-Launcher", "Patching Native Libs Dir...");
             try {
                 Patcher.patchNativeLibraryDir(context.getClassLoader(), fileEnvironment.getCodeCacheDirPathForNativeLib());
                 patchLibPath.add(fileEnvironment.getCodeCacheDirPathForNativeLib());
@@ -256,6 +141,7 @@ public final class Launcher {
             try {
                 File nativeLibDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
 
+                Log.d("EnderCore-Launcher", "Loading C++ Shared...");
                 if (new File(nativeLibDir, NAME_CPP_SHARED).exists()) {
                     listener.onLoadNativeLibrary(NAME_CPP_SHARED);
                     System.loadLibrary(LIB_CPP_SHARED);
@@ -263,6 +149,7 @@ public final class Launcher {
                     Log.e("EnderCore-Launcher", "Native library " + NAME_CPP_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
+                Log.d("EnderCore-Launcher", "Loading FMOD...");
                 if (new File(nativeLibDir, NAME_FMOD).exists()) {
                     listener.onLoadNativeLibrary(NAME_FMOD);
                     System.loadLibrary(LIB_FMOD);
@@ -270,6 +157,7 @@ public final class Launcher {
                     Log.e("EnderCore-Launcher", "Native library " + NAME_FMOD + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
+                Log.d("EnderCore-Launcher", "Loading GNU STL...");
                 if (new File(nativeLibDir, NAME_GNUSTL_SHARED).exists()) {
                     listener.onLoadNativeLibrary(NAME_GNUSTL_SHARED);
                     System.loadLibrary(LIB_GNUSTL_SHARED);
@@ -277,8 +165,10 @@ public final class Launcher {
                     Log.e("EnderCore-Launcher", "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                loadMinecraftNativeLibrary(context, core.getGamePackageManager().getVersionName());
+                Log.d("EnderCore-Launcher", "Loading Minecraft PE Native...");
+                loadMinecraftNativeLibrary(context, gamePackage.getVersionName());
 
+                Log.d("EnderCore-Launcher", "Loading EnderCore Hooks...");
                 listener.onLoadNativeLibrary(NAME_YURAI);
                 System.loadLibrary(LIB_YURAI);
                 listener.onLoadNativeLibrary(NAME_SUBSTRATE);
@@ -301,8 +191,9 @@ public final class Launcher {
 
             // Load Resources
             listener.onLoadResourcesStart();
+            Log.d("EnderCore-Launcher", "Forming Assets Paths...");
             patchAssetPath.add(context.getPackageResourcePath());
-            String basePath = core.getGamePackageManager().getPackageResourcePath();
+            String basePath = gamePackage.getBaseApkPath();
             patchAssetPath.add(basePath);
             /* In `1.17.30`(beta version unknown), almost all assets files were moved to
              * `split_install_pack.apk`, including `bootstrap.json`, a file that is crucial to
@@ -315,40 +206,15 @@ public final class Launcher {
             }
             listener.onLoadResourcesFinish();
 
-            listener.onLoadGameFilesFinish();
-
-            // Load NMods
+            // Load NMods Native Libs
             if (optionsManager.getUseNMods()) {
+                Log.d("EnderCore-Launcher", "Loading NMods Native Libs...");
                 listener.onLoadNModsStart();
                 nModExceptions = new ArrayList<>();
 
-                // Extract all assets from game apk
-                File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
-                boolean mkdirsResult = assetsDir.mkdirs();
-                if (!mkdirsResult)
-                    throw new LauncherException("Failed to mkdirs: " + assetsDir.getAbsolutePath() + ".");
-
-                File resPath = new File(core.getGamePackageManager().getPackageResourcePath());
-                if (resPath.getParentFile() == null)
-                    throw new IOException("Invalid file path.");
-                File[] allApkFiles = resPath.getParentFile().listFiles();
-                if (allApkFiles == null)
-                    throw new IOException("Failed to list all apk files.");
-                for (File apkFile : allApkFiles) {
-                    try {
-                        ZipFile zipFile = new ZipFile(apkFile);
-                        Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
-                        while (enumeration.hasMoreElements()) {
-                            ZipEntry entry = enumeration.nextElement();
-                            if (entry.getName().startsWith("assets/")) {
-                                FileUtils.copy(zipFile.getInputStream(entry), new File(assetsDir, entry.getName()));
-                            }
-                        }
-                    } catch (IOException ignored) {
-                    }
-                }
-
                 ArrayList<NMod> enabledNMods = nModManager.getEnabledNMods();
+                String[] supportedAbis = CPUArch.getSystemSupportedAbis();
+
                 for (NMod nmod : enabledNMods) {
                     listener.onLoadNMod(nmod);
                     try {
@@ -356,43 +222,38 @@ public final class Launcher {
                         // Find a proper game support
                         for (NModJsonBean.GameSupportData gameSupportData : nmod.getPackageManifest().game_supports) {
                             for (String version : gameSupportData.target_game_versions) {
-                                if (Pattern.matches(version, core.getGamePackageManager().getVersionName())) {
+                                if (Pattern.matches(version, gamePackage.getVersionName())) {
                                     gameSupport = gameSupportData;
+                                    break;
                                 }
                             }
+                            if (gameSupport != null) break;
                         }
 
                         if (gameSupport == null) {
                             throw new NModException("Cannot find a proper game version support for NMod " + nmod.getUUID() + ".");
                         }
 
-                        // Patch assets for NMods
-                        for (NModJsonBean.FileOverrideData fileOverrideData : gameSupport.file_overrides) {
-                            listener.onLoadNModAsset(fileOverrideData.path);
-                            FileOverrider overrider = new FileOverrider(new File(assetsDir, "assets"));
-                            overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), fileOverrideData.path, null);
-                        }
-                        for (NModJsonBean.JsonOverrideData jsonOverrideData : gameSupport.json_overrides) {
-                            listener.onLoadNModAsset(jsonOverrideData.path);
-                            JsonOverrider overrider = new JsonOverrider(new File(assetsDir, "assets"));
-                            overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), jsonOverrideData.path, jsonOverrideData.mode);
-                        }
-                        for (NModJsonBean.TextOverrideData textOverrideData : gameSupport.text_overrides) {
-                            listener.onLoadNModAsset(textOverrideData.path);
-                            TextOverrider overrider = new TextOverrider(new File(assetsDir, "assets"));
-                            overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), textOverrideData.path, textOverrideData.mode);
-                        }
-
                         // Patch Libs
                         if (gameSupport.native_libs != null) {
-                            if (nmod.getFileInGameSupportDir(targetArch, gameSupport.name).exists()) {
-                                Patcher.patchNativeLibraryDir(context.getClassLoader(), nmod.getFileInGameSupportDir(targetArch, gameSupport.name).getAbsolutePath());
+                            File nmodSupportDir = null;
+                            for (String abi : supportedAbis) {
+                                File checkDir = nmod.getFileInGameSupportDir(abi, gameSupport.name);
+                                if (checkDir.exists()) {
+                                    nmodSupportDir = checkDir;
+                                    break;
+                                }
+                            }
+
+                            if (nmodSupportDir != null) {
+                                Patcher.patchNativeLibraryDir(context.getClassLoader(), nmodSupportDir.getAbsolutePath());
                                 for (NModJsonBean.NativeLibData nativeLibData : gameSupport.native_libs) {
                                     listener.onLoadNModNativeLibrary(nmod, nativeLibData.name);
                                     System.loadLibrary(nativeLibData.name);
                                 }
-                            } else
-                                throw new NModException("No target arch found.");
+                            } else {
+                                throw new NModException("No target arch found for NMod.");
+                            }
                         }
 
                     } catch (NModException exception) {
@@ -478,12 +339,6 @@ public final class Launcher {
                 return true;
         }
         return false;
-    }
-
-    private static void clearGameCodeCache(IFileEnvironment fileEnvironment) {
-        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForDex()));
-        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForNativeLib()));
-        FileUtils.removeFiles(new File(fileEnvironment.getCodeCacheDirPathForAssets()));
     }
 
     //0.8 comp

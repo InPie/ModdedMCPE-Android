@@ -94,7 +94,8 @@ public class InstanceRepository {
     public boolean deleteInstance(String instanceId) {
         File instanceDir = getInstanceDir(instanceId);
         if (instanceDir.exists()) {
-            return FileUtils.removeFiles(instanceDir);
+            FileUtils.removeFiles(instanceDir);
+            return !instanceDir.exists();
         }
         return true;
     }

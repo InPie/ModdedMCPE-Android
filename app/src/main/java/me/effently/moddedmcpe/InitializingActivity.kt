@@ -27,8 +27,23 @@ class InitializingActivity : AppCompatActivity() {
                     }
                 })
                 try {
-                    EnderCore.instance.launcher.initializeGame(this@InitializingActivity)
-                } catch (e: LauncherException) {
+                    val core = EnderCore.instance
+                    val gamePackage = core.gamePackageManager.gamePackage
+                    
+                    // Temporary workaround for old launch mode before GameManager UI
+                    if (gamePackage != null) {
+                        val tempInstanceId = "legacy_installed"
+                        val builder = org.endercore.android.operator.instance.GamePackageBuilder(core.fileEnvironment, tempInstanceId)
+                        val preparer = org.endercore.android.operator.instance.NModPreparer(core.fileEnvironment, core.nModManager, tempInstanceId)
+                        
+                        builder.build(gamePackage)
+                        preparer.prepare(gamePackage)
+                        
+                        core.launcher.initializeGame(this@InitializingActivity, gamePackage)
+                    } else {
+                        throw LauncherException("Game is not installed or GamePackage is null.")
+                    }
+                } catch (e: Exception) {
                     val errorMessage = Message()
                     errorMessage.what = LAUNCH_SUSPEND
                     errorMessage.obj = e
