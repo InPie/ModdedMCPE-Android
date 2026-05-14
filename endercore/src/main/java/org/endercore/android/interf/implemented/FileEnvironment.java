@@ -11,7 +11,7 @@ public class FileEnvironment implements IFileEnvironment {
     private final String enderCoreDirPath;
     private final String gameDirPath;
 
-    public final static String DIR_DATA_ROOT = "endercore_data";
+    public final static String DIR_DATA_ROOT = "launcher_data";
     public final static String DIR_GAME_DATA = "minecraft_game";
 
     public final static String DIR_NMODS = "nmods";
@@ -37,6 +37,11 @@ public class FileEnvironment implements IFileEnvironment {
     @Override
     public String getEnderCoreDirPath() {
         return enderCoreDirPath;
+    }
+
+    @Override
+    public String getInstancesDirPath() {
+        return getEnderCoreDirPath() + java.io.File.separator + "instances";
     }
 
     @Override

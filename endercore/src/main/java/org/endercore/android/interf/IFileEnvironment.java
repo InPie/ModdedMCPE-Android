@@ -5,6 +5,8 @@ public interface IFileEnvironment {
 
     String getEnderCoreDirPath();
 
+    String getInstancesDirPath();
+
     String getOptionsFilePath();
 
     String getNModsDirPath();
