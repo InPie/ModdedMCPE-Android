@@ -22,6 +22,8 @@ public class FileEnvironment implements IFileEnvironment {
 
     public final static String DATA_FILE_ENDERCORE_OPTIONS = "options.json";
 
+    private String activeInstanceId = null;
+
     public FileEnvironment(Context context) {
         codeCacheDirPath = context.getCodeCacheDir().getPath();
         enderCoreDirPath = context.getDir(DIR_DATA_ROOT, 0).getPath();
@@ -59,14 +61,22 @@ public class FileEnvironment implements IFileEnvironment {
         return getNModsDirPath() + File.separator + uuid;
     }
 
+    private void checkWorkspace() {
+        if (activeInstanceId == null) {
+            throw new IllegalStateException("Active instance workspace is not set. Call setActiveWorkspace() first.");
+        }
+    }
+
     @Override
     public String getCodeCacheDirPathForDex() {
-        return getCodeCacheDirPath() + File.separator + DIR_DEX_LIBS;
+        checkWorkspace();
+        return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_DEX_LIBS;
     }
 
     @Override
     public String getCodeCacheDirPathForNativeLib() {
-        return getCodeCacheDirPath() + File.separator + DIR_NATIVE_LIBS;
+        checkWorkspace();
+        return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_NATIVE_LIBS;
     }
 
     @Override
@@ -81,11 +91,33 @@ public class FileEnvironment implements IFileEnvironment {
 
     @Override
     public String getCodeCacheDirPathForNMods() {
-        return getCodeCacheDirPath() + File.separator + DIR_NMODS;
+        checkWorkspace();
+        return getInstanceNModsCacheDirPath(activeInstanceId);
     }
 
     @Override
     public String getCodeCacheDirPathForAssets() {
-        return getCodeCacheDirPath() + File.separator + DIR_ASSETS;
+        checkWorkspace();
+        return getInstanceNModsCacheDirPath(activeInstanceId) + File.separator + DIR_ASSETS;
+    }
+
+    @Override
+    public void setActiveWorkspace(String instanceId) {
+        this.activeInstanceId = instanceId;
+    }
+
+    @Override
+    public String getActiveWorkspaceId() {
+        return activeInstanceId;
+    }
+
+    @Override
+    public String getInstanceCacheDirPath(String instanceId) {
+        return getInstancesDirPath() + File.separator + instanceId + File.separator + "cache";
+    }
+
+    @Override
+    public String getInstanceNModsCacheDirPath(String instanceId) {
+        return getInstancesDirPath() + File.separator + instanceId + File.separator + "nmods_cache";
     }
 }

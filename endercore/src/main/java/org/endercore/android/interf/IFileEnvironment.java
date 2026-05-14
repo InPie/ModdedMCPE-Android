@@ -24,4 +24,12 @@ public interface IFileEnvironment {
     String getCodeCacheDirPathForNMods();
 
     String getCodeCacheDirPathForAssets();
+
+    void setActiveWorkspace(String instanceId);
+
+    String getActiveWorkspaceId();
+
+    String getInstanceCacheDirPath(String instanceId);
+
+    String getInstanceNModsCacheDirPath(String instanceId);
 }
