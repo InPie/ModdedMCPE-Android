@@ -54,8 +54,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onStartGameClicked(view: View) {
-        startActivity(Intent(this, InitializingActivity::class.java))
-        finish()
+        startActivity(Intent(this, GameManagerActivity::class.java))
+        // We don't finish() here so we can go back to the main menu
     }
 
     fun onMenuClicked(view: View) {

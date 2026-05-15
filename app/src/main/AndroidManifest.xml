@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="me.effently.moddedmcpe">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -18,6 +17,11 @@
             android:value="@string/hockeyapp_android_id" />
 
         <activity
+            android:name="me.effently.moddedmcpe.GameManagerActivity"
+            android:screenOrientation="sensorLandscape"
+            android:label="@string/title_instances"
+            android:theme="@style/AppTheme" />
+        <activity
             android:name="me.effently.moddedmcpe.AboutUsActivity"
             android:screenOrientation="sensorLandscape"
             android:label="@string/app_info"
@@ -28,6 +32,7 @@
             android:theme="@style/FullScreenTheme" />
         <activity
             android:name="me.effently.moddedmcpe.InitializingActivity"
+            android:process=":game"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/FullScreenTheme" />
         <activity

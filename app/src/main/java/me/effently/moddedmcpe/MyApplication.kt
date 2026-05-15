@@ -1,6 +1,7 @@
 package me.effently.moddedmcpe
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
@@ -68,9 +69,25 @@ class MyApplication : Application() {
                     minecraftActivityRef?.get() == activity) {
                     removeButtonManager()
                     minecraftActivityRef = null
+                    finishGameProcess()
                 }
             }
         })
+    }
+
+    private fun finishGameProcess() {
+        if (!isGameProcess()) return
+        mainHandler.post {
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
+    }
+
+    private fun isGameProcess(): Boolean {
+        val pid = android.os.Process.myPid()
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        return activityManager.runningAppProcesses?.any {
+            it.pid == pid && it.processName.endsWith(":game")
+        } == true
     }
 
     private fun setupButtonManager(activity: Activity) {

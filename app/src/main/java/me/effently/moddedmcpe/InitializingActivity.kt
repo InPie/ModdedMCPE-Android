@@ -9,6 +9,18 @@ import androidx.appcompat.app.AppCompatActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.exception.LauncherException
 import org.endercore.android.interf.implemented.InitializationListener
+import org.endercore.android.operator.ApkGamePackageManager
+import org.endercore.android.operator.GamePackage
+import org.endercore.android.operator.instance.GamePackageBuilder
+import org.endercore.android.operator.instance.InstanceRepository
+import org.endercore.android.operator.instance.NModPreparer
+import org.endercore.android.operator.instance.model.GameInstance
+import org.endercore.android.operator.instance.model.InstanceSourceType
+import org.endercore.android.operator.instance.model.InstanceState
+import me.effently.moddedmcpe.fragments.gameManager.isInstancePrepared
+import me.effently.moddedmcpe.fragments.gameManager.managedApkFile
+import me.effently.moddedmcpe.fragments.gameManager.packageSnapshotOf
+import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -28,25 +40,23 @@ class InitializingActivity : AppCompatActivity() {
                 })
                 try {
                     val core = EnderCore.instance
-                    val gamePackage = core.gamePackageManager.gamePackage
-                    
-                    // Temporary workaround for old launch mode before GameManager UI
-                    if (gamePackage != null) {
-                        val tempInstanceId = "legacy_installed"
-                        val builder = org.endercore.android.operator.instance.GamePackageBuilder(core.fileEnvironment, tempInstanceId)
-                        val preparer = org.endercore.android.operator.instance.NModPreparer(core.fileEnvironment, core.nModManager, tempInstanceId)
-                        
-                        builder.build(gamePackage)
-                        preparer.prepare(gamePackage)
-                        
-                        core.launcher.initializeGame(this@InitializingActivity, gamePackage)
-                    } else {
-                        throw LauncherException("Game is not installed or GamePackage is null.")
-                    }
-                } catch (e: Exception) {
+                    val instanceId = intent.getStringExtra("INSTANCE_ID")
+                        ?: throw LauncherException("Instance id is missing.")
+                    val repo = InstanceRepository(core.fileEnvironment)
+                    val instance = repo.getInstance(instanceId)
+                        ?: throw LauncherException("Instance not found: $instanceId")
+                    val launchTarget = prepareInstance(repo, instance)
+
+                    core.launcher.initializeGame(this@InitializingActivity, launchTarget)
+                } catch (e: LauncherException) {
                     val errorMessage = Message()
                     errorMessage.what = LAUNCH_SUSPEND
                     errorMessage.obj = e
+                    handler.sendMessage(errorMessage)
+                } catch (e: Exception) {
+                    val errorMessage = Message()
+                    errorMessage.what = LAUNCH_SUSPEND
+                    errorMessage.obj = LauncherException("Failed to prepare game launch.", e)
                     handler.sendMessage(errorMessage)
                 }
             }
@@ -78,6 +88,47 @@ class InitializingActivity : AppCompatActivity() {
     }
 
     private val handler = MHandler(this)
+
+    private fun prepareInstance(repo: InstanceRepository, instance: GameInstance): GamePackage {
+        val core = EnderCore.instance
+        val gamePackage = resolveGamePackage(repo, instance)
+        val builder = GamePackageBuilder(core.fileEnvironment, instance.id)
+        val preparer = NModPreparer(core.fileEnvironment, core.nModManager, instance.id)
+
+        if (instance.state != InstanceState.READY || !isInstancePrepared(core.fileEnvironment, instance.id)) {
+            builder.build(gamePackage)
+            instance.state = InstanceState.READY
+        }
+
+        preparer.prepare(gamePackage)
+        instance.packageSnapshot = packageSnapshotOf(gamePackage)
+        instance.lastPlayedAt = System.currentTimeMillis()
+        repo.saveInstance(instance)
+        return gamePackage
+    }
+
+    private fun resolveGamePackage(repo: InstanceRepository, instance: GameInstance): GamePackage {
+        val source = instance.source ?: throw LauncherException("Instance source is missing: ${instance.id}")
+        return when (source.type) {
+            InstanceSourceType.MANAGED_APK -> {
+                val apkFile = managedApkFile(repo, instance.id)
+                ApkGamePackageManager.getGamePackageFromApk(this, apkFile)
+            }
+            InstanceSourceType.EXTERNAL_APK -> {
+                val apkPath = source.apkPath ?: throw LauncherException("External APK path is missing: ${instance.id}")
+                ApkGamePackageManager.getGamePackageFromApk(this, File(apkPath))
+            }
+            InstanceSourceType.INSTALLED_PACKAGE -> {
+                val gamePackage = EnderCore.instance.gamePackageManager.gamePackage
+                    ?: throw LauncherException("Installed MCPE package is not available.")
+                gamePackage
+            }
+            InstanceSourceType.REMOTE_APK -> {
+                throw LauncherException("Remote instance is not downloaded yet: ${instance.name}")
+            }
+            else -> throw LauncherException("Unsupported instance source: ${source.type}")
+        }
+    }
 
     private class MHandler(private val context: InitializingActivity) : Handler() {
         override fun handleMessage(msg: Message) {
