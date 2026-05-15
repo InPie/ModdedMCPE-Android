@@ -1,31 +1,39 @@
 # ModdedMCPE Android
-NMod Launcher for Minecraft Pocket Edition on Android.
+A simple MCPE launcher for Android that can load multiple versions at once.
 
-This ModdedMCPE project is a completely new NMod launcher compared to the last one "ModdedPE" (not related). It is designed to support multi-versions of Minecraft, and there're possibilities for it to become a cross-platform Minecraft Launcher.
-*ATTENTION:* Former NMods for ModdedPE could not be loaded with ModdedMCPE.
+ModdedMCPE is not related to ModdedPE or ModdedBE. It is designed to support multi-versions of Minecraft, and there're possibilities for it to become a cross-platform Minecraft Launcher.
 
- This is fork of [listerily ModdedBE](https://github.com/listerily/ModdedBE) work.
- Our discord: [ModdedMCPE discord](https://discord.gg/sSNzZykqUR)
+- **Original work**:  
+This is fork of [listerily ModdedBE](https://github.com/listerily/ModdedBE) work.
 
-Message from the current developer (Effently):
-> This isn't even the first version, not much is ready, refactoring hasn't even started, and support for minecraft versions is lame on both legs. I hope I have enough time until 2026 or early 2026 to continue developing this fork.
+- **Status**:  
+This isn't even the first version, not much is ready. I hope I have enough time continue developing..
 
-Disclaimer: NOT AN OFFICIAL MINECRAFT LAUNCHER/CLIENT, NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
+- **Disclaimer**:  
+NOT AN OFFICIAL MINECRAFT LAUNCHER/CLIENT, NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
 
 ## Run the code
  Download Android Studio, android sdk and android ndk.  
- Build,install and run the app.
- **ATTENTION:** Please install Mincraft first. Running on physical devices is recommended, as there are quite a lot opengl problems on android virtual devices on which you cannot open Minecraft even though you don't use ModdedMCPE.
+ or:
+ ```
+./gradlew :app:assembleDebug
+adb install -r -d app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n me.effently.moddedmcpe/.MainActivity
+```
+ Build, install and run the app.
 
 ## What's Available
- + Launch MCPE 0.6 - 1.1 (Minecraft Bedrock 1.16.201.01?).
+ + Launches MCPE 0.6 - 1.1 (Minecraft Bedrock 1.16.201.01? - not working now).
  + Auto license the game
  + Multi-version supports for Minecraft.
  + Install NMods.
  + Patch NMods.
  + Manage NMods.
+
+NMods haven't beed tested in recent builds.
  
-## Maybe TODO
+## TODO
+maybe
  + Support for lower Android versions.
  + Support for lower and higher Minecraft versions.
  + Create documents and development tools for NMods.
@@ -37,7 +45,7 @@ Disclaimer: NOT AN OFFICIAL MINECRAFT LAUNCHER/CLIENT, NOT APPROVED BY OR ASSOCI
  + Help us solve the issues.
  
 ## Make Contributions
- + **[Join our discord](https://discord.gg/sSNzZykqUR)**
+ + [Join our discord](https://discord.gg/sSNzZykqUR)
  + Send us pull requests.
  + Sign your name in the project files /app/src/res/values/strings.xml: tag "app_contributors".
  
