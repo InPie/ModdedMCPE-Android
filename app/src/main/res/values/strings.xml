@@ -1,24 +1,25 @@
  <resources>
     <string name="app_name">Modded MCPE</string>
+    <string name="app_launcher_title">Modded MCPE Launcher</string>
     <string name="app_title">Modded MCPE</string>
+
     <string name="app_summary">A professional launcher for Minecraft PE.</string>
-    <string name="title_activity_settings">Settings</string>
     <string name="app_start_game">Start Game</string>
+    <string name="app_options">Options</string>
     <string name="app_manage_nmods">Manage NMods</string>
     <string name="app_permission_denied">Permission Denied</string>
     <string name="app_message_permission_denied">Oops! Modded MCPE couldn\'t gain the permission to read your storage.This is vital for launching app.Please go to the Settings to make sure that the permisssion isn\'t denied.</string>
+
     <string name="app_info">Info</string>
     <string name="app_loading">Loading</string>
     <string name="app_loading_summary">Loading game,please wait.</string>
-    <string name="app_exit">Exit</string>
-    <string name="app_text_divider">|</string>
-    <string name="app_options">Options</string>
     <string name="app_fatal_message_title">Fatal Error</string>
     <string name="app_fatal_message_summary">An unexpected fatal error has occurred while initializing game.Please analyse this error or send it to developers.If this occurred again,consider clearing app data.</string>
     <string name="app_app_data_cleared">Cleared</string>
     <string name="app_clear_data">Clear Data</string>
     <string name="app_copy">Copy</string>
     <string name="app_copied">Copied</string>
+    <string name="app_exit">Exit</string>
     <string name="app_fatal_version_name">Version: %1$s</string>
     <string name="app_fatal_game_version">Game Version: %1$s</string>
     <string name="app_fatal_endercore_sdk">EnderCore SDK: %1$d</string>
@@ -35,6 +36,8 @@
     <string name="app_options_unlock_mjscript">Script Engine (Not yet implemented)</string>
     <string name="app_options_manage_nmods">Manage NMods</string>
     <string name="app_options_install_new_nmods">Install NMods</string>
+
+    <string name="app_text_divider">|</string>
     <string name="app_options_title_info">Info</string>
     <string name="app_options_about_us">About us</string>
     <string name="app_contributors" translatable="false">Dev: Effently (Contributors: listerily, TimScriptov, TripleCamera - thanks)</string>
@@ -42,6 +45,7 @@
     <string name="app_source">Sources</string>
     <string name="app_discord">Discord</string>
     <string name="app_updates">Updates</string>
+
     <string name="app_nmod_package_open_failed_title">Oops!</string>
     <string name="app_nmod_package_open_failed_summary">Failed to open this NMod package. Please read these error messages and fix them.\n</string>
     <string name="app_nmod_install_message">Do you want to install %1$s ?</string>
@@ -53,24 +57,29 @@
     <string name="app_nmod_install_failed_title">Installing Failed</string>
     <string name="app_nmod_icon">The Icon of the NMod.</string>
     <string name="app_nmod_remove">Remove</string>
+
     <string name="title_instances">My Instances</string>
     <string name="title_versions">Versions</string>
     <string name="title_addons">Addons</string>
-    <string name="btn_import_apk">Add from APK / ZIP</string>
     <string name="text_addons_stub">Mods, textures, and maps are not supported yet</string>
+    <string name="btn_import_apk">Add from APK / ZIP</string>
     <string name="text_preparing">Preparing...</string>
     <string name="btn_install">Install</string>
     <string name="btn_play">Play</string>
     <string name="btn_download">Download</string>
     <string name="btn_duplicate">Duplicate</string>
     <string name="btn_export_zip">Export ZIP</string>
+    <string name="btn_info">Info</string>
     <string name="text_status">Status: %1$s</string>
+    <string name="text_last_launch">Last launch: %1$s</string>
+    <string name="text_never_launched">Not launched yet</string>
     <string name="text_download_progress">Downloaded: %1$d%%</string>
     <string name="text_download_status_available">Available</string>
     <string name="text_download_status_untested">Not tested</string>
     <string name="toast_versions_failed">Failed to load versions list</string>
     <string name="toast_downloading">Instance is still downloading!</string>
     <string name="toast_no_instances">You have no instances yet</string>
+
     <string name="dialog_delete_title">Delete %1$s?</string>
     <string name="dialog_delete_message">This will remove game files and cache. Are you sure?</string>
     <string name="btn_delete">Delete</string>
@@ -88,6 +97,7 @@
     <string name="dialog_import_apk_title">Importing APK</string>
     <string name="dialog_import_zip_title">Importing ZIP</string>
     <string name="dialog_import_failed_title">Import Failed</string>
+    <string name="dialog_instance_info_title">Instance info</string>
 
     <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>

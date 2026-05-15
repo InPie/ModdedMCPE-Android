@@ -1,34 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_title">Modded MCPE</string>
+    <string name="app_launcher_title">Лаунчер Modded MCPE</string>
+
+
     <string name="app_summary">Профессиональный лаунчер для Minecraft PE.</string>
     <string name="app_start_game">Начать игру</string>
+    <string name="app_options">Настройки</string>
     <string name="app_manage_nmods">Мененджер NMods</string>
+    <string name="app_permission_denied">В доступе отказано</string>
+    <string name="app_message_permission_denied">Упс! Modded MCPE запрещён доступ к внутреннему хранилищу. Это важно для запуска приложения. Зайдите в Настройки, чтобы убедиться, что разрешение не отклонено!</string>
+
     <string name="app_info">Информация</string>
     <string name="app_loading">Загрузка</string>
     <string name="app_loading_summary">Загрузка игры, пожалуйста подождите…</string>
-    <string name="app_options">Настройки</string>
     <string name="app_fatal_message_title">Критическая ошибка</string>
     <string name="app_fatal_message_summary">При запуске игры произошла критическая ошибка. Пожалуйста, проанализируйте эту ошибку или отправьте ее разработчикам. Если это произойдет снова, попробуйте очистить данные приложения.</string>
-    <string name="app_text_divider">|</string>
-    <string name="app_name">Modded MCPE</string>
     <string name="app_app_data_cleared">Очищено</string>
     <string name="app_clear_data">Очистить данные</string>
     <string name="app_copy">Копировать</string>
     <string name="app_copied">Скопировано</string>
+    <string name="app_exit">Выйти</string>
     <string name="app_fatal_version_name">Версия: %1$s</string>
     <string name="app_fatal_game_version">Версия игры: %1$s</string>
     <string name="app_fatal_endercore_sdk">EnderCore SDK: %1$d</string>
     <string name="app_fatal_os_sdk">OS SDK: %1$d</string>
-    <string name="app_fatal_model">Model: %1$s</string>
-    <string name="app_fatal_brand">Brand: %1$s</string>
-    <string name="app_exit">Выйти</string>
-    <string name="app_permission_denied">В доступе отказано</string>
-    <string name="app_message_permission_denied">Упс! Modded MCPE запрещён доступ к внутреннему хранилищу. Это важно для запуска приложения. Зайдите в Настройки, чтобы убедиться, что разрешение не отклонено!</string>
-    <string name="title_activity_settings">Настройки</string>
+    <string name="app_fatal_brand">Бренд: %1$s</string>
+    <string name="app_fatal_model">Модель: %1$s</string>
     <string name="app_fatal_use_nmods">" Использовать NMods: %1$d"</string>
     <string name="app_fatal_abi">ABI: %1$s</string>
-    <string name="app_options_title_launcher">Launcher</string>
+    <string name="app_options_title_launcher">Лаунчер</string>
     <string name="app_options_title_nmods">NMods</string>
     <string name="app_options_use_nmods">Использовать NMods</string>
     <string name="app_options_auto_license">Обойти проверку лицензии</string>
@@ -36,6 +36,8 @@
     <string name="app_options_unlock_mjscript">Скриптовый движок (еще не реализован)</string>
     <string name="app_options_manage_nmods">Мененджер NMods</string>
     <string name="app_options_install_new_nmods">Установить NMods</string>
+
+    <string name="app_text_divider">|</string>
     <string name="app_options_title_info">Информация</string>
     <string name="app_options_about_us">О приложении</string>
     <string name="app_contributors">Разработано: Effently (Огромный вклад: listerily, TimScriptov, TripleCamera)</string>
@@ -43,6 +45,7 @@
     <string name="app_source">Исходный код</string>
     <string name="app_discord">Дискорд</string>
     <string name="app_updates">Обновления</string>
+
     <string name="app_nmod_package_open_failed_title">Упс!</string>
     <string name="app_nmod_package_open_failed_summary">Не удалось установить NMod. Прочтите сообщение об ошибках и исправьте их.\n</string>
     <string name="app_nmod_install_message">Вы хотите установить %1$s ?</string>
@@ -54,21 +57,29 @@
     <string name="app_nmod_install_failed_title">Ошибка установки</string>
     <string name="app_nmod_icon">Иконка NMod</string>
     <string name="app_nmod_remove">Удалить</string>
+
     <string name="title_instances">Мои инстансы</string>
     <string name="title_versions">Версии</string>
     <string name="title_addons">Дополнения</string>
-    <string name="btn_import_apk">Добавить из APK / ZIP</string>
     <string name="text_addons_stub">Моды, текстуры и карты пока не поддерживаются</string>
+    <string name="btn_import_apk">Добавить из APK / ZIP</string>
     <string name="text_preparing">Подготовка...</string>
     <string name="btn_install">Установить</string>
     <string name="btn_play">Играть</string>
+    <string name="btn_download">Скачать</string>
+    <string name="btn_duplicate">Дублировать</string>
+    <string name="btn_export_zip">Экспорт ZIP</string>
+    <string name="btn_info">Информация</string>
     <string name="text_status">Статус: %1$s</string>
+    <string name="text_last_launch">Последний запуск: %1$s</string>
+    <string name="text_never_launched">Ещё не запускался</string>
     <string name="text_download_progress">Скачано: %1$d%%</string>
     <string name="text_download_status_available">Доступно</string>
     <string name="text_download_status_untested">Не протестировано</string>
     <string name="toast_versions_failed">Не удалось загрузить список версий</string>
     <string name="toast_downloading">Инстанс еще скачивается!</string>
     <string name="toast_no_instances">У вас пока нет инстансов</string>
+
     <string name="dialog_delete_title">Удалить %1$s?</string>
     <string name="dialog_delete_message">Это удалит файлы игры и кеш. Вы уверены?</string>
     <string name="btn_delete">Удалить</string>
@@ -78,4 +89,15 @@
     <string name="toast_instance_create_error">Ошибка создания инстанса: %1$s</string>
     <string name="toast_download_success">Скачано.</string>
     <string name="toast_download_error">Ошибка скачивания: %1$s</string>
+    <string name="toast_instance_not_ready">Инстанс ещё не готов.</string>
+    <string name="toast_export_success">Экспортирован.</string>
+    <string name="toast_export_error">Ошибка экспорта: %1$s</string>
+    <string name="toast_import_success">Импортирован.</string>
+    <string name="toast_import_error">Ошибка импортирования: %1$s</string>
+    <string name="dialog_import_apk_title">Импортирование APK</string>
+    <string name="dialog_import_zip_title">Импортирование ZIP</string>
+    <string name="dialog_import_failed_title">Ошибка при импорте</string>
+    <string name="dialog_instance_info_title">Информация об инстансе</string>
+
+
 </resources>

@@ -19,7 +19,7 @@
         <activity
             android:name="me.effently.moddedmcpe.GameManagerActivity"
             android:screenOrientation="sensorLandscape"
-            android:label="@string/title_instances"
+            android:label="@string/app_launcher_title"
             android:theme="@style/AppTheme" />
         <activity
             android:name="me.effently.moddedmcpe.AboutUsActivity"

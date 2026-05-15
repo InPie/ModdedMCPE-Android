@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.utils.InstanceUIHelper
@@ -22,6 +24,8 @@ import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceState
 import java.io.File
+import java.text.DateFormat
+import java.util.Date
 
 const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 
@@ -35,6 +39,7 @@ class InstancesFragment : Fragment() {
     private val instances = mutableListOf<GameInstance>()
     private lateinit var operator: InstanceOperator
     private var pendingExportInstance: GameInstance? = null
+    private val debugGson = GsonBuilder().setPrettyPrinting().create()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_instances, container, false)
@@ -76,9 +81,9 @@ class InstancesFragment : Fragment() {
 
     private fun showInstanceOptions(instance: GameInstance) {
         val options = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
-            arrayOf(getString(R.string.btn_download), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
+            arrayOf(getString(R.string.btn_download), getString(R.string.btn_info), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
         } else {
-            arrayOf(getString(R.string.btn_play), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
+            arrayOf(getString(R.string.btn_play), getString(R.string.btn_info), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
         }
 
         AlertDialog.Builder(requireContext())
@@ -87,6 +92,7 @@ class InstancesFragment : Fragment() {
                 when (options[which]) {
                     getString(R.string.btn_play) -> playInstance(instance)
                     getString(R.string.btn_download) -> retryDownload(instance)
+                    getString(R.string.btn_info) -> showInstanceInfo(instance)
                     getString(R.string.btn_duplicate) -> duplicateInstance(instance)
                     getString(R.string.btn_export_zip) -> exportInstance(instance)
                     getString(R.string.btn_delete) -> deleteInstance(instance)
@@ -108,6 +114,27 @@ class InstancesFragment : Fragment() {
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to duplicate: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showInstanceInfo(instance: GameInstance) {
+        val info = JsonObject()
+        info.add("instance", debugGson.toJsonTree(instance))
+        info.addProperty("instanceDir", operator.repository.getInstanceDir(instance.id).absolutePath)
+        info.addProperty("managedApk", operator.getManagedApkFile(instance.id).absolutePath)
+        info.addProperty("cacheDir", EnderCore.instance.fileEnvironment.getInstanceCacheDirPath(instance.id))
+        info.addProperty("nmodsCacheDir", EnderCore.instance.fileEnvironment.getInstanceNModsCacheDirPath(instance.id))
+        info.addProperty("prepared", operator.isInstancePrepared(instance.id))
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.dialog_instance_info_title)
+            .setMessage(debugGson.toJson(info))
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(R.string.app_copy) { _, _ ->
+                val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Instance info", debugGson.toJson(info)))
+                Toast.makeText(context, R.string.app_copied, Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun playInstance(instance: GameInstance) {
@@ -198,7 +225,7 @@ class InstancesFragment : Fragment() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val instance = items[position]
             holder.textName.text = instance.name
-            holder.textStatus.text = getString(R.string.text_status, instance.state.toString())
+            holder.textStatus.text = getInstanceStatusText(instance)
             holder.btnPlay.text = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
                 getString(R.string.btn_download)
             } else {
@@ -210,5 +237,15 @@ class InstancesFragment : Fragment() {
         }
 
         override fun getItemCount() = items.size
+    }
+
+    private fun getInstanceStatusText(instance: GameInstance): String {
+        if (instance.state != InstanceState.READY) {
+            return getString(R.string.text_status, instance.state.toString())
+        }
+
+        val lastPlayedAt = instance.lastPlayedAt ?: return getString(R.string.text_never_launched)
+        val formatted = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(lastPlayedAt))
+        return getString(R.string.text_last_launch, formatted)
     }
 }
