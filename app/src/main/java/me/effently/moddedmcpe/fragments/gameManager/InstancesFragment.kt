@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -16,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
+import me.effently.moddedmcpe.utils.InstanceUIHelper
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
@@ -88,7 +88,7 @@ class InstancesFragment : Fragment() {
     }
 
     private fun retryDownload(instance: GameInstance) {
-        me.effently.moddedmcpe.utils.InstanceUIHelper.retryDownload(this, operator, instance) {
+        InstanceUIHelper.retryDownload(this, operator, instance) {
             loadInstances()
         }
     }
