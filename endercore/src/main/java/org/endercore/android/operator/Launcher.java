@@ -191,8 +191,11 @@ public final class Launcher {
 
             // Load Resources
             listener.onLoadResourcesStart();
+            
             Log.d("EnderCore-Launcher", "Forming Assets Paths...");
+            //  launcher
             patchAssetPath.add(context.getPackageResourcePath());
+            //  game
             String basePath = gamePackage.getBaseApkPath();
             patchAssetPath.add(basePath);
             /* In `1.17.30`(beta version unknown), almost all assets files were moved to
@@ -204,6 +207,7 @@ public final class Launcher {
             if (splitFile.exists()) {
                 patchAssetPath.add(splitPath);
             }
+            
             listener.onLoadResourcesFinish();
 
             // Load NMods Native Libs
@@ -268,6 +272,11 @@ public final class Launcher {
             // Arrange
             listener.onArrange();
             patchAssetPath.add(fileEnvironment.getCodeCacheDirPathForAssets());
+            
+            for (String path : patchAssetPath) {
+                Log.d("EnderCore-Launcher", "Added asset path: " + path);
+            }
+            
             Log.d("EnderCore-Launcher", "Game is initialized.");
 
         } catch (Throwable e) {
