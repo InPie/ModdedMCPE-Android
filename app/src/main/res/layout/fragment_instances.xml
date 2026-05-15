@@ -2,8 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="match_parent"
@@ -11,10 +10,14 @@
         android:text="@string/title_instances"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_instances"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp" />
 </LinearLayout>

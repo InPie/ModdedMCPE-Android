@@ -15,24 +15,18 @@ import androidx.recyclerview.widget.RecyclerView
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import org.endercore.android.EnderCore
-import org.endercore.android.operator.ApkGamePackageManager
-import org.endercore.android.operator.instance.GamePackageBuilder
-import org.endercore.android.operator.instance.InstanceDownloader
-import org.endercore.android.operator.instance.InstanceRepository
+import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.RemoteVersionRepository
 import org.endercore.android.operator.instance.model.GameInstance
-import org.endercore.android.operator.instance.model.InstanceSource
-import org.endercore.android.operator.instance.model.InstanceSourceType
 import org.endercore.android.operator.instance.model.InstanceState
 import org.endercore.android.operator.instance.model.RemoteVersion
-import java.io.File
-import java.util.UUID
 
 class VersionsFragment : Fragment() {
     private lateinit var recyclerVersions: RecyclerView
     private lateinit var btnImportApk: Button
     private lateinit var adapter: VersionsAdapter
     private val versions = mutableListOf<RemoteVersion>()
+    private lateinit var operator: InstanceOperator
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_versions, container, false)
@@ -40,6 +34,8 @@ class VersionsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        operator = InstanceOperator(requireContext(), EnderCore.instance.fileEnvironment)
 
         recyclerVersions = view.findViewById(R.id.recycler_versions)
         btnImportApk = view.findViewById(R.id.btn_import_apk)
@@ -56,8 +52,7 @@ class VersionsFragment : Fragment() {
     }
 
     private fun onVersionClick(version: RemoteVersion) {
-        val instanceRepo = InstanceRepository(EnderCore.instance.fileEnvironment)
-        val versionInstances = instancesForRemoteUrl(instanceRepo, version.url)
+        val versionInstances = operator.repository.instances.filter { it.source?.url == version.url }
 
         if (versionInstances.isEmpty()) {
             startDownload(version)
@@ -72,7 +67,7 @@ class VersionsFragment : Fragment() {
                     "Install new instance" -> startDownload(version)
                     "Play existing" -> playExisting(versionInstances)
                     "Delete all for this version" -> {
-                        versionInstances.forEach { instanceRepo.deleteInstance(it.id) }
+                        versionInstances.forEach { operator.deleteInstance(it.id) }
                         Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -118,34 +113,7 @@ class VersionsFragment : Fragment() {
             }
             .show()
 
-        val instanceId = generateUniqueId(version.name)
-        val appContext = requireContext().applicationContext
-        val fileEnvironment = EnderCore.instance.fileEnvironment
-        val instanceRepo = InstanceRepository(fileEnvironment)
-
-        val gameInstance = GameInstance().apply {
-            id = instanceId
-            name = version.name
-            state = InstanceState.DOWNLOADING
-            createdAt = System.currentTimeMillis()
-            source = InstanceSource(InstanceSourceType.REMOTE_APK).apply {
-                url = version.url
-                label = version.name
-            }
-        }
-
-        try {
-            instanceRepo.saveInstance(gameInstance)
-        } catch (e: Exception) {
-            dialog.dismiss()
-            Toast.makeText(context, getString(R.string.toast_instance_create_error, e.message), Toast.LENGTH_LONG).show()
-            return
-        }
-
-        val apkFile = File(instanceRepo.getInstanceDir(instanceId), "apk/game.apk")
-        val downloader = InstanceDownloader()
-
-        downloader.downloadApk(version.url, apkFile, object : InstanceDownloader.DownloadListener {
+        operator.installRemoteVersion(version, object : InstanceOperator.InstallCallback {
             override fun onProgress(percent: Int) {
                 activity?.runOnUiThread {
                     progressBar.progress = percent
@@ -153,38 +121,10 @@ class VersionsFragment : Fragment() {
                 }
             }
 
-            override fun onSuccess(downloadedFile: File) {
-                try {
-                    gameInstance.state = InstanceState.PREPARING
-                    gameInstance.source.type = InstanceSourceType.MANAGED_APK
-                    gameInstance.source.origin = "remote"
-                    instanceRepo.saveInstance(gameInstance)
-
-                    activity?.runOnUiThread {
-                        textStatus.text = getString(R.string.text_preparing)
-                    }
-
-                    val gamePackage = ApkGamePackageManager.getGamePackageFromApk(appContext, downloadedFile)
-                    gameInstance.packageSnapshot = packageSnapshotOf(gamePackage)
-                    // Future:.. if RemoteVersion gains sha256, compare it with packageSnapshot.apkSha256 here.
-                    GamePackageBuilder(fileEnvironment, instanceId).build(gamePackage)
-                    gameInstance.state = InstanceState.READY
-                    instanceRepo.saveInstance(gameInstance)
-
-                    activity?.runOnUiThread {
-                        dialog.dismiss()
-                        Toast.makeText(context, R.string.toast_download_success, Toast.LENGTH_LONG).show()
-                    }
-                } catch (e: Exception) {
-                    gameInstance.state = InstanceState.PREPARE_FAILED
-                    try {
-                        instanceRepo.saveInstance(gameInstance)
-                    } catch (ignored: Exception) {
-                    }
-                    activity?.runOnUiThread {
-                        dialog.dismiss()
-                        Toast.makeText(context, getString(R.string.toast_download_error, e.message), Toast.LENGTH_LONG).show()
-                    }
+            override fun onSuccess() {
+                activity?.runOnUiThread {
+                    dialog.dismiss()
+                    Toast.makeText(context, R.string.toast_download_success, Toast.LENGTH_LONG).show()
                 }
             }
 
@@ -192,20 +132,9 @@ class VersionsFragment : Fragment() {
                 activity?.runOnUiThread {
                     dialog.dismiss()
                     Toast.makeText(context, getString(R.string.toast_download_error, e.message), Toast.LENGTH_LONG).show()
-
-                    gameInstance.state = InstanceState.DOWNLOAD_FAILED
-                    try {
-                        instanceRepo.saveInstance(gameInstance)
-                    } catch (e2: Exception) {
-                        e2.printStackTrace()
-                    }
                 }
             }
         })
-    }
-
-    private fun generateUniqueId(name: String): String {
-        return UUID.randomUUID().toString().substring(0, 8) + "-" + name.replace(Regex("[^a-zA-Z0-9.-]"), "_")
     }
 
     private fun loadVersions() {

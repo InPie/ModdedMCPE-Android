@@ -10,10 +10,8 @@ import me.effently.moddedmcpe.fragments.gameManager.AddonsFragment
 import me.effently.moddedmcpe.fragments.gameManager.INSTALLED_MCPE_INSTANCE_ID
 import me.effently.moddedmcpe.fragments.gameManager.InstancesFragment
 import me.effently.moddedmcpe.fragments.gameManager.VersionsFragment
-import me.effently.moddedmcpe.fragments.gameManager.isInstancePrepared
-import me.effently.moddedmcpe.fragments.gameManager.packageSnapshotOf
 import org.endercore.android.EnderCore
-import org.endercore.android.operator.instance.InstanceRepository
+import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceSource
 import org.endercore.android.operator.instance.model.InstanceSourceType
@@ -59,7 +57,8 @@ class GameManagerActivity : AppCompatActivity() {
 
     private fun ensureInstalledGameInstance() {
         val core = EnderCore.instance
-        val repository = InstanceRepository(core.fileEnvironment)
+        val operator = InstanceOperator(this, core.fileEnvironment)
+        val repository = operator.repository
         val installedPackage = core.gamePackageManager.gamePackage
         try {
             if (installedPackage != null) {
@@ -72,8 +71,8 @@ class GameManagerActivity : AppCompatActivity() {
                 instance.source = InstanceSource(InstanceSourceType.INSTALLED_PACKAGE).apply {
                     packageName = installedPackage.packageName
                 }
-                instance.packageSnapshot = packageSnapshotOf(installedPackage)
-                instance.state = if (isInstancePrepared(core.fileEnvironment, instance.id)) {
+                instance.packageSnapshot = operator.createPackageSnapshot(installedPackage)
+                instance.state = if (operator.isInstancePrepared(instance.id)) {
                     InstanceState.READY
                 } else {
                     InstanceState.REBUILD_REQUIRED

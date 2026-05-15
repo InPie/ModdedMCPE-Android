@@ -13,23 +13,20 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.JsonObject
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import org.endercore.android.EnderCore
-import org.endercore.android.operator.instance.InstanceRepository
+import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
-import org.endercore.android.operator.instance.model.InstanceSource
-import org.endercore.android.operator.instance.model.InstanceSourceType
 import org.endercore.android.operator.instance.model.InstanceState
-import org.endercore.android.utils.FileUtils
-import java.io.File
-import java.util.UUID
+
+const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 
 class InstancesFragment : Fragment() {
     private lateinit var recyclerInstances: RecyclerView
     private lateinit var adapter: InstancesAdapter
     private val instances = mutableListOf<GameInstance>()
+    private lateinit var operator: InstanceOperator
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_instances, container, false)
@@ -38,6 +35,8 @@ class InstancesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        operator = InstanceOperator(requireContext(), EnderCore.instance.fileEnvironment)
+        
         recyclerInstances = view.findViewById(R.id.recycler_instances)
         recyclerInstances.layoutManager = LinearLayoutManager(context)
 
@@ -56,8 +55,7 @@ class InstancesFragment : Fragment() {
     }
 
     private fun loadInstances() {
-        val repo = InstanceRepository(EnderCore.instance.fileEnvironment)
-        val loadedInstances = repo.instances
+        val loadedInstances = operator.repository.instances
 
         instances.clear()
         instances.addAll(loadedInstances)
@@ -83,48 +81,8 @@ class InstancesFragment : Fragment() {
     }
 
     private fun duplicateInstance(instance: GameInstance) {
-        val repo = InstanceRepository(EnderCore.instance.fileEnvironment)
         try {
-            val source = instance.source ?: throw IllegalStateException("Instance source is missing.")
-            val newId = UUID.randomUUID().toString().substring(0, 8)
-            val duplicate = GameInstance().apply {
-                id = newId
-                name = "${instance.name} (Copy)"
-                state = InstanceState.REBUILD_REQUIRED
-                createdAt = System.currentTimeMillis()
-                settings = instance.settings?.deepCopy() ?: JsonObject()
-                packageSnapshot = instance.packageSnapshot
-            }
-
-            when (source.type) {
-                InstanceSourceType.MANAGED_APK -> {
-                    FileUtils.copy(managedApkFile(repo, instance.id), managedApkFile(repo, newId))
-                    duplicate.source = InstanceSource(InstanceSourceType.MANAGED_APK).apply {
-                        origin = source.origin
-                        url = source.url
-                        label = source.label
-                    }
-                }
-                InstanceSourceType.INSTALLED_PACKAGE -> {
-                    val gamePackage = EnderCore.instance.gamePackageManager.gamePackage
-                        ?: throw IllegalStateException("Installed MCPE package is not available.")
-                    FileUtils.copy(File(gamePackage.baseApkPath), managedApkFile(repo, newId))
-                    duplicate.source = InstanceSource(InstanceSourceType.MANAGED_APK).apply {
-                        origin = "installed_copy"
-                    }
-                    duplicate.packageSnapshot = packageSnapshotOf(gamePackage)
-                }
-                InstanceSourceType.EXTERNAL_APK -> {
-                    duplicate.source = InstanceSource(InstanceSourceType.EXTERNAL_APK).apply {
-                        apkPath = source.apkPath
-                    }
-                }
-                InstanceSourceType.REMOTE_APK -> {
-                    throw IllegalStateException("Remote APK is not downloaded yet.")
-                }
-            }
-
-            repo.saveInstance(duplicate)
+            operator.duplicateInstance(instance)
             loadInstances()
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to duplicate: ${e.message}", Toast.LENGTH_LONG).show()
@@ -147,8 +105,7 @@ class InstancesFragment : Fragment() {
             .setTitle(getString(R.string.dialog_delete_title, instance.name))
             .setMessage(R.string.dialog_delete_message)
             .setPositiveButton(R.string.btn_delete) { _, _ ->
-                val repo = InstanceRepository(EnderCore.instance.fileEnvironment)
-                repo.deleteInstance(instance.id)
+                operator.deleteInstance(instance.id)
                 loadInstances()
             }
             .setNegativeButton(R.string.btn_cancel, null)
