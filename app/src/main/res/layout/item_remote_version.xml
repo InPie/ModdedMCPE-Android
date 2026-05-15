@@ -6,7 +6,8 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
-    app:cardCornerRadius="12dp"
+    app:cardBackgroundColor="@color/mc_brown_panel"
+    app:cardCornerRadius="8dp"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -29,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="?android:attr/textColorPrimary" />
+                android:textColor="@color/mc_text_primary" />
 
             <TextView
                 android:id="@+id/text_version_status"
@@ -45,8 +46,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/btn_install"
-            app:cornerRadius="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            style="@style/McButton.Outlined" />
 
     </LinearLayout>
 

@@ -28,13 +28,9 @@ object InstanceUIHelper {
             return
         }
 
-        showDownloadDialog(fragment, context) { callback ->
+        showDownloadDialog(fragment, context, { callback ->
             operator.installRemoteVersion(version, callback)
-        }?.let { 
-             // mb needed to reload data in some cases but onSuccess already handles dismiss
-             // on finish call provided by fragment
-             // wrap the callback to call onFinish..
-        }
+        }, onFinish)
     }
 
     fun retryDownload(fragment: Fragment, operator: InstanceOperator, instance: GameInstance, onFinish: () -> Unit) {
@@ -44,9 +40,9 @@ object InstanceUIHelper {
             return
         }
 
-        showDownloadDialog(fragment, context) { callback ->
+        showDownloadDialog(fragment, context, { callback ->
             operator.retryInstance(instance, callback)
-        }
+        }, onFinish)
     }
 
     private fun showNoInternetDialog(context: Context) {
@@ -60,7 +56,8 @@ object InstanceUIHelper {
     private fun showDownloadDialog(
         fragment: Fragment,
         context: Context,
-        startAction: (InstanceOperator.InstallCallback) -> Runnable
+        startAction: (InstanceOperator.InstallCallback) -> Runnable,
+        onFinish: () -> Unit = {}
     ): Runnable? {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_download, null)
         val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
@@ -86,16 +83,14 @@ object InstanceUIHelper {
                 fragment.activity?.runOnUiThread {
                     dialog.dismiss()
                     Toast.makeText(context, R.string.toast_download_success, Toast.LENGTH_LONG).show()
-                    if (fragment is me.effently.moddedmcpe.fragments.gameManager.InstancesFragment) {
-                         // hacky way, better use a generic onComplete
-                         // just assume fragment might want to refresh =)
-                    }
+                    onFinish()
                 }
             }
 
             override fun onError(e: Exception) {
                 fragment.activity?.runOnUiThread {
                     dialog.dismiss()
+                    onFinish()
                     if (e.message?.contains("cancelled") != true) {
                         AlertDialog.Builder(context)
                             .setTitle("Download Failed")
@@ -112,6 +107,7 @@ object InstanceUIHelper {
         dialog.setButton(AlertDialog.BUTTON_NEGATIVE, context.getString(R.string.btn_cancel)) { _, _ ->
             cancelAction?.run()
             Toast.makeText(context, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
+            onFinish()
         }
 
         dialog.show()

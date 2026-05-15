@@ -1,11 +1,16 @@
 package me.effently.moddedmcpe.fragments.gameManager
 
 import android.app.AlertDialog
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -20,8 +25,13 @@ import org.endercore.android.operator.instance.RemoteVersionRepository
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceState
 import org.endercore.android.operator.instance.model.RemoteVersion
+import java.io.File
 
 class VersionsFragment : Fragment() {
+    companion object {
+        private const val REQUEST_IMPORT_PACKAGE = 51
+    }
+
     private lateinit var recyclerVersions: RecyclerView
     private lateinit var btnImportApk: Button
     private lateinit var adapter: VersionsAdapter
@@ -45,7 +55,7 @@ class VersionsFragment : Fragment() {
         recyclerVersions.adapter = adapter
 
         btnImportApk.setOnClickListener {
-            Toast.makeText(context, "Importing APK is not yet implemented", Toast.LENGTH_SHORT).show()
+            pickPackageFile()
         }
 
         loadVersions()
@@ -89,20 +99,132 @@ class VersionsFragment : Fragment() {
     }
 
     private fun playInstance(instance: GameInstance) {
-        if (instance.state == InstanceState.DOWNLOADING) {
-            Toast.makeText(context, R.string.toast_downloading, Toast.LENGTH_SHORT).show()
+        if (instance.state == InstanceState.DOWNLOAD_FAILED) {
+            InstanceUIHelper.retryDownload(this, operator, instance) {}
             return
         }
 
-        val intent = android.content.Intent(context, InitializingActivity::class.java)
+        if (!operator.canLaunch(instance)) {
+            Toast.makeText(context, R.string.toast_instance_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(context, InitializingActivity::class.java)
         intent.putExtra("INSTANCE_ID", instance.id)
         startActivity(intent)
     }
 
     private fun startDownload(version: RemoteVersion) {
         InstanceUIHelper.startDownload(this, operator, version) {
-            // success
+            adapter.notifyDataSetChanged()
         }
+    }
+
+    private fun pickPackageFile() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/vnd.android.package-archive", "application/zip", "application/octet-stream"))
+        }
+        startActivityForResult(intent, REQUEST_IMPORT_PACKAGE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_IMPORT_PACKAGE || resultCode != Activity.RESULT_OK) {
+            return
+        }
+
+        val uri = data?.data ?: return
+        importPackage(uri)
+    }
+
+    private fun importPackage(uri: Uri) {
+        val context = requireContext()
+        val name = getDisplayName(uri) ?: "package.apk"
+        val extension = when {
+            name.endsWith(".zip", true) -> ".zip"
+            name.endsWith(".apk", true) -> ".apk"
+            context.contentResolver.getType(uri)?.contains("zip", ignoreCase = true) == true -> ".zip"
+            else -> ".apk"
+        }
+        val tempFile = File(context.cacheDir, "import_${System.currentTimeMillis()}$extension")
+
+        Thread {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("Failed to open selected file.")
+
+                activity?.runOnUiThread {
+                    showImportDialog(tempFile, extension == ".zip")
+                }
+            } catch (e: Exception) {
+                tempFile.delete()
+                activity?.runOnUiThread {
+                    Toast.makeText(context, getString(R.string.toast_import_error, e.message), Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun showImportDialog(tempFile: File, isZip: Boolean) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_download, null)
+        val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
+        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
+        textStatus.setText(R.string.text_preparing)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(if (isZip) R.string.dialog_import_zip_title else R.string.dialog_import_apk_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        val callback = object : InstanceOperator.InstallCallback {
+            override fun onProgress(percent: Int) {
+                activity?.runOnUiThread {
+                    progressBar.progress = percent
+                    textStatus.text = getString(R.string.text_download_progress, percent)
+                }
+            }
+
+            override fun onSuccess() {
+                tempFile.delete()
+                activity?.runOnUiThread {
+                    dialog.dismiss()
+                    Toast.makeText(context, R.string.toast_import_success, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onError(e: Exception) {
+                tempFile.delete()
+                activity?.runOnUiThread {
+                    dialog.dismiss()
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.dialog_import_failed_title)
+                        .setMessage(e.message ?: "Unknown error occurred")
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            }
+        }
+
+        dialog.show()
+        if (isZip) {
+            operator.importInstanceZip(tempFile, callback)
+        } else {
+            operator.importLocalApk(tempFile, true, callback)
+        }
+    }
+
+    private fun getDisplayName(uri: Uri): String? {
+        requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex >= 0 && cursor.moveToFirst()) {
+                return cursor.getString(nameIndex)
+            }
+        }
+        return uri.lastPathSegment
     }
 
     private fun loadVersions() {
@@ -144,10 +266,10 @@ class VersionsFragment : Fragment() {
 
             if (version.isNotTested) {
                 holder.textStatus.text = getString(R.string.text_download_status_untested)
-                holder.textStatus.setTextColor(android.graphics.Color.RED)
+                holder.textStatus.setTextColor(resources.getColor(R.color.mc_error))
             } else {
                 holder.textStatus.text = getString(R.string.text_download_status_available)
-                holder.textStatus.setTextColor(android.graphics.Color.GRAY)
+                holder.textStatus.setTextColor(resources.getColor(R.color.mc_text_secondary))
             }
 
             holder.btnDownload.setOnClickListener { onDownloadClick(version) }

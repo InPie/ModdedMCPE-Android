@@ -2,6 +2,7 @@ package org.endercore.android.operator.instance;
 
 import android.content.Context;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import org.endercore.android.EnderCore;
@@ -18,12 +19,22 @@ import org.endercore.android.operator.instance.model.RemoteVersion;
 import org.endercore.android.utils.FileUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class InstanceOperator {
+    private static final String INSTANCE_FILE_NAME = "instance.json";
+
     private final IFileEnvironment fileEnvironment;
     private final InstanceRepository repository;
     private final Context context;
+    private final Gson gson = new Gson();
 
     public InstanceOperator(Context context, IFileEnvironment fileEnvironment) {
         this.context = context;
@@ -52,10 +63,24 @@ public class InstanceOperator {
         snapshot.setVersionName(gamePackage.getVersionName());
         snapshot.setVersionCode(gamePackage.getVersionCode());
         snapshot.setApkSize(apkFile.exists() ? apkFile.length() : 0);
+        snapshot.setLastReadAt(System.currentTimeMillis());
         return snapshot;
     }
 
+    public boolean canLaunch(GameInstance instance) {
+        if (instance == null || instance.getState() == null || instance.getSource() == null) {
+            return false;
+        }
+        return instance.getState() == InstanceState.READY ||
+                instance.getState() == InstanceState.REBUILD_REQUIRED ||
+                instance.getState() == InstanceState.PREPARE_FAILED;
+    }
+
     public GamePackage resolveGamePackage(GameInstance instance) throws Exception {
+        if (!canLaunch(instance)) {
+            throw new LauncherException("Instance is not ready to launch: " + instance.getName());
+        }
+
         InstanceSource source = instance.getSource();
         if (source == null) {
             throw new LauncherException("Instance source is missing: " + instance.getId());
@@ -88,16 +113,20 @@ public class InstanceOperator {
     }
 
     public GamePackage prepareInstance(GameInstance instance) throws Exception {
+        fileEnvironment.setActiveWorkspace(instance.getId());
         GamePackage gamePackage = resolveGamePackage(instance);
         GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instance.getId());
-        NModPreparer preparer = new NModPreparer(fileEnvironment, EnderCore.getInstance().getNModManager(), instance.getId());
 
         if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance.getId())) {
             builder.build(gamePackage);
             instance.setState(InstanceState.READY);
         }
 
-        preparer.prepare(gamePackage);
+        if (EnderCore.getInstance().getOptionsManager().getUseNMods()) {
+            NModPreparer preparer = new NModPreparer(fileEnvironment, EnderCore.getInstance().getNModManager(), instance.getId());
+            preparer.prepare(gamePackage);
+        }
+
         instance.setPackageSnapshot(createPackageSnapshot(gamePackage));
         instance.setLastPlayedAt(System.currentTimeMillis());
         repository.saveInstance(instance);
@@ -310,6 +339,158 @@ public class InstanceOperator {
                 callback.onError(e);
             }
         }).start();
+    }
+
+    public void exportInstanceZip(String instanceId, File destinationFile) throws IOException {
+        File instanceDir = repository.getInstanceDir(instanceId);
+        if (!new File(instanceDir, INSTANCE_FILE_NAME).isFile()) {
+            throw new IOException("Instance metadata not found: " + instanceId);
+        }
+        if (destinationFile.getParentFile() != null && !destinationFile.getParentFile().exists()) {
+            destinationFile.getParentFile().mkdirs();
+        }
+        try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(destinationFile))) {
+            addToZip(instanceDir, instanceDir, output);
+        }
+    }
+
+    public void importInstanceZip(File zipFile, InstallCallback callback) {
+        new Thread(() -> {
+            File tempDir = new File(context.getCacheDir(), "instance_zip_import_" + System.currentTimeMillis());
+            try {
+                callback.onProgress(0);
+                unzipInstance(zipFile, tempDir);
+
+                File instanceFile = new File(tempDir, INSTANCE_FILE_NAME);
+                File apkFile = new File(tempDir, "apk/game.apk");
+                if (!instanceFile.isFile()) {
+                    throw new IOException("ZIP does not contain instance.json.");
+                }
+                if (!apkFile.isFile()) {
+                    throw new IOException("ZIP does not contain apk/game.apk.");
+                }
+
+                GameInstance imported;
+                try (FileReader reader = new FileReader(instanceFile)) {
+                    imported = gson.fromJson(reader, GameInstance.class);
+                }
+                if (imported == null) {
+                    throw new IOException("Failed to read instance.json.");
+                }
+
+                callback.onProgress(35);
+                GamePackage gamePackage = ApkGamePackageManager.getGamePackageFromApk(context, apkFile);
+                String newId = UUID.randomUUID().toString().substring(0, 8) + "-" + safeIdPart(gamePackage.getVersionName());
+                File finalDir = repository.getInstanceDir(newId);
+                if (finalDir.exists()) {
+                    FileUtils.removeFiles(finalDir);
+                }
+                copyDirectory(tempDir, finalDir);
+
+                imported.setId(newId);
+                if (imported.getName() == null || imported.getName().trim().isEmpty()) {
+                    imported.setName("Imported " + gamePackage.getVersionName());
+                }
+                imported.setState(InstanceState.PREPARING);
+                imported.setCreatedAt(System.currentTimeMillis());
+                imported.setLastPlayedAt(null);
+                InstanceSource source = new InstanceSource(InstanceSourceType.MANAGED_APK);
+                source.setOrigin("zip_import");
+                imported.setSource(source);
+                imported.setPackageSnapshot(createPackageSnapshot(gamePackage));
+                if (imported.getSettings() == null) {
+                    imported.setSettings(new JsonObject());
+                }
+                repository.saveInstance(imported);
+
+                callback.onProgress(70);
+                GamePackage finalPackage = ApkGamePackageManager.getGamePackageFromApk(context, getManagedApkFile(newId));
+                GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, newId);
+                builder.build(finalPackage);
+                imported.setPackageSnapshot(createPackageSnapshot(finalPackage));
+                imported.setState(InstanceState.READY);
+                repository.saveInstance(imported);
+
+                callback.onProgress(100);
+                callback.onSuccess();
+            } catch (Exception e) {
+                callback.onError(e);
+            } finally {
+                FileUtils.removeFiles(tempDir);
+            }
+        }).start();
+    }
+
+    private void addToZip(File rootDir, File file, ZipOutputStream output) throws IOException {
+        String relativePath = rootDir.toURI().relativize(file.toURI()).getPath();
+        if (relativePath.startsWith("cache/") || relativePath.startsWith("nmods_cache/")) {
+            return;
+        }
+
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    addToZip(rootDir, child, output);
+                }
+            }
+            return;
+        }
+
+        output.putNextEntry(new ZipEntry(relativePath));
+        FileUtils.copy(file, output);
+        output.closeEntry();
+    }
+
+    private void unzipInstance(File zipFile, File destinationDir) throws IOException {
+        if (destinationDir.exists()) {
+            FileUtils.removeFiles(destinationDir);
+        }
+        if (!destinationDir.mkdirs()) {
+            throw new IOException("Failed to create temp import directory: " + destinationDir.getAbsolutePath());
+        }
+
+        String destinationPath = destinationDir.getCanonicalPath() + File.separator;
+        try (ZipInputStream input = new ZipInputStream(new FileInputStream(zipFile))) {
+            ZipEntry entry;
+            while ((entry = input.getNextEntry()) != null) {
+                File target = new File(destinationDir, entry.getName());
+                if (!target.getCanonicalPath().startsWith(destinationPath)) {
+                    throw new IOException("Invalid ZIP entry path: " + entry.getName());
+                }
+                if (entry.isDirectory()) {
+                    target.mkdirs();
+                } else {
+                    FileUtils.copy(input, target);
+                }
+                input.closeEntry();
+            }
+        }
+    }
+
+    private void copyDirectory(File sourceDir, File destinationDir) throws IOException {
+        File[] children = sourceDir.listFiles();
+        if (children == null) {
+            return;
+        }
+        if (!destinationDir.exists() && !destinationDir.mkdirs()) {
+            throw new IOException("Failed to create directory: " + destinationDir.getAbsolutePath());
+        }
+        for (File child : children) {
+            File target = new File(destinationDir, child.getName());
+            if (child.isDirectory()) {
+                copyDirectory(child, target);
+            } else {
+                FileUtils.copy(child, target);
+            }
+        }
+    }
+
+    private String safeIdPart(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "imported";
+        }
+        return value.replaceAll("[^a-zA-Z0-9.-]", "_");
     }
 
     public void ensureInstalledGameInstanceExists() {

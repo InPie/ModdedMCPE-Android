@@ -2,12 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/mc_brown_bg"
     android:orientation="vertical">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/title_versions"
+        android:textColor="@color/mc_text_primary"
         android:textSize="24sp"
         android:textStyle="bold"
         android:paddingHorizontal="16dp"
@@ -20,7 +22,8 @@
         android:layout_height="wrap_content"
         android:text="@string/btn_import_apk"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="8dp"
+        style="@style/McButton" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_versions"

@@ -1,6 +1,7 @@
 package me.effently.moddedmcpe.fragments.gameManager
 
 import android.app.AlertDialog
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -20,14 +21,20 @@ import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceState
+import java.io.File
 
 const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 
 class InstancesFragment : Fragment() {
+    companion object {
+        private const val REQUEST_EXPORT_ZIP = 42
+    }
+
     private lateinit var recyclerInstances: RecyclerView
     private lateinit var adapter: InstancesAdapter
     private val instances = mutableListOf<GameInstance>()
     private lateinit var operator: InstanceOperator
+    private var pendingExportInstance: GameInstance? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_instances, container, false)
@@ -69,19 +76,20 @@ class InstancesFragment : Fragment() {
 
     private fun showInstanceOptions(instance: GameInstance) {
         val options = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
-            arrayOf("Retry Download", "Duplicate", "Delete")
+            arrayOf(getString(R.string.btn_download), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
         } else {
-            arrayOf("Play", "Duplicate", "Delete")
+            arrayOf(getString(R.string.btn_play), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
         }
 
         AlertDialog.Builder(requireContext())
             .setTitle(instance.name)
             .setItems(options) { _, which ->
                 when (options[which]) {
-                    "Play" -> playInstance(instance)
-                    "Retry Download" -> retryDownload(instance)
-                    "Duplicate" -> duplicateInstance(instance)
-                    "Delete" -> deleteInstance(instance)
+                    getString(R.string.btn_play) -> playInstance(instance)
+                    getString(R.string.btn_download) -> retryDownload(instance)
+                    getString(R.string.btn_duplicate) -> duplicateInstance(instance)
+                    getString(R.string.btn_export_zip) -> exportInstance(instance)
+                    getString(R.string.btn_delete) -> deleteInstance(instance)
                 }
             }
             .show()
@@ -103,8 +111,13 @@ class InstancesFragment : Fragment() {
     }
 
     private fun playInstance(instance: GameInstance) {
-        if (instance.state == InstanceState.DOWNLOADING) {
-            Toast.makeText(context, R.string.toast_downloading, Toast.LENGTH_SHORT).show()
+        if (instance.state == InstanceState.DOWNLOAD_FAILED) {
+            retryDownload(instance)
+            return
+        }
+
+        if (!operator.canLaunch(instance)) {
+            Toast.makeText(context, R.string.toast_instance_not_ready, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -123,6 +136,44 @@ class InstancesFragment : Fragment() {
             }
             .setNegativeButton(R.string.btn_cancel, null)
             .show()
+    }
+
+    private fun exportInstance(instance: GameInstance) {
+        pendingExportInstance = instance
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/zip"
+            putExtra(Intent.EXTRA_TITLE, "${instance.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")}.zip")
+        }
+        startActivityForResult(intent, REQUEST_EXPORT_ZIP)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_EXPORT_ZIP || resultCode != Activity.RESULT_OK) {
+            return
+        }
+
+        val instance = pendingExportInstance ?: return
+        val uri = data?.data ?: return
+        val context = requireContext()
+        Thread {
+            try {
+                val tempZip = File(context.cacheDir, "${instance.id}.zip")
+                operator.exportInstanceZip(instance.id, tempZip)
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    tempZip.inputStream().use { input -> input.copyTo(output) }
+                } ?: throw IllegalStateException("Failed to open export destination.")
+                tempZip.delete()
+                activity?.runOnUiThread {
+                    Toast.makeText(context, R.string.toast_export_success, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                activity?.runOnUiThread {
+                    Toast.makeText(context, getString(R.string.toast_export_error, e.message), Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
     }
 
     inner class InstancesAdapter(
@@ -148,6 +199,11 @@ class InstancesFragment : Fragment() {
             val instance = items[position]
             holder.textName.text = instance.name
             holder.textStatus.text = getString(R.string.text_status, instance.state.toString())
+            holder.btnPlay.text = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
+                getString(R.string.btn_download)
+            } else {
+                getString(R.string.btn_play)
+            }
             holder.itemView.setOnClickListener { onItemClick(instance) }
             holder.btnPlay.setOnClickListener { onPlayClick(instance) }
             holder.btnDelete.setOnClickListener { onDeleteClick(instance) }

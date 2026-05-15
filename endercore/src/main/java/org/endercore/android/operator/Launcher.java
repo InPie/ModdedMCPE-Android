@@ -74,6 +74,10 @@ public final class Launcher {
 
     public ArrayList<NModException> initializeGame(Context context, GamePackage gamePackage) throws LauncherException {
         listener.onStart();
+        initializedGame = false;
+        patchAssetPath.clear();
+        patchDexPath.clear();
+        patchLibPath.clear();
         ArrayList<NModException> nModExceptions = null;
         try {
             Log.d("EnderCore-Launcher", "Initialization of the game...");
@@ -191,7 +195,7 @@ public final class Launcher {
 
             // Load Resources
             listener.onLoadResourcesStart();
-            
+
             Log.d("EnderCore-Launcher", "Forming Assets Paths...");
             //  launcher
             patchAssetPath.add(context.getPackageResourcePath());
@@ -204,10 +208,10 @@ public final class Launcher {
              */
             String splitPath = basePath.replace("base.apk", "split_install_pack.apk");
             File splitFile = new File(splitPath);
-            if (splitFile.exists()) {
+            if (!splitPath.equals(basePath) && splitFile.exists()) {
                 patchAssetPath.add(splitPath);
             }
-            
+
             listener.onLoadResourcesFinish();
 
             // Load NMods Native Libs
@@ -271,12 +275,15 @@ public final class Launcher {
 
             // Arrange
             listener.onArrange();
-            patchAssetPath.add(fileEnvironment.getCodeCacheDirPathForAssets());
-            
+            File nmodsAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            if (optionsManager.getUseNMods() && nmodsAssetsDir.exists()) {
+                patchAssetPath.add(nmodsAssetsDir.getAbsolutePath());
+            }
+
             for (String path : patchAssetPath) {
                 Log.d("EnderCore-Launcher", "Added asset path: " + path);
             }
-            
+
             Log.d("EnderCore-Launcher", "Game is initialized.");
 
         } catch (Throwable e) {

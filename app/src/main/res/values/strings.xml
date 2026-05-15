@@ -61,6 +61,9 @@
     <string name="text_preparing">Preparing...</string>
     <string name="btn_install">Install</string>
     <string name="btn_play">Play</string>
+    <string name="btn_download">Download</string>
+    <string name="btn_duplicate">Duplicate</string>
+    <string name="btn_export_zip">Export ZIP</string>
     <string name="text_status">Status: %1$s</string>
     <string name="text_download_progress">Downloaded: %1$d%%</string>
     <string name="text_download_status_available">Available</string>
@@ -77,6 +80,14 @@
     <string name="toast_instance_create_error">Error creating instance: %1$s</string>
     <string name="toast_download_success">Downloaded.</string>
     <string name="toast_download_error">Download error: %1$s</string>
+    <string name="toast_instance_not_ready">Instance is not ready yet.</string>
+    <string name="toast_export_success">Exported.</string>
+    <string name="toast_export_error">Export error: %1$s</string>
+    <string name="toast_import_success">Imported.</string>
+    <string name="toast_import_error">Import error: %1$s</string>
+    <string name="dialog_import_apk_title">Importing APK</string>
+    <string name="dialog_import_zip_title">Importing ZIP</string>
+    <string name="dialog_import_failed_title">Import Failed</string>
 
     <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>
