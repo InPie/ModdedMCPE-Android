@@ -180,7 +180,7 @@ public class InstanceOperator {
         void onError(Exception e);
     }
 
-    public void installRemoteVersion(RemoteVersion version, InstallCallback callback) {
+    public Runnable installRemoteVersion(RemoteVersion version, InstallCallback callback) {
         String instanceId = UUID.randomUUID().toString().substring(0, 8) + "-" + version.getName().replaceAll("[^a-zA-Z0-9.-]", "_");
         
         GameInstance gameInstance = new GameInstance();
@@ -198,14 +198,33 @@ public class InstanceOperator {
             repository.saveInstance(gameInstance);
         } catch (Exception e) {
             callback.onError(e);
-            return;
+            return () -> {};
         }
 
-        File apkFile = getManagedApkFile(instanceId);
+        return startDownloadForInstance(gameInstance, callback);
+    }
+
+    public Runnable retryInstance(GameInstance gameInstance, InstallCallback callback) {
+        if (gameInstance.getSource() == null || gameInstance.getSource().getType() != InstanceSourceType.REMOTE_APK) {
+            callback.onError(new IllegalStateException("Cannot retry this instance: not a remote APK."));
+            return () -> {};
+        }
+        gameInstance.setState(InstanceState.DOWNLOADING);
+        try {
+            repository.saveInstance(gameInstance);
+        } catch (Exception e) {
+            callback.onError(e);
+            return () -> {};
+        }
+        return startDownloadForInstance(gameInstance, callback);
+    }
+
+    private Runnable startDownloadForInstance(GameInstance gameInstance, InstallCallback callback) {
+        File apkFile = getManagedApkFile(gameInstance.getId());
         apkFile.getParentFile().mkdirs();
         
         InstanceDownloader downloader = new InstanceDownloader();
-        downloader.downloadApk(version.getUrl(), apkFile, new InstanceDownloader.DownloadListener() {
+        InstanceDownloader.DownloadTask task = downloader.downloadApk(context, gameInstance.getSource().getUrl(), apkFile, new InstanceDownloader.DownloadListener() {
             @Override
             public void onProgress(int percent) {
                 callback.onProgress(percent);
@@ -222,7 +241,7 @@ public class InstanceOperator {
                     GamePackage gamePackage = ApkGamePackageManager.getGamePackageFromApk(context, downloadedFile);
                     gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
                     
-                    GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instanceId);
+                    GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, gameInstance.getId());
                     builder.build(gamePackage);
                     
                     gameInstance.setState(InstanceState.READY);
@@ -247,6 +266,8 @@ public class InstanceOperator {
                 callback.onError(e);
             }
         });
+        
+        return task::cancel;
     }
 
     public void importLocalApk(File apkFile, boolean copy, InstallCallback callback) {
@@ -289,5 +310,35 @@ public class InstanceOperator {
                 callback.onError(e);
             }
         }).start();
+    }
+
+    public void ensureInstalledGameInstanceExists() {
+        GamePackage installedPackage = EnderCore.getInstance().getGamePackageManager().getGamePackage();
+        try {
+            if (installedPackage != null) {
+                GameInstance instance = repository.getInstance("installed-minecraftpe");
+                if (instance == null) {
+                    instance = new GameInstance();
+                    instance.setId("installed-minecraftpe");
+                    instance.setCreatedAt(System.currentTimeMillis());
+                    instance.setSettings(new JsonObject());
+                }
+                instance.setName("Installed " + (installedPackage.getVersionName() != null ? installedPackage.getVersionName() : "MCPE"));
+                InstanceSource source = new InstanceSource(InstanceSourceType.INSTALLED_PACKAGE);
+                source.setPackageName(installedPackage.getPackageName());
+                instance.setSource(source);
+                instance.setPackageSnapshot(createPackageSnapshot(installedPackage));
+                instance.setState(isInstancePrepared(instance.getId()) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
+                repository.saveInstance(instance);
+            } else {
+                GameInstance instance = repository.getInstance("installed-minecraftpe");
+                if (instance != null) {
+                    instance.setState(InstanceState.MISSING_SOURCE);
+                    repository.saveInstance(instance);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

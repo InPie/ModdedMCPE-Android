@@ -108,12 +108,9 @@ class VersionsFragment : Fragment() {
             .setTitle(getString(R.string.dialog_download_title, version.name))
             .setView(dialogView)
             .setCancelable(false)
-            .setNegativeButton(R.string.btn_cancel) { _, _ ->
-                Toast.makeText(context, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
-            }
-            .show()
+            .create()
 
-        operator.installRemoteVersion(version, object : InstanceOperator.InstallCallback {
+        val cancelAction = operator.installRemoteVersion(version, object : InstanceOperator.InstallCallback {
             override fun onProgress(percent: Int) {
                 activity?.runOnUiThread {
                     progressBar.progress = percent
@@ -131,10 +128,23 @@ class VersionsFragment : Fragment() {
             override fun onError(e: Exception) {
                 activity?.runOnUiThread {
                     dialog.dismiss()
-                    Toast.makeText(context, getString(R.string.toast_download_error, e.message), Toast.LENGTH_LONG).show()
+                    if (e.message?.contains("cancelled") != true) {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Download Failed")
+                            .setMessage(e.message ?: "Unknown error occurred")
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                    }
                 }
             }
         })
+
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, getString(R.string.btn_cancel)) { _, _ ->
+            cancelAction.run()
+            Toast.makeText(context, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
+        }
+        
+        dialog.show()
     }
 
     private fun loadVersions() {

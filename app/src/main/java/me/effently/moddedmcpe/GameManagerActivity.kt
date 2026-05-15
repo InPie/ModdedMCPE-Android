@@ -3,19 +3,13 @@ package me.effently.moddedmcpe
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.google.gson.JsonObject
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.fragments.gameManager.AddonsFragment
-import me.effently.moddedmcpe.fragments.gameManager.INSTALLED_MCPE_INSTANCE_ID
 import me.effently.moddedmcpe.fragments.gameManager.InstancesFragment
 import me.effently.moddedmcpe.fragments.gameManager.VersionsFragment
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
-import org.endercore.android.operator.instance.model.GameInstance
-import org.endercore.android.operator.instance.model.InstanceSource
-import org.endercore.android.operator.instance.model.InstanceSourceType
-import org.endercore.android.operator.instance.model.InstanceState
 
 class GameManagerActivity : AppCompatActivity() {
 
@@ -23,7 +17,8 @@ class GameManagerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game_manager)
 
-        ensureInstalledGameInstance()
+        val operator = InstanceOperator(this, EnderCore.instance.fileEnvironment)
+        operator.ensureInstalledGameInstanceExists()
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         bottomNav.setOnNavigationItemSelectedListener { item ->
@@ -53,40 +48,5 @@ class GameManagerActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
-    }
-
-    private fun ensureInstalledGameInstance() {
-        val core = EnderCore.instance
-        val operator = InstanceOperator(this, core.fileEnvironment)
-        val repository = operator.repository
-        val installedPackage = core.gamePackageManager.gamePackage
-        try {
-            if (installedPackage != null) {
-                val instance = repository.getInstance(INSTALLED_MCPE_INSTANCE_ID) ?: GameInstance().apply {
-                    id = INSTALLED_MCPE_INSTANCE_ID
-                    createdAt = System.currentTimeMillis()
-                    settings = JsonObject()
-                }
-                instance.name = "Installed ${installedPackage.versionName ?: "MCPE"}"
-                instance.source = InstanceSource(InstanceSourceType.INSTALLED_PACKAGE).apply {
-                    packageName = installedPackage.packageName
-                }
-                instance.packageSnapshot = operator.createPackageSnapshot(installedPackage)
-                instance.state = if (operator.isInstancePrepared(instance.id)) {
-                    InstanceState.READY
-                } else {
-                    InstanceState.REBUILD_REQUIRED
-                }
-                repository.saveInstance(instance)
-            } else {
-                val instance = repository.getInstance(INSTALLED_MCPE_INSTANCE_ID)
-                if (instance != null) {
-                    instance.state = InstanceState.MISSING_SOURCE
-                    repository.saveInstance(instance)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 }

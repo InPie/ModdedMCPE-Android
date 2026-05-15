@@ -1,5 +1,8 @@
 package org.endercore.android.operator.instance;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
 
 import java.io.File;
@@ -17,8 +20,36 @@ public class InstanceDownloader {
         void onError(Exception e);
     }
 
-    public void downloadApk(String downloadUrl, File destinationFile, DownloadListener listener) {
-        new Thread(() -> {
+    public static class DownloadTask {
+        private final Thread thread;
+        public DownloadTask(Thread thread) {
+            this.thread = thread;
+        }
+        public void cancel() {
+            if (thread != null) {
+                thread.interrupt();
+            }
+        }
+    }
+
+    private boolean isNetworkAvailable(Context context) {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            return activeNetwork != null && activeNetwork.isConnected();
+        }
+        return false;
+    }
+
+    public DownloadTask downloadApk(Context context, String downloadUrl, File destinationFile, DownloadListener listener) {
+        if (!isNetworkAvailable(context)) {
+            if (listener != null) {
+                listener.onError(new java.net.UnknownHostException("No internet connection."));
+            }
+            return new DownloadTask(null);
+        }
+
+        Thread thread = new Thread(() -> {
             HttpURLConnection connection = null;
             InputStream input = null;
             FileOutputStream output = null;
@@ -84,6 +115,8 @@ public class InstanceDownloader {
                 } catch (Exception ignored) {}
                 if (connection != null) connection.disconnect();
             }
-        }).start();
+        });
+        thread.start();
+        return new DownloadTask(thread);
     }
 }

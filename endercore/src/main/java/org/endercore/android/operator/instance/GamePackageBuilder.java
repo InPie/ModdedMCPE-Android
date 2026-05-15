@@ -66,17 +66,26 @@ public class GamePackageBuilder {
         }
         Log.d(TAG, "Selected ABI: " + targetArch);
 
-        String[] requiredLibs = {"libfmod.so", "libgnustl_shared.so", "libminecraftpe.so"};
-        
         Log.d(TAG, "Extracting native libraries...");
         
-        // Extract Native Libs
-        for (String libName : requiredLibs) {
-            boolean copied = extractFileFromApks(allApkFiles, "lib/" + targetArch + "/" + libName, new File(nativeDir, libName));
-            if (copied) {
-                Log.d(TAG, "Extracted native lib: " + libName);
-            } else {
-                Log.w(TAG, "Required native lib not found: " + libName);
+        // Extract All Native Libs for target ABI
+        for (File apkFile : allApkFiles) {
+            try (ZipFile zipFile = new ZipFile(apkFile)) {
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    String entryName = entry.getName();
+                    if (entryName.startsWith("lib/" + targetArch + "/") && entryName.endsWith(".so")) {
+                        String libName = entryName.substring(entryName.lastIndexOf('/') + 1);
+                        File destFile = new File(nativeDir, libName);
+                        if (!destFile.exists()) {
+                            FileUtils.copy(zipFile.getInputStream(entry), destFile);
+                            Log.d(TAG, "Extracted native lib: " + libName);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to read APK for native libs: " + apkFile.getAbsolutePath(), e);
             }
         }
 

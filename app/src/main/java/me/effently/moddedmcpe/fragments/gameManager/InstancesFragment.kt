@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -67,17 +68,74 @@ class InstancesFragment : Fragment() {
     }
 
     private fun showInstanceOptions(instance: GameInstance) {
-        val options = arrayOf("Play", "Duplicate", "Delete")
+        val options = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
+            arrayOf("Retry Download", "Duplicate", "Delete")
+        } else {
+            arrayOf("Play", "Duplicate", "Delete")
+        }
+
         AlertDialog.Builder(requireContext())
             .setTitle(instance.name)
             .setItems(options) { _, which ->
                 when (options[which]) {
                     "Play" -> playInstance(instance)
+                    "Retry Download" -> retryDownload(instance)
                     "Duplicate" -> duplicateInstance(instance)
                     "Delete" -> deleteInstance(instance)
                 }
             }
             .show()
+    }
+
+    private fun retryDownload(instance: GameInstance) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_download, null)
+        val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
+        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_download_title, instance.name))
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        val cancelAction = operator.retryInstance(instance, object : InstanceOperator.InstallCallback {
+            override fun onProgress(percent: Int) {
+                activity?.runOnUiThread {
+                    progressBar.progress = percent
+                    textStatus.text = getString(R.string.text_download_progress, percent)
+                }
+            }
+
+            override fun onSuccess() {
+                activity?.runOnUiThread {
+                    dialog.dismiss()
+                    Toast.makeText(context, R.string.toast_download_success, Toast.LENGTH_LONG).show()
+                    loadInstances()
+                }
+            }
+
+            override fun onError(e: Exception) {
+                activity?.runOnUiThread {
+                    dialog.dismiss()
+                    if (e.message?.contains("cancelled") != true) {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Download Failed")
+                            .setMessage(e.message ?: "Unknown error occurred")
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                    }
+                    loadInstances()
+                }
+            }
+        })
+
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, getString(R.string.btn_cancel)) { _, _ ->
+            cancelAction.run()
+            Toast.makeText(context, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
+            loadInstances()
+        }
+        
+        dialog.show()
     }
 
     private fun duplicateInstance(instance: GameInstance) {
