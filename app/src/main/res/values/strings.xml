@@ -99,5 +99,12 @@
     <string name="dialog_import_failed_title">Import Failed</string>
     <string name="dialog_instance_info_title">Instance info</string>
 
+    <string name="btn_install_new_instance">Install new instance</string>
+    <string name="btn_play_existing">Play existing</string>
+    <string name="btn_delete_all_for_version">Delete all for this version</string>
+    <string name="dialog_select_action_title">Select action for %1$s</string>
+    <string name="dialog_select_instance_title">Select instance to play</string>
+    <string name="toast_deleted">Deleted</string>
+
     <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>

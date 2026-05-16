@@ -1,8 +1,8 @@
 package me.effently.moddedmcpe.fragments.gameManager
 
 import android.app.AlertDialog
-import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,11 +11,16 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.utils.InstanceUIHelper
@@ -30,16 +35,19 @@ import java.util.Date
 const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 
 class InstancesFragment : Fragment() {
-    companion object {
-        private const val REQUEST_EXPORT_ZIP = 42
-    }
-
     private lateinit var recyclerInstances: RecyclerView
     private lateinit var adapter: InstancesAdapter
     private val instances = mutableListOf<GameInstance>()
     private lateinit var operator: InstanceOperator
     private var pendingExportInstance: GameInstance? = null
     private val debugGson = GsonBuilder().setPrettyPrinting().create()
+
+    private val exportZipLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            val instance = pendingExportInstance ?: return@registerForActivityResult
+            pendingExportInstance = null
+            uri?.let { doExport(instance, it) }
+        }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_instances, container, false)
@@ -80,30 +88,27 @@ class InstancesFragment : Fragment() {
     }
 
     private fun showInstanceOptions(instance: GameInstance) {
-        val options = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
-            arrayOf(getString(R.string.btn_download), getString(R.string.btn_info), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
-        } else {
-            arrayOf(getString(R.string.btn_play), getString(R.string.btn_info), getString(R.string.btn_duplicate), getString(R.string.btn_export_zip), getString(R.string.btn_delete))
+        val actions = buildList {
+            if (instance.state == InstanceState.DOWNLOAD_FAILED)
+                add(R.string.btn_download to { retryDownload(instance) })
+            else
+                add(R.string.btn_play to { playInstance(instance) })
+            add(R.string.btn_info to { showInstanceInfo(instance) })
+            add(R.string.btn_duplicate to { duplicateInstance(instance) })
+            add(R.string.btn_export_zip to { exportInstance(instance) })
+            add(R.string.btn_delete to { deleteInstance(instance) })
         }
-
         AlertDialog.Builder(requireContext())
             .setTitle(instance.name)
-            .setItems(options) { _, which ->
-                when (options[which]) {
-                    getString(R.string.btn_play) -> playInstance(instance)
-                    getString(R.string.btn_download) -> retryDownload(instance)
-                    getString(R.string.btn_info) -> showInstanceInfo(instance)
-                    getString(R.string.btn_duplicate) -> duplicateInstance(instance)
-                    getString(R.string.btn_export_zip) -> exportInstance(instance)
-                    getString(R.string.btn_delete) -> deleteInstance(instance)
-                }
-            }
+            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
             .show()
     }
 
     private fun retryDownload(instance: GameInstance) {
-        InstanceUIHelper.retryDownload(this, operator, instance) {
-            loadInstances()
+        activity?.let { act ->
+            InstanceUIHelper.retryDownload(act, operator, instance) {
+                loadInstances()
+            }
         }
     }
 
@@ -167,24 +172,14 @@ class InstancesFragment : Fragment() {
 
     private fun exportInstance(instance: GameInstance) {
         pendingExportInstance = instance
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/zip"
-            putExtra(Intent.EXTRA_TITLE, "${instance.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")}.zip")
-        }
-        startActivityForResult(intent, REQUEST_EXPORT_ZIP)
+        exportZipLauncher.launch(
+            "${instance.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")}.zip"
+        )
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_EXPORT_ZIP || resultCode != Activity.RESULT_OK) {
-            return
-        }
-
-        val instance = pendingExportInstance ?: return
-        val uri = data?.data ?: return
+    private fun doExport(instance: GameInstance, uri: Uri) {
         val context = requireContext()
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val tempZip = File(context.cacheDir, "${instance.id}.zip")
                 operator.exportInstanceZip(instance.id, tempZip)
@@ -192,15 +187,15 @@ class InstancesFragment : Fragment() {
                     tempZip.inputStream().use { input -> input.copyTo(output) }
                 } ?: throw IllegalStateException("Failed to open export destination.")
                 tempZip.delete()
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     Toast.makeText(context, R.string.toast_export_success, Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     Toast.makeText(context, getString(R.string.toast_export_error, e.message), Toast.LENGTH_LONG).show()
                 }
             }
-        }.start()
+        }
     }
 
     inner class InstancesAdapter(

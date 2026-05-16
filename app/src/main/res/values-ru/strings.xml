@@ -99,5 +99,11 @@
     <string name="dialog_import_failed_title">Ошибка при импорте</string>
     <string name="dialog_instance_info_title">Информация об инстансе</string>
 
+    <string name="btn_install_new_instance">Установить новый инстанс</string>
+    <string name="btn_play_existing">Играть</string>
+    <string name="btn_delete_all_for_version">Удалить все инстансы этой версии</string>
+    <string name="dialog_select_action_title">Выберите действие для %1$s</string>
+    <string name="dialog_select_instance_title">Выберите инстанс</string>
+    <string name="toast_deleted">Удалено</string>
 
 </resources>

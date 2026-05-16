@@ -1,7 +1,6 @@
 package me.effently.moddedmcpe.fragments.gameManager
 
 import android.app.AlertDialog
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -13,9 +12,15 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.utils.InstanceUIHelper
@@ -28,15 +33,16 @@ import org.endercore.android.operator.instance.model.RemoteVersion
 import java.io.File
 
 class VersionsFragment : Fragment() {
-    companion object {
-        private const val REQUEST_IMPORT_PACKAGE = 51
-    }
-
     private lateinit var recyclerVersions: RecyclerView
     private lateinit var btnImportApk: Button
     private lateinit var adapter: VersionsAdapter
     private val versions = mutableListOf<RemoteVersion>()
     private lateinit var operator: InstanceOperator
+
+    private val importPackageLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { importPackage(it) }
+        }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_versions, container, false)
@@ -63,25 +69,19 @@ class VersionsFragment : Fragment() {
 
     private fun onVersionClick(version: RemoteVersion) {
         val versionInstances = operator.repository.instances.filter { it.source?.url == version.url }
+        if (versionInstances.isEmpty()) { startDownload(version); return }
 
-        if (versionInstances.isEmpty()) {
-            startDownload(version)
-            return
-        }
-
-        val options = arrayOf("Install new instance", "Play existing", "Delete all for this version")
-        AlertDialog.Builder(requireContext())
-            .setTitle("Select action for ${version.name}")
-            .setItems(options) { _, which ->
-                when (options[which]) {
-                    "Install new instance" -> startDownload(version)
-                    "Play existing" -> playExisting(versionInstances)
-                    "Delete all for this version" -> {
-                        versionInstances.forEach { operator.deleteInstance(it.id) }
-                        Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
-                    }
-                }
+        val actions = listOf(
+            getString(R.string.btn_install_new_instance) to { startDownload(version) },
+            getString(R.string.btn_play_existing) to { playExisting(versionInstances) },
+            getString(R.string.btn_delete_all_for_version) to {
+                versionInstances.forEach { operator.deleteInstance(it.id) }
+                Toast.makeText(context, R.string.toast_deleted, Toast.LENGTH_SHORT).show()
             }
+        )
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_select_action_title, version.name))
+            .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
             .show()
     }
 
@@ -93,14 +93,16 @@ class VersionsFragment : Fragment() {
 
         val instanceNames = versionInstances.map { "${it.name} (${it.id})" }.toTypedArray()
         AlertDialog.Builder(requireContext())
-            .setTitle("Select instance to play")
+            .setTitle(getString(R.string.dialog_select_instance_title))
             .setItems(instanceNames) { _, idx -> playInstance(versionInstances[idx]) }
             .show()
     }
 
     private fun playInstance(instance: GameInstance) {
         if (instance.state == InstanceState.DOWNLOAD_FAILED) {
-            InstanceUIHelper.retryDownload(this, operator, instance) {}
+            activity?.let { act ->
+                InstanceUIHelper.retryDownload(act, operator, instance) {}
+            }
             return
         }
 
@@ -115,28 +117,21 @@ class VersionsFragment : Fragment() {
     }
 
     private fun startDownload(version: RemoteVersion) {
-        InstanceUIHelper.startDownload(this, operator, version) {
-            adapter.notifyDataSetChanged()
+        activity?.let { act ->
+            InstanceUIHelper.startDownload(act, operator, version) {
+                adapter.notifyDataSetChanged()
+            }
         }
     }
 
     private fun pickPackageFile() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/vnd.android.package-archive", "application/zip", "application/octet-stream"))
-        }
-        startActivityForResult(intent, REQUEST_IMPORT_PACKAGE)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_IMPORT_PACKAGE || resultCode != Activity.RESULT_OK) {
-            return
-        }
-
-        val uri = data?.data ?: return
-        importPackage(uri)
+        importPackageLauncher.launch(
+            arrayOf(
+                "application/vnd.android.package-archive",
+                "application/zip",
+                "application/octet-stream"
+            )
+        )
     }
 
     private fun importPackage(uri: Uri) {
@@ -150,22 +145,22 @@ class VersionsFragment : Fragment() {
         }
         val tempFile = File(context.cacheDir, "import_${System.currentTimeMillis()}$extension")
 
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     tempFile.outputStream().use { output -> input.copyTo(output) }
                 } ?: throw IllegalStateException("Failed to open selected file.")
 
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     showImportDialog(tempFile, extension == ".zip")
                 }
             } catch (e: Exception) {
                 tempFile.delete()
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     Toast.makeText(context, getString(R.string.toast_import_error, e.message), Toast.LENGTH_LONG).show()
                 }
             }
-        }.start()
+        }
     }
 
     private fun showImportDialog(tempFile: File, isZip: Boolean) {
@@ -183,6 +178,7 @@ class VersionsFragment : Fragment() {
         val callback = object : InstanceOperator.InstallCallback {
             override fun onProgress(percent: Int) {
                 activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
                     progressBar.progress = percent
                     textStatus.text = getString(R.string.text_download_progress, percent)
                 }
@@ -191,6 +187,7 @@ class VersionsFragment : Fragment() {
             override fun onSuccess() {
                 tempFile.delete()
                 activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
                     dialog.dismiss()
                     Toast.makeText(context, R.string.toast_import_success, Toast.LENGTH_LONG).show()
                 }
@@ -199,6 +196,7 @@ class VersionsFragment : Fragment() {
             override fun onError(e: Exception) {
                 tempFile.delete()
                 activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
                     dialog.dismiss()
                     AlertDialog.Builder(requireContext())
                         .setTitle(R.string.dialog_import_failed_title)
@@ -230,9 +228,9 @@ class VersionsFragment : Fragment() {
     private fun loadVersions() {
         val repository = RemoteVersionRepository(EnderCore.instance.fileEnvironment)
 
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             val remoteVersions = repository.fetchVersions()
-            activity?.runOnUiThread {
+            withContext(Dispatchers.Main) {
                 versions.clear()
                 versions.addAll(remoteVersions)
                 adapter.notifyDataSetChanged()
@@ -241,7 +239,7 @@ class VersionsFragment : Fragment() {
                     Toast.makeText(context, R.string.toast_versions_failed, Toast.LENGTH_SHORT).show()
                 }
             }
-        }.start()
+        }
     }
 
     inner class VersionsAdapter(
@@ -262,14 +260,15 @@ class VersionsFragment : Fragment() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val version = items[position]
+            val context = holder.itemView.context
             holder.textName.text = version.name
 
             if (version.isNotTested) {
-                holder.textStatus.text = getString(R.string.text_download_status_untested)
-                holder.textStatus.setTextColor(resources.getColor(R.color.mc_error))
+                holder.textStatus.text = context.getString(R.string.text_download_status_untested)
+                holder.textStatus.setTextColor(ContextCompat.getColor(context, R.color.mc_error))
             } else {
-                holder.textStatus.text = getString(R.string.text_download_status_available)
-                holder.textStatus.setTextColor(resources.getColor(R.color.mc_text_secondary))
+                holder.textStatus.text = context.getString(R.string.text_download_status_available)
+                holder.textStatus.setTextColor(ContextCompat.getColor(context, R.color.mc_text_secondary))
             }
 
             holder.btnDownload.setOnClickListener { onDownloadClick(version) }

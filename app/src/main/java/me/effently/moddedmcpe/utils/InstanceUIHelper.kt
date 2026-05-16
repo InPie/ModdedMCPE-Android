@@ -1,13 +1,14 @@
 package me.effently.moddedmcpe.utils
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.view.LayoutInflater
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.fragment.app.Fragment
 import me.effently.moddedmcpe.R
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
@@ -17,30 +18,29 @@ object InstanceUIHelper {
 
     fun isNetworkAvailable(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = cm.activeNetworkInfo
-        return activeNetwork != null && activeNetwork.isConnected
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    fun startDownload(fragment: Fragment, operator: InstanceOperator, version: RemoteVersion, onFinish: () -> Unit) {
-        val context = fragment.requireContext()
-        if (!isNetworkAvailable(context)) {
-            showNoInternetDialog(context)
+    fun startDownload(activity: Activity, operator: InstanceOperator, version: RemoteVersion, onFinish: () -> Unit) {
+        if (!isNetworkAvailable(activity)) {
+            showNoInternetDialog(activity)
             return
         }
 
-        showDownloadDialog(fragment, context, { callback ->
+        showDownloadDialog(activity, { callback ->
             operator.installRemoteVersion(version, callback)
         }, onFinish)
     }
 
-    fun retryDownload(fragment: Fragment, operator: InstanceOperator, instance: GameInstance, onFinish: () -> Unit) {
-        val context = fragment.requireContext()
-        if (!isNetworkAvailable(context)) {
-            showNoInternetDialog(context)
+    fun retryDownload(activity: Activity, operator: InstanceOperator, instance: GameInstance, onFinish: () -> Unit) {
+        if (!isNetworkAvailable(activity)) {
+            showNoInternetDialog(activity)
             return
         }
 
-        showDownloadDialog(fragment, context, { callback ->
+        showDownloadDialog(activity, { callback ->
             operator.retryInstance(instance, callback)
         }, onFinish)
     }
@@ -54,46 +54,46 @@ object InstanceUIHelper {
     }
 
     private fun showDownloadDialog(
-        fragment: Fragment,
-        context: Context,
+        activity: Activity,
         startAction: (InstanceOperator.InstallCallback) -> Runnable,
         onFinish: () -> Unit = {}
-    ): Runnable? {
-        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_download, null)
+    ) {
+        val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_download, null)
         val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
         val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
 
-        val dialog = AlertDialog.Builder(context)
-            .setTitle("Downloading...")
+        val dialog = AlertDialog.Builder(activity)
+            .setTitle(R.string.text_preparing)
             .setView(dialogView)
             .setCancelable(false)
             .create()
 
-        var cancelAction: Runnable? = null
-
         val callback = object : InstanceOperator.InstallCallback {
             override fun onProgress(percent: Int) {
-                fragment.activity?.runOnUiThread {
+                activity.runOnUiThread {
+                    if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                     progressBar.progress = percent
-                    textStatus.text = context.getString(R.string.text_download_progress, percent)
+                    textStatus.text = activity.getString(R.string.text_download_progress, percent)
                 }
             }
 
             override fun onSuccess() {
-                fragment.activity?.runOnUiThread {
+                activity.runOnUiThread {
+                    if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                     dialog.dismiss()
-                    Toast.makeText(context, R.string.toast_download_success, Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, R.string.toast_download_success, Toast.LENGTH_LONG).show()
                     onFinish()
                 }
             }
 
             override fun onError(e: Exception) {
-                fragment.activity?.runOnUiThread {
+                activity.runOnUiThread {
+                    if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                     dialog.dismiss()
                     onFinish()
                     if (e.message?.contains("cancelled") != true) {
-                        AlertDialog.Builder(context)
-                            .setTitle("Download Failed")
+                        AlertDialog.Builder(activity)
+                            .setTitle(R.string.dialog_import_failed_title)
                             .setMessage(e.message ?: "Unknown error occurred")
                             .setPositiveButton(android.R.string.ok, null)
                             .show()
@@ -102,15 +102,14 @@ object InstanceUIHelper {
             }
         }
 
-        cancelAction = startAction(callback)
+        val cancelAction = startAction(callback)
 
-        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, context.getString(R.string.btn_cancel)) { _, _ ->
-            cancelAction?.run()
-            Toast.makeText(context, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, activity.getString(R.string.btn_cancel)) { _, _ ->
+            cancelAction.run()
+            Toast.makeText(activity, R.string.toast_cancelled, Toast.LENGTH_SHORT).show()
             onFinish()
         }
 
         dialog.show()
-        return cancelAction
     }
 }
