@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 #include <cstdio>
 #include <cstring>
+#include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/native_activity.h>
 
@@ -15,6 +16,34 @@ static void (*android_main_minecraft)(struct android_app *app);
 static void (*ANativeActivity_onCreate_minecraft)(ANativeActivity *activity, void *savedState,
                                                   size_t savedStateSize);
 
+static void logNativeAssetProbe(AAssetManager *assetManager, const char *path) {
+    if (assetManager == nullptr) {
+        LOGE("Native asset probe failed: assetManager is null, path=%s", path);
+        return;
+    }
+
+    AAsset *asset = AAssetManager_open(assetManager, path, AASSET_MODE_BUFFER);
+    if (asset == nullptr) {
+        LOGE("Native asset probe failed: %s", path);
+        return;
+    }
+
+    off_t length = AAsset_getLength(asset);
+    LOGD("Native asset probe OK: %s, length=%ld", path, static_cast<long>(length));
+    AAsset_close(asset);
+}
+
+static void logNativeAssetState(ANativeActivity *activity) {
+    AAssetManager *assetManager = activity == nullptr ? nullptr : activity->assetManager;
+    LOGD("Native Activity assetManager=%p", assetManager);
+    logNativeAssetProbe(assetManager, "images/font/default8.png");
+    logNativeAssetProbe(assetManager, "images/gui/title.png");
+    logNativeAssetProbe(assetManager, "resourcepacks/vanilla/models/mobs.json");
+    logNativeAssetProbe(assetManager, "skins/skins.json");
+    logNativeAssetProbe(assetManager, "images/mob/skins/Base/Vanilla.json");
+    logNativeAssetProbe(assetManager, "skins/Base/base.json");
+}
+
 extern "C" void android_main(struct android_app *app) {
     LOGD("Forward android_main to mcpe");
     android_main_minecraft(app);
@@ -23,6 +52,7 @@ extern "C" void android_main(struct android_app *app) {
 extern "C" void
 ANativeActivity_onCreate(ANativeActivity *activity, void *savedState, size_t savedStateSize) {
     LOGD("Forward ANativeActivity_onCreate to mcpe");
+    // logNativeAssetState(activity);
     ANativeActivity_onCreate_minecraft(activity, savedState, savedStateSize);
 }
 

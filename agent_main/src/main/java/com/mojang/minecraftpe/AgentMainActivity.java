@@ -3,11 +3,18 @@ package com.mojang.minecraftpe;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -25,6 +32,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
 
+    // logging for debug
+    private String gameApkPath = null;
+    private int getAssetsLogCount = 0;
+    private int getApplicationContextLogCount = 0;
+    private int getFileDataLogCount = 0;
+    private int getImageDataLogCount = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         prepareGameWindow();
@@ -38,6 +52,10 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             finish();
         }
         else {
+            if (patchAssetsPath.size() > 1) {
+                gameApkPath = patchAssetsPath.get(1);
+            }
+
             Log.i("EnderCore-AgentMain", "Start patching assets.");
             try {
                 patchAssetManager = AssetManager.class.newInstance();
@@ -60,8 +78,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
                 Method method = AssetManager.class.getMethod("addAssetPath", String.class);
                 for (int i = 0; i < arrayListSize; ++i) {
                     String path = patchAssetsPath.get(i);
-                    Log.i("EnderCore-AgentMain", "Patched [" + path + "].");
-                    method.invoke(patchAssetManager, path);
+                    int cookie = (Integer) method.invoke(patchAssetManager, path);
+                    File file = new File(path);
+                    Log.i("EnderCore-AgentMain", "Patched [" + path + "], cookie=" + cookie
+                            + ", exists=" + file.exists() + ", canRead=" + file.canRead()
+                            + ", length=" + file.length() + ".");
                 }
             } catch (Throwable t) {
                 Log.e("EnderCore", "Failed to patch assets.");
@@ -75,6 +96,8 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Resources resourcesOriginal = super.getResources();
             patchResources = new Resources(patchAssetManager, resourcesOriginal.getDisplayMetrics(), resourcesOriginal.getConfiguration());
             Log.i("EnderCore-AgentMain", "Resources patching succeed.");
+            Log.i("EnderCore-AgentMain", "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
+            // logAssetState();
             Log.i("EnderCore-AgentMain", "Patching finished.Activity creating.");
             super.onCreate(savedInstanceState);
             applyImmersiveMode();
@@ -96,8 +119,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     @Override
     public AssetManager getAssets() {
-        if(patchAssetManager != null)
+        if(patchAssetManager != null) {
+            // if (getAssetsLogCount < 5) {
+            //     Log.i("EnderCore-AgentMain", "getAssets()");
+            //     getAssetsLogCount++;
+            // }
             return patchAssetManager;
+        }
         return super.getAssets();
     }
 
@@ -110,8 +138,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     @Override
     public Context getApplicationContext() {
-        if(patchAssetManager != null)
+        if(patchAssetManager != null) {
+            // if (getApplicationContextLogCount < 5) {
+            //     Log.i("EnderCore-AgentMain", "getApplicationContext()");
+            //     getApplicationContextLogCount++;
+            // }
             return this;
+        }
         return super.getApplicationContext();
     }
 
@@ -130,4 +163,177 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private void applyImmersiveMode() {
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE_SYSTEM_UI_FLAGS);
     }
+
+
+
+    /////////////////////////////////////////////////
+    // ------------ LOGGING FOR DEBUG ------------ //
+    /////////////////////////////////////////////////
+
+    private void logAssetState() {
+        logAssetList("images/font");
+        logAssetProbe("images/font/default8.png");
+        logAssetProbe("images/gui/title.png");
+        logAssetList("resourcepacks/vanilla");
+        logAssetList("resourcepacks/vanilla/models");
+        logAssetProbe("assets/images/font/default8.png");
+        logAssetProbe("images/mob/skins/Base/Vanilla.json");
+        logAssetProbe("skins/skins.json");
+        logAssetProbe("skins/Base/base.json");
+    }
+
+    private void logAssetProbe(String path) {
+        try {
+            InputStream input = patchAssetManager.open(path);
+            int available = input.available();
+            input.close();
+            Log.i("EnderCore-AgentMain", "Asset probe OK: " + path + ", available=" + available);
+        } catch (Throwable throwable) {
+            Log.e("EnderCore-AgentMain", "Asset probe failed: " + path + " -> " + throwable);
+        }
+    }
+
+    private void logAssetList(String path) {
+        try {
+            String[] items = patchAssetManager.list(path);
+            Log.i("EnderCore-AgentMain", "Asset list " + path + " count=" + (items == null ? -1 : items.length));
+            if (items != null) {
+                for (int i = 0; i < items.length && i < 8; i++) {
+                    Log.i("EnderCore-AgentMain", "Asset list item: " + path + "/" + items[i]);
+                }
+            }
+        } catch (Throwable throwable) {
+            Log.e("EnderCore-AgentMain", "Asset list failed: " + path + " -> " + throwable);
+        }
+    }
+
+    @Override
+    public String getPackageCodePath() {
+        if (gameApkPath != null) return gameApkPath;
+        return super.getPackageCodePath();
+    }
+
+    @Override
+    public String getPackageResourcePath() {
+        if (gameApkPath != null) return gameApkPath;
+        return super.getPackageResourcePath();
+    }
+
+    @Override
+    public android.content.pm.ApplicationInfo getApplicationInfo() {
+        android.content.pm.ApplicationInfo info = super.getApplicationInfo();
+        if (gameApkPath != null) {
+            android.content.pm.ApplicationInfo newInfo = new android.content.pm.ApplicationInfo(info);
+            newInfo.sourceDir = gameApkPath;
+            newInfo.publicSourceDir = gameApkPath;
+            return newInfo;
+        }
+        return info;
+    }
+
+    @Override
+    public byte[] getFileDataBytes(String filename) {
+        if (filename == null || filename.length() == 0) {
+            return null;
+        }
+
+        byte[] data = readAllBytesFromAssets(filename);
+        if (data != null) {
+            logFileDataResult("asset", filename, data.length, null);
+            return data;
+        }
+
+        data = readAllBytesFromFile(filename);
+        logFileDataResult(data == null ? "missing" : "file", filename, data == null ? 0 : data.length, null);
+        return data;
+    }
+
+    @Override
+    public int[] getImageData(String filename) {
+        Bitmap bitmap = BitmapFactory.decodeFile(filename);
+        if (bitmap == null && patchAssetManager != null) {
+            try {
+                InputStream inputStream = patchAssetManager.open(filename);
+                bitmap = BitmapFactory.decodeStream(inputStream);
+                inputStream.close();
+            } catch (Throwable throwable) {
+                logImageDataResult(filename, false);
+                return null;
+            }
+        }
+
+        if (bitmap == null) {
+            logImageDataResult(filename, false);
+            return null;
+        }
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[(width * height) + 2];
+        pixels[0] = width;
+        pixels[1] = height;
+        bitmap.getPixels(pixels, 2, width, 0, 0, width, height);
+        logImageDataResult(filename, true);
+        return pixels;
+    }
+
+    private byte[] readAllBytesFromAssets(String filename) {
+        if (patchAssetManager == null) {
+            return null;
+        }
+
+        try {
+            return readAllBytes(patchAssetManager.open(filename));
+        } catch (Throwable throwable) {
+            return null;
+        }
+    }
+
+    private byte[] readAllBytesFromFile(String filename) {
+        try {
+            return readAllBytes(new FileInputStream(filename));
+        } catch (Throwable throwable) {
+            return null;
+        }
+    }
+
+    private byte[] readAllBytes(InputStream inputStream) throws java.io.IOException {
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream(4096);
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = inputStream.read(buffer)) > 0) {
+                output.write(buffer, 0, read);
+            }
+            return output.toByteArray();
+        } finally {
+            inputStream.close();
+        }
+    }
+
+    private void logFileDataResult(String source, String filename, int length, Throwable throwable) {
+        if (getFileDataLogCount >= 40 && !isNeededAsset(filename)) {
+            return;
+        }
+        if (getFileDataLogCount < 80) {
+            String suffix = throwable == null ? "" : ", error=" + throwable;
+            Log.i("EnderCore-AgentMain", "getFileDataBytes(" + filename + ") -> " + source
+                    + ", length=" + length + suffix);
+            getFileDataLogCount++;
+        }
+    }
+
+    private void logImageDataResult(String filename, boolean success) {
+        if (getImageDataLogCount < 40 || isNeededAsset(filename)) {
+            Log.i("EnderCore-AgentMain", "getImageData(" + filename + ") -> " + success);
+            getImageDataLogCount++;
+        }
+    }
+
+    private boolean isNeededAsset(String filename) {
+        return filename.indexOf("models") >= 0
+                || filename.indexOf("resourcepacks") >= 0;
+    }
+
+    // END: logging for debug
 }

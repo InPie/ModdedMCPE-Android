@@ -13,7 +13,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie")
 find_library( log-lib-path
               log )
 
+find_library( android-lib-path
+              android )
+
 message( "Path of liblog.so: ${log-lib-path}" )
+message( "Path of libandroid.so: ${android-lib-path}" )
 
 # Import libraries
 add_library( xhook
@@ -44,7 +48,8 @@ add_library( endercore
              endercore.cpp )
 
 target_link_libraries( endercore
-                       ${log-lib-path} )
+                       ${log-lib-path}
+                       ${android-lib-path} )
 
 # mjscript
 add_library( mjscript
