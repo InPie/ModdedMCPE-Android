@@ -77,11 +77,15 @@ class InstancesFragment : Fragment() {
     }
 
     private fun loadInstances() {
-        val loadedInstances = operator.repository.instances.toList()
-        adapter.submitList(loadedInstances)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val loadedInstances = operator.repository.instances.toList()
+            withContext(Dispatchers.Main) {
+                adapter.submitList(loadedInstances)
 
-        if (loadedInstances.isEmpty()) {
-            Toast.makeText(context, R.string.toast_no_instances, Toast.LENGTH_SHORT).show()
+                if (loadedInstances.isEmpty()) {
+                    Toast.makeText(context, R.string.toast_no_instances, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
