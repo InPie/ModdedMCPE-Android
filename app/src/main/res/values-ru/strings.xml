@@ -110,4 +110,7 @@
     <string name="dialog_select_instance_title">Выберите инстанс</string>
     <string name="toast_deleted">Удалено</string>
 
+    <string name="text_last_played">Последний запуск</string>
+    <string name="text_all_instances">Все инстансы</string>
+
 </resources>

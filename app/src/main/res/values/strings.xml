@@ -110,5 +110,8 @@
     <string name="dialog_select_instance_title">Select instance to play</string>
     <string name="toast_deleted">Deleted</string>
 
+    <string name="text_last_played">Last played</string>
+    <string name="text_all_instances">All instances</string>
+
     <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>

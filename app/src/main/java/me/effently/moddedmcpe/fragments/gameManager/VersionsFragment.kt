@@ -234,7 +234,7 @@ class VersionsFragment : Fragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             val remoteVersions = repository.fetchVersions()
             withContext(Dispatchers.Main) {
-                adapter.submitList(remoteVersions)
+                adapter.submitList(remoteVersions.reversed())
 
                 if (remoteVersions.isEmpty()) {
                     Toast.makeText(context, R.string.toast_versions_failed, Toast.LENGTH_SHORT).show()
