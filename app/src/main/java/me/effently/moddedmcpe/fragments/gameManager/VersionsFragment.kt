@@ -18,6 +18,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,7 +38,6 @@ class VersionsFragment : Fragment() {
     private lateinit var recyclerVersions: RecyclerView
     private lateinit var btnImportApk: Button
     private lateinit var adapter: VersionsAdapter
-    private val versions = mutableListOf<RemoteVersion>()
     private lateinit var operator: InstanceOperator
 
     private val importPackageLauncher =
@@ -57,7 +58,7 @@ class VersionsFragment : Fragment() {
         btnImportApk = view.findViewById(R.id.btn_import_apk)
 
         recyclerVersions.layoutManager = LinearLayoutManager(context)
-        adapter = VersionsAdapter(versions) { version -> onVersionClick(version) }
+        adapter = VersionsAdapter { version -> onVersionClick(version) }
         recyclerVersions.adapter = adapter
 
         btnImportApk.setOnClickListener {
@@ -119,7 +120,9 @@ class VersionsFragment : Fragment() {
     private fun startDownload(version: RemoteVersion) {
         activity?.let { act ->
             InstanceUIHelper.startDownload(act, operator, version) {
-                adapter.notifyDataSetChanged()
+                // update remote version element (if needed.. now its not)
+                val pos = adapter.currentList.indexOf(version)
+                if (pos != -1) adapter.notifyItemChanged(pos)
             }
         }
     }
@@ -231,23 +234,27 @@ class VersionsFragment : Fragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             val remoteVersions = repository.fetchVersions()
             withContext(Dispatchers.Main) {
-                versions.clear()
-                versions.addAll(remoteVersions)
-                adapter.notifyDataSetChanged()
+                adapter.submitList(remoteVersions)
 
-                if (versions.isEmpty()) {
+                if (remoteVersions.isEmpty()) {
                     Toast.makeText(context, R.string.toast_versions_failed, Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    inner class VersionsAdapter(
-        private val items: List<RemoteVersion>,
+    class VersionsAdapter(
         private val onDownloadClick: (RemoteVersion) -> Unit
-    ) : RecyclerView.Adapter<VersionsAdapter.ViewHolder>() {
+    ) : ListAdapter<RemoteVersion, VersionsAdapter.ViewHolder>(DIFF) {
 
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        companion object {
+            private val DIFF = object : DiffUtil.ItemCallback<RemoteVersion>() {
+                override fun areItemsTheSame(a: RemoteVersion, b: RemoteVersion) = a.url == b.url
+                override fun areContentsTheSame(a: RemoteVersion, b: RemoteVersion) = a.url == b.url && a.name == b.name && a.isNotTested == b.isNotTested
+            }
+        }
+
+        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val textName: TextView = view.findViewById(R.id.text_version_name)
             val textStatus: TextView = view.findViewById(R.id.text_version_status)
             val btnDownload: Button = view.findViewById(R.id.btn_download)
@@ -259,7 +266,7 @@ class VersionsFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val version = items[position]
+            val version = getItem(position)
             val context = holder.itemView.context
             holder.textName.text = version.name
 
@@ -273,7 +280,5 @@ class VersionsFragment : Fragment() {
 
             holder.btnDownload.setOnClickListener { onDownloadClick(version) }
         }
-
-        override fun getItemCount() = items.size
     }
 }

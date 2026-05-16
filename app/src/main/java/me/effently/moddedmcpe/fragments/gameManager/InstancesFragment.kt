@@ -17,6 +17,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +40,6 @@ const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 class InstancesFragment : Fragment() {
     private lateinit var recyclerInstances: RecyclerView
     private lateinit var adapter: InstancesAdapter
-    private val instances = mutableListOf<GameInstance>()
     private lateinit var operator: InstanceOperator
     private var pendingExportInstance: GameInstance? = null
     private val debugGson = GsonBuilder().setPrettyPrinting().create()
@@ -63,10 +64,9 @@ class InstancesFragment : Fragment() {
         recyclerInstances.layoutManager = LinearLayoutManager(context)
 
         adapter = InstancesAdapter(
-            instances,
-            onPlayClick = { instance -> playInstance(instance) },
-            onDeleteClick = { instance -> deleteInstance(instance) },
-            onItemClick = { instance -> showInstanceOptions(instance) }
+            onPlayClick = { playInstance(it) },
+            onDeleteClick = { deleteInstance(it) },
+            onItemClick = { showInstanceOptions(it) }
         )
         recyclerInstances.adapter = adapter
     }
@@ -77,13 +77,10 @@ class InstancesFragment : Fragment() {
     }
 
     private fun loadInstances() {
-        val loadedInstances = operator.repository.instances
+        val loadedInstances = operator.repository.instances.toList()
+        adapter.submitList(loadedInstances)
 
-        instances.clear()
-        instances.addAll(loadedInstances)
-        adapter.notifyDataSetChanged()
-
-        if (instances.isEmpty()) {
+        if (loadedInstances.isEmpty()) {
             Toast.makeText(context, R.string.toast_no_instances, Toast.LENGTH_SHORT).show()
         }
     }
@@ -218,14 +215,20 @@ class InstancesFragment : Fragment() {
         }
     }
 
-    inner class InstancesAdapter(
-        private val items: List<GameInstance>,
+    class InstancesAdapter(
         private val onPlayClick: (GameInstance) -> Unit,
         private val onDeleteClick: (GameInstance) -> Unit,
         private val onItemClick: (GameInstance) -> Unit
-    ) : RecyclerView.Adapter<InstancesAdapter.ViewHolder>() {
+    ) : ListAdapter<GameInstance, InstancesAdapter.ViewHolder>(DIFF) {
 
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        companion object {
+            private val DIFF = object : DiffUtil.ItemCallback<GameInstance>() {
+                override fun areItemsTheSame(a: GameInstance, b: GameInstance) = a.id == b.id
+                override fun areContentsTheSame(a: GameInstance, b: GameInstance) = a.id == b.id && a.state == b.state && a.lastPlayedAt == b.lastPlayedAt
+            }
+        }
+
+        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val textName: TextView = view.findViewById(R.id.text_instance_name)
             val textStatus: TextView = view.findViewById(R.id.text_instance_status)
             val btnPlay: Button = view.findViewById(R.id.btn_play)
@@ -238,29 +241,26 @@ class InstancesFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val instance = items[position]
+            val instance = getItem(position)
+            val context = holder.itemView.context
             holder.textName.text = instance.name
-            holder.textStatus.text = getInstanceStatusText(instance)
-            holder.btnPlay.text = if (instance.state == InstanceState.DOWNLOAD_FAILED) {
-                getString(R.string.btn_download)
-            } else {
-                getString(R.string.btn_play)
-            }
+            holder.textStatus.text = getInstanceStatusText(context, instance)
+            holder.btnPlay.text = context.getString(
+                if (instance.state == InstanceState.DOWNLOAD_FAILED) R.string.btn_download else R.string.btn_play
+            )
             holder.itemView.setOnClickListener { onItemClick(instance) }
             holder.btnPlay.setOnClickListener { onPlayClick(instance) }
             holder.btnDelete.setOnClickListener { onDeleteClick(instance) }
         }
 
-        override fun getItemCount() = items.size
-    }
+        private fun getInstanceStatusText(context: android.content.Context, instance: GameInstance): String {
+            if (instance.state != InstanceState.READY) {
+                return context.getString(R.string.text_status, instance.state.toString())
+            }
 
-    private fun getInstanceStatusText(instance: GameInstance): String {
-        if (instance.state != InstanceState.READY) {
-            return getString(R.string.text_status, instance.state.toString())
+            val lastPlayedAt = instance.lastPlayedAt ?: return context.getString(R.string.text_never_launched)
+            val formatted = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(lastPlayedAt))
+            return context.getString(R.string.text_last_launch, formatted)
         }
-
-        val lastPlayedAt = instance.lastPlayedAt ?: return getString(R.string.text_never_launched)
-        val formatted = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(lastPlayedAt))
-        return getString(R.string.text_last_launch, formatted)
     }
 }
