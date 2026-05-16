@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -179,20 +180,39 @@ class InstancesFragment : Fragment() {
 
     private fun doExport(instance: GameInstance, uri: Uri) {
         val context = requireContext()
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_download, null)
+        dialogView.findViewById<ProgressBar>(R.id.progress_bar).isIndeterminate = true
+        dialogView.findViewById<TextView>(R.id.text_download_status).setText(R.string.text_exporting)
+
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(R.string.dialog_exporting_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+            
+        dialog.show()
+
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
+            val error = try {
                 val tempZip = File(context.cacheDir, "${instance.id}.zip")
                 operator.exportInstanceZip(instance.id, tempZip)
-                context.contentResolver.openOutputStream(uri)?.use { output ->
-                    tempZip.inputStream().use { input -> input.copyTo(output) }
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    tempZip.inputStream().use { it.copyTo(out) }
                 } ?: throw IllegalStateException("Failed to open export destination.")
                 tempZip.delete()
-                withContext(Dispatchers.Main) {
+                null
+            } catch (e: Exception) { e }
+
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+                if (error == null) {
                     Toast.makeText(context, R.string.toast_export_success, Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, getString(R.string.toast_export_error, e.message), Toast.LENGTH_LONG).show()
+                } else {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.dialog_export_failed_title)
+                        .setMessage(error.message ?: "Unknown error")
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
                 }
             }
         }

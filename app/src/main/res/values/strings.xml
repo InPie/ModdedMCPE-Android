@@ -96,7 +96,11 @@
     <string name="toast_import_error">Import error: %1$s</string>
     <string name="dialog_import_apk_title">Importing APK</string>
     <string name="dialog_import_zip_title">Importing ZIP</string>
+    <string name="text_import_progress">Importing: %1$d%%</string>
     <string name="dialog_import_failed_title">Import Failed</string>
+    <string name="dialog_exporting_title">Exporting Instance</string>
+    <string name="text_exporting">Exporting...</string>
+    <string name="dialog_export_failed_title">Export Failed</string>
     <string name="dialog_instance_info_title">Instance info</string>
 
     <string name="btn_install_new_instance">Install new instance</string>

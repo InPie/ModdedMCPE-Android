@@ -180,7 +180,7 @@ class VersionsFragment : Fragment() {
                 activity?.runOnUiThread {
                     if (!isAdded) return@runOnUiThread
                     progressBar.progress = percent
-                    textStatus.text = getString(R.string.text_download_progress, percent)
+                    textStatus.text = getString(R.string.text_import_progress, percent)
                 }
             }
 
