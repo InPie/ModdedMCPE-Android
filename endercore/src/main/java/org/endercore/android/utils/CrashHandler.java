@@ -10,6 +10,7 @@ import java.io.StringWriter;
 
 public class CrashHandler implements Thread.UncaughtExceptionHandler {
     private static final String TAG = "CrashHandler";
+
     private static CrashHandler instance;
     private Context context;
     private Thread.UncaughtExceptionHandler defaultHandler;
@@ -71,6 +72,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
             Intent intent = new Intent(context, fatalActivityClass);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             intent.putExtra("FATAL_MESSAGES", fullMessage);
+            LaunchContext.addToIntent(intent);
             context.startActivity(intent);
         } catch (Exception e) {
             Log.e(TAG, "Failed to start FatalActivity", e);

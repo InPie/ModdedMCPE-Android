@@ -10,6 +10,7 @@ import org.endercore.android.EnderCore
 import org.endercore.android.exception.LauncherException
 import org.endercore.android.interf.implemented.InitializationListener
 import org.endercore.android.operator.instance.InstanceOperator
+import org.endercore.android.utils.LaunchContext
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -31,6 +32,7 @@ class InitializingActivity : AppCompatActivity() {
                     val core = EnderCore.instance
                     val instanceId = intent.getStringExtra("INSTANCE_ID")
                         ?: throw LauncherException("Instance id is missing.")
+                    LaunchContext.setActiveInstanceId(instanceId)
                     val operator = InstanceOperator(this@InitializingActivity, core.fileEnvironment)
                     val instance = operator.repository.getInstance(instanceId)
                         ?: throw LauncherException("Instance not found: $instanceId")
@@ -71,6 +73,7 @@ class InitializingActivity : AppCompatActivity() {
         exception.printStackTrace(printWriter)
         val activityIntent = Intent(this, FatalActivity::class.java)
         activityIntent.putExtra(FatalActivity.TAG_FATAL_MESSAGES, writer.toString())
+        LaunchContext.addToIntent(activityIntent)
         startActivity(activityIntent)
         exception.printStackTrace()
         finish()

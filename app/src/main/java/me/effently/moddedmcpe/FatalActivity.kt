@@ -10,8 +10,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import me.effently.moddedmcpe.BuildConfig
 import org.endercore.android.EnderCore
+import org.endercore.android.operator.instance.InstanceOperator
+import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.utils.CPUArch
 import org.endercore.android.utils.FileUtils
+import org.endercore.android.utils.LaunchContext
 import java.io.File
 
 class FatalActivity : AppCompatActivity() {
@@ -28,7 +31,7 @@ class FatalActivity : AppCompatActivity() {
         val gamePackageManager = EnderCore.instance.gamePackageManager
         val options = EnderCore.instance.optionsManager
         appVersionName = BuildConfig.VERSION_NAME
-        gameVersionName = gamePackageManager.versionName
+        gameVersionName = getGameVersionFromActiveInstance() ?: "Unknown"
         useNMods = if (options.useNMods) 1 else 0
         val abis: String
         val builder = StringBuilder()
@@ -44,7 +47,7 @@ class FatalActivity : AppCompatActivity() {
         (findViewById<View>(R.id.textViewAppVersion) as TextView).text = getString(R.string.app_fatal_version_name,
             BuildConfig.VERSION_NAME
         )
-        (findViewById<View>(R.id.textViewGameVersion) as TextView).text = getString(R.string.app_fatal_game_version, gamePackageManager.versionName)
+        (findViewById<View>(R.id.textViewGameVersion) as TextView).text = getString(R.string.app_fatal_game_version, gameVersionName)
         (findViewById<View>(R.id.textViewEnderCoreSdk) as TextView).text = getString(R.string.app_fatal_endercore_sdk, EnderCore.SDK_INT)
         (findViewById<View>(R.id.textViewOSSdk) as TextView).text = getString(R.string.app_fatal_os_sdk, Build.VERSION.SDK_INT)
         (findViewById<View>(R.id.textViewBrand) as TextView).text = getString(R.string.app_fatal_brand, Build.BRAND)
@@ -84,6 +87,20 @@ class FatalActivity : AppCompatActivity() {
         FileUtils.removeFiles(File(EnderCore.getInstance().fileEnvironment.codeCacheDirPath))
         FileUtils.removeFiles(File(EnderCore.getInstance().fileEnvironment.enderCoreDirPath))
         Toast.makeText(this, R.string.app_app_data_cleared, Toast.LENGTH_LONG).show()
+    }
+
+    private fun getGameVersionFromActiveInstance(): String? {
+        val instanceId = LaunchContext.getInstanceId(intent)
+        if (instanceId.isNullOrBlank()) return null
+
+        return try {
+            val core = EnderCore.instance
+            val operator = InstanceOperator(this, core.fileEnvironment)
+            val instance = operator.repository.getInstance(instanceId)
+            operator.resolveGamePackage(instance).versionName // instance.packageSnapshot?.versionName
+        } catch (e: Exception) {
+            null
+        }
     }
 
     companion object {

@@ -56,6 +56,10 @@ public class GamePackage {
     }
 
     public boolean isVersion015AndAbove() {
+        // if (versionName == null || versionName.trim().isEmpty()) {
+        //     return false;
+        // }
+
         if (versionName.startsWith("0.")) {
             try {
                 String[] parts = versionName.split("\\.");

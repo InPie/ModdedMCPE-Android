@@ -54,7 +54,12 @@ public class InstanceOperator {
         return new File(repository.getInstanceDir(instanceId), "apk/game.apk");
     }
 
+    // used in showInstanceInfo
     public boolean isInstancePrepared(GameInstance instance) throws Exception {
+        return isInstancePrepared(instance, resolveGamePackage(instance));
+    }
+
+    public boolean isInstancePrepared(GameInstance instance, GamePackage gamePackage) throws Exception {
         File cacheDir = new File(fileEnvironment.getInstanceCacheDirPath(instance.getId()));
 
         fileEnvironment.setActiveWorkspace(instance.getId());
@@ -73,7 +78,6 @@ public class InstanceOperator {
 
 
         boolean assetsFilesReady = true;
-        GamePackage gamePackage = resolveGamePackage(instance);
         if (gamePackage.isVersion015AndAbove()) {
             assetsFilesReady = new File(fileEnvironment.getCodeCacheDirPathForGameAssets()).isDirectory();
         } else {
@@ -145,7 +149,7 @@ public class InstanceOperator {
         GamePackage gamePackage = resolveGamePackage(instance);
         GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instance.getId());
 
-        if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance)) {
+        if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance, gamePackage)) {
             builder.build(gamePackage);
             instance.setState(InstanceState.READY);
             Log.d(TAG, "Instance was built.");
@@ -531,7 +535,7 @@ public class InstanceOperator {
                 source.setPackageName(installedPackage.getPackageName());
                 instance.setSource(source);
                 instance.setPackageSnapshot(createPackageSnapshot(installedPackage));
-                instance.setState(isInstancePrepared(instance) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
+                instance.setState(isInstancePrepared(instance, installedPackage) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
                 repository.saveInstance(instance);
             } else {
                 GameInstance instance = repository.getInstance("installed-minecraftpe");
