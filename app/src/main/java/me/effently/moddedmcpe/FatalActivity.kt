@@ -58,6 +58,7 @@ class FatalActivity : AppCompatActivity() {
     }
 
     fun onCopyClicked(view: View) {
+        val currentAbi = Build.SUPPORTED_ABIS.getOrNull(0)
         val messageHead = """
                -----------------------
                A fatal error occurred in Modded MCPE game initializing.
@@ -68,7 +69,8 @@ class FatalActivity : AppCompatActivity() {
                Brand: ${Build.BRAND}
                Model: ${Build.MODEL}
                Safe Mode: $useNMods
-               ABI:$abisFull
+               Current ABI: $currentAbi
+               Supported ABIs: $abisFull
                -----------------------
                
                """.trimIndent()

@@ -46,7 +46,8 @@ set_target_properties( substrate
 add_library( endercore
              SHARED
              endercore.cpp
-             enderhook.cpp )
+             enderhook.cpp
+             crashhandler.cpp )
 
 target_link_libraries( endercore
                        ${log-lib-path}
