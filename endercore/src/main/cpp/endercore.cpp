@@ -13,65 +13,11 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include "include/xhook.h"
+#include "enderhook.h"
 
 #define LOG_TAG "EnderCore-Native"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-static std::string g_instanceDataPath = "";
-
-static std::string redirectPath(const char* pathname) {
-    if (!pathname || g_instanceDataPath.empty()) return pathname ? pathname : "";
-    const char* mojang = strstr(pathname, "games/com.mojang");
-    if (mojang) {
-        return g_instanceDataPath + "/" + mojang;
-    }
-    return pathname;
-}
-
-static int (*old_open)(const char *pathname, int flags, ...) = nullptr;
-static int new_open(const char *pathname, int flags, ...) {
-    std::string new_path = redirectPath(pathname);
-    if (flags & O_CREAT) {
-        va_list args;
-        va_start(args, flags);
-        mode_t mode = static_cast<mode_t>(va_arg(args, int));
-        va_end(args);
-        if (old_open) return old_open(new_path.c_str(), flags, mode);
-    }
-    if (old_open) return old_open(new_path.c_str(), flags);
-    return -1;
-}
-
-static FILE* (*old_fopen)(const char *pathname, const char *mode) = nullptr;
-static FILE* new_fopen(const char *pathname, const char *mode) {
-    std::string new_path = redirectPath(pathname);
-    if (old_fopen) return old_fopen(new_path.c_str(), mode);
-    return nullptr;
-}
-
-static int (*old_mkdir)(const char *pathname, mode_t mode) = nullptr;
-static int new_mkdir(const char *pathname, mode_t mode) {
-    std::string new_path = redirectPath(pathname);
-    if (old_mkdir) return old_mkdir(new_path.c_str(), mode);
-    return -1;
-}
-
-static int (*old_stat)(const char *pathname, struct stat *statbuf) = nullptr;
-static int new_stat(const char *pathname, struct stat *statbuf) {
-    std::string new_path = redirectPath(pathname);
-    if (old_stat) return old_stat(new_path.c_str(), statbuf);
-    return -1;
-}
-
-static int (*old_access)(const char *pathname, int mode) = nullptr;
-static int new_access(const char *pathname, int mode) {
-    std::string new_path = redirectPath(pathname);
-    if (old_access) return old_access(new_path.c_str(), mode);
-    return -1;
-}
-
-
 
 static void (*android_main_minecraft)(struct android_app *app);
 
@@ -140,7 +86,7 @@ static void patchNativeActivity(ANativeActivity *activity) {
             const char *path = env->GetStringUTFChars(pathStr, nullptr);
             LOGD("Patching ANativeActivity->internalDataPath to %s", path);
             activity->internalDataPath = strdup(path);
-            g_instanceDataPath = path;
+            enderhook_set_data_path(path);
             env->ReleaseStringUTFChars(pathStr, path);
         }
     }
@@ -158,7 +104,6 @@ static void patchNativeActivity(ANativeActivity *activity) {
     }
     
     env->DeleteLocalRef(activityClass);
-    xhook_refresh(0);
 }
 
 extern "C" void
@@ -226,20 +171,9 @@ static void *openMinecraftLibrary() {
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    // init libc function pointers
-    old_open = (int (*)(const char*, int, ...))dlsym(RTLD_NEXT, "open");
-    old_fopen = (FILE* (*)(const char*, const char*))dlsym(RTLD_NEXT, "fopen");
-    old_mkdir = (int (*)(const char*, mode_t))dlsym(RTLD_NEXT, "mkdir");
-    old_stat = (int (*)(const char*, struct stat*))dlsym(RTLD_NEXT, "stat");
-    old_access = (int (*)(const char*, int))dlsym(RTLD_NEXT, "access");
-
-    // xhook for libc IO funcs
-    xhook_register(".*libminecraftpe\\.so$", "open", (void*)new_open, (void**)&old_open);
-    xhook_register(".*libminecraftpe\\.so$", "fopen", (void*)new_fopen, (void**)&old_fopen);
-    xhook_register(".*libminecraftpe\\.so$", "mkdir", (void*)new_mkdir, (void**)&old_mkdir);
-    xhook_register(".*libminecraftpe\\.so$", "stat", (void*)new_stat, (void**)&old_stat);
-    xhook_register(".*libminecraftpe\\.so$", "access", (void*)new_access, (void**)&old_access);
-    //xhook_refresh(0);
+    // init libc redirection layer
+    enderhook_init_and_register();
+    xhook_refresh(1);
 
     void *handle = openMinecraftLibrary();
     if (handle) {

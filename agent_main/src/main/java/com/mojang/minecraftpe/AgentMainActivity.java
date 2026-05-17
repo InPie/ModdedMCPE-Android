@@ -187,6 +187,10 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     /*
      * C.Native code to get the instance external data path.
      */
+    public String getPatchExternalDataPath() {
+        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
+    }
+
     public String getExternalStoragePath() {
         return getPatchExternalDataPath();
     }
