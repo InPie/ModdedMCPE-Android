@@ -227,6 +227,12 @@ public class InstanceOperator {
             }
         }
 
+        File srcDataDir = new File(repository.getInstanceDir(instance.getId()), "data");
+        if (srcDataDir.exists() && srcDataDir.isDirectory()) {
+            File destDataDir = new File(repository.getInstanceDir(newId), "data");
+            FileUtils.copyDirectory(srcDataDir, destDataDir);
+        }
+
         repository.saveInstance(duplicate);
         return newId;
     }
@@ -419,7 +425,7 @@ public class InstanceOperator {
                 if (finalDir.exists()) {
                     FileUtils.removeFiles(finalDir);
                 }
-                copyDirectory(tempDir, finalDir);
+                FileUtils.copyDirectory(tempDir, finalDir);
 
                 imported.setId(newId);
                 if (imported.getName() == null || imported.getName().trim().isEmpty()) {
@@ -498,24 +504,6 @@ public class InstanceOperator {
                     FileUtils.copy(input, target);
                 }
                 input.closeEntry();
-            }
-        }
-    }
-
-    private void copyDirectory(File sourceDir, File destinationDir) throws IOException {
-        File[] children = sourceDir.listFiles();
-        if (children == null) {
-            return;
-        }
-        if (!destinationDir.exists() && !destinationDir.mkdirs()) {
-            throw new IOException("Failed to create directory: " + destinationDir.getAbsolutePath());
-        }
-        for (File child : children) {
-            File target = new File(destinationDir, child.getName());
-            if (child.isDirectory()) {
-                copyDirectory(child, target);
-            } else {
-                FileUtils.copy(child, target);
             }
         }
     }

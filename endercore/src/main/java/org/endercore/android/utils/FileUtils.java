@@ -60,6 +60,24 @@ public final class FileUtils {
         }
     }
 
+    public static void copyDirectory(File sourceDir, File destinationDir) throws IOException {
+        File[] children = sourceDir.listFiles();
+        if (children == null) {
+            return;
+        }
+        if (!destinationDir.exists() && !destinationDir.mkdirs()) {
+            throw new IOException("Failed to create directory: " + destinationDir.getAbsolutePath());
+        }
+        for (File child : children) {
+            File target = new File(destinationDir, child.getName());
+            if (child.isDirectory()) {
+                copyDirectory(child, target);
+            } else {
+                copy(child, target);
+            }
+        }
+    }
+
     public static void removeFiles(File path) {
         if (!path.exists())
             return;
