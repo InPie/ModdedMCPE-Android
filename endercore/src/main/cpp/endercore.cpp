@@ -86,7 +86,7 @@ static void patchNativeActivity(ANativeActivity *activity) {
             const char *path = env->GetStringUTFChars(pathStr, nullptr);
             LOGD("Patching ANativeActivity->internalDataPath to %s", path);
             activity->internalDataPath = strdup(path);
-            enderhook_set_data_path(path);
+            enderhook_set_external_storage_root(path);
             env->ReleaseStringUTFChars(pathStr, path);
         }
     }
@@ -102,6 +102,9 @@ static void patchNativeActivity(ANativeActivity *activity) {
             env->ReleaseStringUTFChars(pathStr, path);
         }
     }
+
+    enderhook_patch_vm(activity->vm);
+    enderhook_patch_env(env);
     
     env->DeleteLocalRef(activityClass);
 }
@@ -171,9 +174,7 @@ static void *openMinecraftLibrary() {
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    // init libc redirection layer
-    enderhook_init_and_register();
-    xhook_refresh(1);
+    enderhook_init(vm);
 
     void *handle = openMinecraftLibrary();
     if (handle) {
@@ -185,6 +186,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     } else {
         LOGE("Failed to open libminecraftpe.so");
     }
-    
+
     return JNI_VERSION_1_6;
 }

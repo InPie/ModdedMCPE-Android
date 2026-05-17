@@ -9,3 +9,4 @@
 .externalNativeBuild
 .cxx
 crash.log
+app.log

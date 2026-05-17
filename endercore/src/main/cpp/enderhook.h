@@ -1,18 +1,17 @@
 #ifndef ENDERHOOK_H
 #define ENDERHOOK_H
 
-#include <string>
+#include <jni.h>
 
-/**
- * Initializes original libc function pointers and registers hooks via xhook.
- * Should be called in JNI_OnLoad.
- */
-void enderhook_init_and_register();
+void enderhook_init(JavaVM* vm);
 
-/**
- * Sets the active instance data path for redirection.
- * Should be called when the path becomes available (e.g., in patchNativeActivity).
- */
-void enderhook_set_data_path(const char* path);
+// Patches a JavaVM function table so AttachCurrentThread patches returned JNIEnv.
+void enderhook_patch_vm(JavaVM* vm);
+
+// Patches a JNIEnv function table so Environment.getExternalStorageDirectory(), returns custom java.io.File.
+void enderhook_patch_env(JNIEnv* env);
+
+void enderhook_set_external_storage_root(const char* path);
+
 
 #endif // ENDERHOOK_H
