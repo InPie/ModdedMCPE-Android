@@ -27,7 +27,8 @@
     <string name="app_fatal_brand">Brand: %1$s</string>
     <string name="app_fatal_model">Model: %1$s</string>
     <string name="app_fatal_use_nmods">Use NMods: %1$d</string>
-    <string name="app_fatal_abi">ABI: %1$s</string>
+    <string name="app_fatal_abi_curr">ABI: %1$s</string>
+    <string name="app_fatal_abi">ABIs: %1$s</string>
     <string name="app_options_title_launcher">Launcher</string>
     <string name="app_options_title_nmods">NMods</string>
     <string name="app_options_use_nmods">Use NMods</string>

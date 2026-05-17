@@ -81,6 +81,14 @@
                 android:layout_marginTop="6dp"/>
 
             <TextView
+                android:id="@+id/textViewCurrentABI"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:gravity="center"
+                android:layout_marginTop="6dp"/>
+
+            <TextView
                 android:id="@+id/textViewSupportedABIS"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -112,7 +120,7 @@
             android:layout_height="1dp"
             android:background="?android:attr/listDivider" />
 
-        <TextView
+        <!-- <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/app_clear_data"
@@ -123,7 +131,7 @@
             android:textColor="@color/text_selector"
             android:background="@drawable/text_background_selector"
             android:gravity="center"
-            android:layout_margin="4dp"/>
+            android:layout_margin="4dp"/> -->
 
             <TextView
                 android:layout_width="match_parent"

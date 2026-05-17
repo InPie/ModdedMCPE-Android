@@ -22,6 +22,7 @@ class FatalActivity : AppCompatActivity() {
     private var appVersionName: String? = null
     private var gameVersionName: String? = null
     private var useNMods = 0
+    private var currentAbi: String? = null
     private var abisFull: String? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +43,7 @@ class FatalActivity : AppCompatActivity() {
             builderFull.append(abi).append(" ")
         }
         abis = builder.toString()
+        currentAbi = Build.SUPPORTED_ABIS.getOrNull(0)
         abisFull = builderFull.toString()
         (findViewById<View>(R.id.textViewFatalMessage) as TextView).text = message
         (findViewById<View>(R.id.textViewAppVersion) as TextView).text = getString(R.string.app_fatal_version_name,
@@ -52,7 +54,8 @@ class FatalActivity : AppCompatActivity() {
         (findViewById<View>(R.id.textViewOSSdk) as TextView).text = getString(R.string.app_fatal_os_sdk, Build.VERSION.SDK_INT)
         (findViewById<View>(R.id.textViewBrand) as TextView).text = getString(R.string.app_fatal_brand, Build.BRAND)
         (findViewById<View>(R.id.textViewModel) as TextView).text = getString(R.string.app_fatal_model, Build.MODEL)
-        (findViewById<View>(R.id.textViewSafeMode) as TextView).text = getString(R.string.app_fatal_use_nmods, if (options.useNMods) 1 else 0)
+        (findViewById<View>(R.id.textViewSafeMode) as TextView).text = getString(R.string.app_fatal_use_nmods, useNMods)
+        (findViewById<View>(R.id.textViewCurrentABI) as TextView).text = getString(R.string.app_fatal_abi_curr, currentAbi)
         (findViewById<View>(R.id.textViewSupportedABIS) as TextView).text = getString(R.string.app_fatal_abi, abis)
     }
 
@@ -61,7 +64,6 @@ class FatalActivity : AppCompatActivity() {
     }
 
     fun onCopyClicked(view: View) {
-        val currentAbi = Build.SUPPORTED_ABIS.getOrNull(0)
         val messageHead = """
                -----------------------
                A fatal error occurred in Modded MCPE game initializing.
