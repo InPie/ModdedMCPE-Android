@@ -275,7 +275,14 @@ public final class Launcher {
 
             // Arrange
             listener.onArrange();
-            File nmodsAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            
+            //  game assets
+            File gameAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            if (gameAssetsDir.exists()) {
+                patchAssetPath.add(gameAssetsDir.getAbsolutePath());
+            }
+            //  nmods patched assets
+            File nmodsAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForNModsAssets());
             if (optionsManager.getUseNMods() && nmodsAssetsDir.exists()) {
                 patchAssetPath.add(nmodsAssetsDir.getAbsolutePath());
             }
@@ -315,6 +322,7 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-DEX", patchDexPath);
             launchIntent.putExtra("ENDERCORE-PATCH-LIBS", patchLibPath);
             launchIntent.putExtra("ENDERCORE-PATCH-OPT", fileEnvironment.getCodeCacheDirPathForDexOpt());
+            launchIntent.putExtra("ENDERCORE-PATCH-DATA", fileEnvironment.getInnerGameStorageDir());
             context.startActivity(launchIntent);
             Log.d("EnderCore-Launcher", "Game started.");
         } catch (IOException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {

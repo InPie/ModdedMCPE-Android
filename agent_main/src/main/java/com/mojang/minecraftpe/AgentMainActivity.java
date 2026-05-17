@@ -31,6 +31,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
+    private String instanceDataPath = null;
 
     // logging for debug
     private String gameApkPath = null;
@@ -44,6 +45,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         prepareGameWindow();
 
         ArrayList<String> patchAssetsPath = getIntent().getStringArrayListExtra("ENDERCORE-PATCH-ASSETS");
+        instanceDataPath = getIntent().getStringExtra("ENDERCORE-PATCH-DATA");
+        
+        if (instanceDataPath != null) {
+            new File(instanceDataPath).mkdirs();
+        }
 
         if(patchAssetsPath == null)
         {
@@ -163,6 +169,49 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private void applyImmersiveMode() {
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE_SYSTEM_UI_FLAGS);
     }
+
+    /*
+     * Called by Native code (endercore.cpp) to get our patched AssetManager
+     */
+    public AssetManager getPatchAssetManager() {
+        return patchAssetManager != null ? patchAssetManager : getAssets();
+    }
+
+    /*
+     * C.Native code to get the instance internal data path.
+     */
+    public String getPatchInternalDataPath() {
+        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
+    }
+
+    /*
+     * C.Native code to get the instance external data path.
+     */
+    public String getExternalStoragePath() {
+        return getPatchExternalDataPath();
+    }
+
+    // --- Legacy path overrides: for 0.14 and below ---
+    @Override
+    public File getFilesDir() {
+        if (instanceDataPath != null) {
+            File f = new File(instanceDataPath);
+            if (!f.exists()) f.mkdirs();
+            return f;
+        }
+        return super.getFilesDir();
+    }
+
+    @Override
+    public File getCacheDir() {
+        if (instanceDataPath != null) {
+            File cache = new File(instanceDataPath, "cache");
+            if (!cache.exists()) cache.mkdirs();
+            return cache;
+        }
+        return super.getCacheDir();
+    }
+    // --- END: legacy path overrides ---
 
 
 

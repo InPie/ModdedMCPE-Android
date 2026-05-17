@@ -130,7 +130,7 @@ class InstancesFragment : Fragment() {
         info.addProperty("managedApk", operator.getManagedApkFile(instance.id).absolutePath)
         info.addProperty("cacheDir", EnderCore.instance.fileEnvironment.getInstanceCacheDirPath(instance.id))
         info.addProperty("nmodsCacheDir", EnderCore.instance.fileEnvironment.getInstanceNModsCacheDirPath(instance.id))
-        info.addProperty("prepared", operator.isInstancePrepared(instance.id))
+        info.addProperty("prepared", operator.isInstancePrepared(instance))
 
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.dialog_instance_info_title)

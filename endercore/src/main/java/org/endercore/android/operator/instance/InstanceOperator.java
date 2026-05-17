@@ -1,5 +1,7 @@
 package org.endercore.android.operator.instance;
 
+import android.util.Log;
+
 import android.content.Context;
 
 import com.google.gson.Gson;
@@ -29,6 +31,8 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class InstanceOperator {
+    private static final String TAG = "InstanceOperator";
+
     private static final String INSTANCE_FILE_NAME = "instance.json";
 
     private final IFileEnvironment fileEnvironment;
@@ -50,10 +54,34 @@ public class InstanceOperator {
         return new File(repository.getInstanceDir(instanceId), "apk/game.apk");
     }
 
-    public boolean isInstancePrepared(String instanceId) {
-        File cacheDir = new File(fileEnvironment.getInstanceCacheDirPath(instanceId));
-        return new File(cacheDir, "dex_libs/classes.dex").isFile() &&
-               new File(cacheDir, "native_libs/libminecraftpe.so").isFile();
+    public boolean isInstancePrepared(GameInstance instance) throws Exception {
+        File cacheDir = new File(fileEnvironment.getInstanceCacheDirPath(instance.getId()));
+
+        fileEnvironment.setActiveWorkspace(instance.getId());
+        File dexDir = new File(fileEnvironment.getCodeCacheDirPathForDex());
+        File nativeDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
+        File dexOptDir = new File(fileEnvironment.getCodeCacheDirPathForDexOpt());
+
+        boolean baseFilesReady = cacheDir.exists() &&
+            dexDir.exists() &&
+            nativeDir.exists() &&
+            dexOptDir.exists() &&
+            new File(dexDir, "classes.dex").isFile() &&
+            new File(nativeDir, "libminecraftpe.so").isFile();
+
+        Log.d(TAG, "isBaseFilesReady: " + baseFilesReady);
+
+
+        boolean assetsFilesReady = true;
+        GamePackage gamePackage = resolveGamePackage(instance);
+        if (gamePackage.isVersion015AndAbove()) {
+            assetsFilesReady = new File(fileEnvironment.getCodeCacheDirPathForAssets()).isDirectory();
+        } else {
+            Log.d(TAG, "getVersionName: " + gamePackage.getVersionName());
+        }
+        Log.d(TAG, "isAssetsFilesReady: " + assetsFilesReady);
+
+        return baseFilesReady && assetsFilesReady;
     }
 
     public PackageSnapshot createPackageSnapshot(GamePackage gamePackage) {
@@ -117,9 +145,13 @@ public class InstanceOperator {
         GamePackage gamePackage = resolveGamePackage(instance);
         GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instance.getId());
 
-        if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance.getId())) {
+        if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance)) {
             builder.build(gamePackage);
             instance.setState(InstanceState.READY);
+            Log.d(TAG, "Instance was built.");
+
+        } else {
+            Log.d(TAG, "Instance building was skipped.");
         }
 
         if (EnderCore.getInstance().getOptionsManager().getUseNMods()) {
@@ -509,7 +541,7 @@ public class InstanceOperator {
                 source.setPackageName(installedPackage.getPackageName());
                 instance.setSource(source);
                 instance.setPackageSnapshot(createPackageSnapshot(installedPackage));
-                instance.setState(isInstancePrepared(instance.getId()) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
+                instance.setState(isInstancePrepared(instance) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
                 repository.saveInstance(instance);
             } else {
                 GameInstance instance = repository.getInstance("installed-minecraftpe");

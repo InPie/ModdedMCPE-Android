@@ -84,7 +84,7 @@ public class NModPreparer {
             return;
         }
 
-        File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+        File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForNModsAssets());
         Log.d(TAG, "Clearing assets cache directory: " + assetsDir.getAbsolutePath());
         FileUtils.removeFiles(assetsDir);
 
@@ -105,8 +105,15 @@ public class NModPreparer {
                 Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
                 while (enumeration.hasMoreElements()) {
                     ZipEntry entry = enumeration.nextElement();
-                    if (entry.getName().startsWith("assets/")) {
-                        FileUtils.copy(zipFile.getInputStream(entry), new File(assetsDir.getParentFile(), entry.getName()));
+                    String name = entry.getName();
+                    if (name.startsWith("assets/")) {
+                        File destFile = new File(assetsDir, name); // .substring("assets/".length())
+                        if (entry.isDirectory()) {
+                            destFile.mkdirs();
+                        } else {
+                            destFile.getParentFile().mkdirs();
+                            FileUtils.copy(zipFile.getInputStream(entry), destFile);
+                        }
                     }
                 }
             } catch (IOException ignored) {
@@ -134,19 +141,19 @@ public class NModPreparer {
 
                 if (gameSupport.file_overrides != null) {
                     for (NModJsonBean.FileOverrideData fileOverrideData : gameSupport.file_overrides) {
-                        FileOverrider overrider = new FileOverrider(new File(assetsDir.getParentFile(), "assets"));
+                        FileOverrider overrider = new FileOverrider(assetsDir);
                         overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), fileOverrideData.path, null);
                     }
                 }
                 if (gameSupport.json_overrides != null) {
                     for (NModJsonBean.JsonOverrideData jsonOverrideData : gameSupport.json_overrides) {
-                        JsonOverrider overrider = new JsonOverrider(new File(assetsDir.getParentFile(), "assets"));
+                        JsonOverrider overrider = new JsonOverrider(assetsDir);
                         overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), jsonOverrideData.path, jsonOverrideData.mode);
                     }
                 }
                 if (gameSupport.text_overrides != null) {
                     for (NModJsonBean.TextOverrideData textOverrideData : gameSupport.text_overrides) {
-                        TextOverrider overrider = new TextOverrider(new File(assetsDir.getParentFile(), "assets"));
+                        TextOverrider overrider = new TextOverrider(assetsDir);
                         overrider.performOverride(new File(nmod.getGameSupportDir(gameSupport.name), "assets"), textOverrideData.path, textOverrideData.mode);
                     }
                 }

@@ -49,7 +49,8 @@ add_library( endercore
 
 target_link_libraries( endercore
                        ${log-lib-path}
-                       ${android-lib-path} )
+                       ${android-lib-path}
+                       xhook )
 
 # mjscript
 add_library( mjscript

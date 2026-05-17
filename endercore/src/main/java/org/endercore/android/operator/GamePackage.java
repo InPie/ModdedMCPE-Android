@@ -54,4 +54,25 @@ public class GamePackage {
     public String getSourceLabel() {
         return sourceLabel;
     }
+
+    public boolean isVersion015AndAbove() {
+        if (versionName.startsWith("0.")) {
+            try {
+                String[] parts = versionName.split("\\.");
+                if (parts.length > 1) {
+                    int minor = Integer.parseInt(parts[1]);
+                    if (minor >= 15) {
+                        return true;
+                    }
+                }
+
+                return false;
+            } catch (Exception ignored) {
+                return false;
+            }
+        } else {
+            // 1.0.0 and above
+            return true;
+        }
+    }
 }

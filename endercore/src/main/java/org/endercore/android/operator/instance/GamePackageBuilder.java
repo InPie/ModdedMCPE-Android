@@ -100,6 +100,39 @@ public class GamePackageBuilder {
             }
         }
 
+        if (gamePackage.isVersion015AndAbove()) {
+            Log.d(TAG, "Extracting all game assets...");
+            File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            if (!assetsDir.exists() && !assetsDir.mkdirs()) {
+                Log.w(TAG, "Failed to create assets cache directory");
+            }
+            for (File apkFile : allApkFiles) {
+                try (ZipFile zipFile = new ZipFile(apkFile)) {
+                    Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                    while (entries.hasMoreElements()) {
+                        ZipEntry entry = entries.nextElement();
+                        String name = entry.getName();
+                        if (name.startsWith("assets/")) {
+                            File destFile = new File(assetsDir, name.substring("assets/".length()));
+                            if (entry.isDirectory()) {
+                                destFile.mkdirs();
+                            } else {
+                                File parent = destFile.getParentFile();
+                                if (parent != null && !parent.exists()) {
+                                    parent.mkdirs();
+                                }
+                                FileUtils.copy(zipFile.getInputStream(entry), destFile);
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to extract assets from APK: " + apkFile.getAbsolutePath(), e);
+                }
+            }
+        } else {
+            Log.d(TAG, "Skipped assets extraction for older game version.");
+        }
+
         Log.d(TAG, "GamePackageBuilder finished successfully.");
     }
 

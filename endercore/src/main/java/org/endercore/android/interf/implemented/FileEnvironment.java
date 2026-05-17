@@ -18,7 +18,7 @@ public class FileEnvironment implements IFileEnvironment {
     public final static String DIR_NATIVE_LIBS = "native_libs";
     public final static String DIR_DEX_LIBS = "dex_libs";
     public final static String DIR_DEX_OPT = "opt";
-    public final static String DIR_ASSETS = "assets_files";
+    public final static String DIR_ASSETS = "game_assets";
 
     public final static String DATA_FILE_ENDERCORE_OPTIONS = "options.json";
 
@@ -32,7 +32,7 @@ public class FileEnvironment implements IFileEnvironment {
 
 
     @Override
-    public String getCodeCacheDirPath() {
+    public String getCodeCacheDirPath() { // deprecared
         return codeCacheDirPath;
     }
 
@@ -80,8 +80,9 @@ public class FileEnvironment implements IFileEnvironment {
     }
 
     @Override
-    public String getRedirectedGameDir() {
-        return gameDirPath;
+    public String getInnerGameStorageDir() {
+        checkWorkspace();
+        return getInstancesDirPath() + File.separator + activeInstanceId + File.separator + "data";
     }
 
     @Override
@@ -97,6 +98,12 @@ public class FileEnvironment implements IFileEnvironment {
 
     @Override
     public String getCodeCacheDirPathForAssets() {
+        checkWorkspace();
+        return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_ASSETS;
+    }
+
+    @Override
+    public String getCodeCacheDirPathForNModsAssets() {
         checkWorkspace();
         return getInstanceNModsCacheDirPath(activeInstanceId) + File.separator + DIR_ASSETS;
     }

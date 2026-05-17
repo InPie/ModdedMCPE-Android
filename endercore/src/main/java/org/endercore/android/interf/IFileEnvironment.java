@@ -17,13 +17,15 @@ public interface IFileEnvironment {
 
     String getCodeCacheDirPathForNativeLib();
 
-    String getRedirectedGameDir();
+    String getInnerGameStorageDir();
 
     String getCodeCacheDirPathForDexOpt();
 
     String getCodeCacheDirPathForNMods();
 
     String getCodeCacheDirPathForAssets();
+
+    String getCodeCacheDirPathForNModsAssets();
 
     void setActiveWorkspace(String instanceId);
 

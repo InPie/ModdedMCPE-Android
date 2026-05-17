@@ -29,7 +29,7 @@ class AboutUsActivity : AppCompatActivity() {
     }
 
     fun onUpdatesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/oldminecraftcommunity/Modded-MCPE/releases")
+        val uri: Uri = Uri.parse("https://discord.gg/hex5QrRNqa")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
