@@ -249,6 +249,7 @@ public class InstanceOperator {
         gameInstance.setName(version.getName());
         gameInstance.setState(InstanceState.DOWNLOADING);
         gameInstance.setCreatedAt(System.currentTimeMillis());
+        gameInstance.setSettings(new JsonObject());
         
         InstanceSource source = new InstanceSource(InstanceSourceType.REMOTE_APK);
         source.setUrl(version.getUrl());
@@ -342,6 +343,7 @@ public class InstanceOperator {
                 gameInstance.setName("Custom " + gamePackage.getVersionName());
                 gameInstance.setState(InstanceState.PREPARING);
                 gameInstance.setCreatedAt(System.currentTimeMillis());
+                gameInstance.setSettings(new JsonObject());
                 
                 if (copy) {
                     File destApk = getManagedApkFile(instanceId);
