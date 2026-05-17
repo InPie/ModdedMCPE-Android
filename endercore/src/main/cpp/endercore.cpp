@@ -8,10 +8,10 @@
 #include <android/log.h>
 #include <android/native_activity.h>
 
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <signal.h>
+#include <ucontext.h>
 #include "include/xhook.h"
 #include "enderhook.h"
 
@@ -19,10 +19,81 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+static JavaVM *g_jvm = nullptr;
+static jclass g_crashHandlerClass = nullptr;
+static jmethodID g_onNativeCrashMethod = nullptr;
+
 static void (*android_main_minecraft)(struct android_app *app);
 
 static void (*ANativeActivity_onCreate_minecraft)(ANativeActivity *activity, void *savedState,
                                                   size_t savedStateSize);
+
+// ======== start crash handler ========
+static void startFatalActivity(const char *message) {
+    JNIEnv *env = nullptr;
+    if (g_jvm->GetEnv((void **) &env, JNI_VERSION_1_6) == JNI_EDETACHED) {
+        if (g_jvm->AttachCurrentThread(&env, nullptr) != 0) {
+            LOGE("Failed to attach current thread for crash reporting");
+            return;
+        }
+    }
+
+    if (env && g_crashHandlerClass && g_onNativeCrashMethod) {
+        jstring reason = env->NewStringUTF(message);
+        jstring stackTrace = env->NewStringUTF("Native stack trace not available yet.");
+        env->CallStaticVoidMethod(g_crashHandlerClass, g_onNativeCrashMethod, reason, stackTrace);
+        env->DeleteLocalRef(reason);
+        env->DeleteLocalRef(stackTrace);
+    }
+}
+
+static void native_signal_handler(int signum, siginfo_t *info, void *reserved) {
+    char buf[256];
+    const char *signame = "UNKNOWN";
+    switch (signum) {
+        case SIGSEGV: signame = "SIGSEGV"; break;
+        case SIGABRT: signame = "SIGABRT"; break;
+        case SIGFPE: signame = "SIGFPE"; break;
+        case SIGILL: signame = "SIGILL"; break;
+        case SIGBUS: signame = "SIGBUS"; break;
+        case SIGTRAP: signame = "SIGTRAP"; break;
+    }
+
+    snprintf(buf, sizeof(buf), "Signal %d (%s) at address %p", signum, signame, info->si_addr);
+    LOGE("FATAL NATIVE CRASH: %s", buf);
+
+    startFatalActivity(buf);
+
+    // default action: *usually* terminate
+    signal(signum, SIG_DFL);
+    raise(signum);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_org_endercore_android_utils_CrashHandler_initNative(JNIEnv *env, jobject thiz, jstring package_name, jstring activity_name) {
+    if (g_crashHandlerClass == nullptr) {
+        jclass localClass = env->FindClass("org/endercore/android/utils/CrashHandler");
+        if (localClass) {
+            g_crashHandlerClass = (jclass) env->NewGlobalRef(localClass);
+            g_onNativeCrashMethod = env->GetStaticMethodID(g_crashHandlerClass, "onNativeCrash", "(Ljava/lang/String;Ljava/lang/String;)V");
+        }
+    }
+
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_sigaction = native_signal_handler;
+    sa.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGSEGV, &sa, nullptr);
+    sigaction(SIGABRT, &sa, nullptr);
+    sigaction(SIGFPE, &sa, nullptr);
+    sigaction(SIGILL, &sa, nullptr);
+    sigaction(SIGBUS, &sa, nullptr);
+    sigaction(SIGTRAP, &sa, nullptr);
+
+    LOGD("Native crash handler initialized");
+}
+// ======== end crash handler ========
 
 static void logNativeAssetProbe(AAssetManager *assetManager, const char *path) {
     if (assetManager == nullptr) {
@@ -175,6 +246,7 @@ static void *openMinecraftLibrary() {
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+    g_jvm = vm;
     enderhook_init(vm);
 
     void *handle = openMinecraftLibrary();

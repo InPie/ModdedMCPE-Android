@@ -24,6 +24,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.view.ContextThemeWrapper
 import org.endercore.android.EnderCore
 import org.endercore.android.mod.script.ScriptController
+import org.endercore.android.utils.CrashHandler
 import java.lang.ref.WeakReference
 
 class MyApplication : Application() {
@@ -38,6 +39,7 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         EnderCore.instance.initialize(this, EnderCore.MODE_PUBLIC)
+        CrashHandler.getInstance().init(this, FatalActivity::class.java)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

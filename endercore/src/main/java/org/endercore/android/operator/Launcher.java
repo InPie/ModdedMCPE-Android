@@ -14,6 +14,7 @@ import org.endercore.android.mod.nmod.NMod;
 import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
+import org.endercore.android.utils.CrashHandler;
 import org.endercore.android.utils.Patcher;
 
 import java.io.File;
@@ -181,6 +182,7 @@ public final class Launcher {
                 System.loadLibrary(LIB_XHOOK);
                 listener.onLoadNativeLibrary(NAME_ENDERCORE);
                 System.loadLibrary(LIB_ENDERCORE);
+                CrashHandler.getInstance().initNative();
 
                 if (optionsManager.getUnlockMjscript()) {
                     listener.onLoadNativeLibrary(NAME_MJSCRIPT);
