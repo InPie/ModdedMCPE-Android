@@ -12,12 +12,16 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <ucontext.h>
-#include "include/xhook.h"
-#include "enderhook.h"
 
 #define LOG_TAG "EnderCore-Native"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+extern "C" void legacy_compatibility_init();
+extern "C" void game_storage_patch_init(JavaVM* vm);
+extern "C" void game_storage_patch_vm(JavaVM* vm);
+extern "C" void game_storage_patch_env(JNIEnv* env);
+extern "C" void game_storage_patch__set_external_storage_root(const char* path);
 
 JavaVM *g_jvm = nullptr;
 jclass g_crashHandlerClass = nullptr;
@@ -91,7 +95,7 @@ static void patchNativeActivity(ANativeActivity *activity) {
             LOGD("Patching ANativeActivity->internalDataPath to %s", path);
             activity->internalDataPath = strdup(path);
             // common hook methods for ~v0.6 - v0.14 for custom game data path (JNI hooking)
-            enderhook_set_external_storage_root(path);
+            game_storage_patch__set_external_storage_root(path);
             env->ReleaseStringUTFChars(pathStr, path);
         }
     }
@@ -108,8 +112,8 @@ static void patchNativeActivity(ANativeActivity *activity) {
         }
     }
 
-    enderhook_patch_vm(activity->vm);
-    enderhook_patch_env(env);
+    game_storage_patch_vm(activity->vm);
+    game_storage_patch_env(env);
     
     env->DeleteLocalRef(activityClass);
 }
@@ -180,7 +184,8 @@ static void *openMinecraftLibrary() {
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     g_jvm = vm;
-    enderhook_init(vm);
+    game_storage_patch_init(vm);
+    legacy_compatibility_init(); // fix 0.8 and below thread crash
 
     void *handle = openMinecraftLibrary();
     if (handle) {

@@ -46,12 +46,14 @@ set_target_properties( substrate
 add_library( endercore
              SHARED
              endercore.cpp
-             enderhook.cpp
-             crashhandler.cpp )
+             game_storage_patch.cpp
+             crashhandler.cpp
+             legacy_compatibility.cpp )
 
 target_link_libraries( endercore
                        ${log-lib-path}
-                       ${android-lib-path} )
+                       ${android-lib-path}
+                       xhook )
 
 # mjscript
 add_library( mjscript

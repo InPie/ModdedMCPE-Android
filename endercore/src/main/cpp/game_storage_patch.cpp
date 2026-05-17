@@ -1,11 +1,10 @@
-#include "enderhook.h"
-
 #include <android/log.h>
 #include <cstdarg>
 #include <cstring>
+#include <jni.h>
 #include <string>
 
-#define LOG_TAG "EnderHook-JNI"
+#define LOG_TAG "GameStoragePatch"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
@@ -26,7 +25,7 @@ typedef jint (*AttachCurrentThreadFn)(JavaVM*, JNIEnv**, void*);
 static AttachCurrentThreadFn old_AttachCurrentThread = nullptr;
 static AttachCurrentThreadFn old_AttachCurrentThreadAsDaemon = nullptr;
 
-void enderhook_set_external_storage_root(const char* path) {
+extern "C" void game_storage_patch__set_external_storage_root(const char* path) {
     if (path && path[0]) {
         g_externalStorageRoot = path;
         LOGD("External storage root set to: %s", g_externalStorageRoot.c_str());
@@ -174,7 +173,7 @@ static jobject new_CallStaticObjectMethod(
     return result;
 }
 
-void enderhook_patch_env(JNIEnv* env) {
+extern "C" void game_storage_patch_env(JNIEnv* env) {
     if (!env)
         return;
 
@@ -213,7 +212,7 @@ static jint new_AttachCurrentThread(JavaVM* vm, JNIEnv** env, void* args) {
     jint result = old_AttachCurrentThread(vm, env, args);
 
     if (result == JNI_OK && env && *env)
-        enderhook_patch_env(*env);
+        game_storage_patch_env(*env);
 
     return result;
 }
@@ -225,12 +224,12 @@ static jint new_AttachCurrentThreadAsDaemon(JavaVM* vm, JNIEnv** env, void* args
     jint result = old_AttachCurrentThreadAsDaemon(vm, env, args);
 
     if (result == JNI_OK && env && *env)
-        enderhook_patch_env(*env);
+        game_storage_patch_env(*env);
 
     return result;
 }
 
-void enderhook_patch_vm(JavaVM* vm) {
+extern "C" void game_storage_patch_vm(JavaVM* vm) {
     if (!vm)
         return;
 
@@ -258,14 +257,14 @@ void enderhook_patch_vm(JavaVM* vm) {
     vm->functions = &g_vmTable;
 }
 
-void enderhook_init(JavaVM* vm) {
+extern "C" void game_storage_patch_init(JavaVM* vm) {
     if (!vm)
         return;
 
-    enderhook_patch_vm(vm);
+    game_storage_patch_vm(vm);
 
     JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK && env) {
-        enderhook_patch_env(env);
+        game_storage_patch_env(env);
     }
 }
