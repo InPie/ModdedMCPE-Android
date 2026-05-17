@@ -86,6 +86,7 @@ static void patchNativeActivity(ANativeActivity *activity) {
             const char *path = env->GetStringUTFChars(pathStr, nullptr);
             LOGD("Patching ANativeActivity->internalDataPath to %s", path);
             activity->internalDataPath = strdup(path);
+            // common hook methods for ~v0.6 - v0.14 for custom game data path (JNI hooking)
             enderhook_set_external_storage_root(path);
             env->ReleaseStringUTFChars(pathStr, path);
         }
