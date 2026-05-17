@@ -6,7 +6,7 @@
         <SwitchPreferenceCompat
             app:key="auto_license"
             app:title="@string/app_options_auto_license"
-            app:defaultValue="true"/>
+            app:defaultValue="false"/>
 
         <SwitchPreferenceCompat
             app:key="redirect_directory"
@@ -16,7 +16,7 @@
         <SwitchPreferenceCompat
             app:key="unlock_mjscript"
             app:title="@string/app_options_unlock_mjscript"
-            app:defaultValue="true" />
+            app:defaultValue="false" />
 
     </PreferenceCategory>
 
