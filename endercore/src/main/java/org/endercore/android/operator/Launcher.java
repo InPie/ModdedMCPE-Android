@@ -277,7 +277,7 @@ public final class Launcher {
             listener.onArrange();
             
             //  game assets
-            File gameAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            File gameAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
             if (gameAssetsDir.exists()) {
                 patchAssetPath.add(gameAssetsDir.getAbsolutePath());
             }

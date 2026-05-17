@@ -102,7 +102,7 @@ public class GamePackageBuilder {
 
         if (gamePackage.isVersion015AndAbove()) {
             Log.d(TAG, "Extracting all game assets...");
-            File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForAssets());
+            File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
             if (!assetsDir.exists() && !assetsDir.mkdirs()) {
                 Log.w(TAG, "Failed to create assets cache directory");
             }

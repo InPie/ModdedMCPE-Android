@@ -75,7 +75,7 @@ public class InstanceOperator {
         boolean assetsFilesReady = true;
         GamePackage gamePackage = resolveGamePackage(instance);
         if (gamePackage.isVersion015AndAbove()) {
-            assetsFilesReady = new File(fileEnvironment.getCodeCacheDirPathForAssets()).isDirectory();
+            assetsFilesReady = new File(fileEnvironment.getCodeCacheDirPathForGameAssets()).isDirectory();
         } else {
             Log.d(TAG, "getVersionName: " + gamePackage.getVersionName());
         }

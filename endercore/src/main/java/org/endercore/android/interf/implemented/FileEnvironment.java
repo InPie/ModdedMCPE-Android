@@ -97,7 +97,7 @@ public class FileEnvironment implements IFileEnvironment {
     }
 
     @Override
-    public String getCodeCacheDirPathForAssets() {
+    public String getCodeCacheDirPathForGameAssets() {
         checkWorkspace();
         return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_ASSETS;
     }
