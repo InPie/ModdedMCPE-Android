@@ -79,19 +79,18 @@ class MyApplication : Application() {
     }
 
     private fun finishGameProcess() {
-        if (!isGameProcess()) return
-        mainHandler.post {
-            Log.d(TAG, "Game Finished: ${it.processName}")
-            android.os.Process.killProcess(android.os.Process.myPid())
-        }
-    }
-
-    private fun isGameProcess(): Boolean {
         val pid = android.os.Process.myPid()
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        return activityManager.runningAppProcesses?.any {
-            it.pid == pid && it.processName.endsWith(":game")
-        } == true
+        val processName = activityManager.runningAppProcesses?.firstOrNull {
+            it.pid == pid
+        }?.processName
+
+        if (processName?.endsWith(":game") == true) {
+            mainHandler.post {
+                Log.d(TAG, "Game Finished: ${processName}")
+                android.os.Process.killProcess(pid)
+            }
+        }
     }
 
 
