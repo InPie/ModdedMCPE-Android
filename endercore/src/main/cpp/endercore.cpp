@@ -26,6 +26,13 @@ extern "C" void game_storage_patch__set_external_storage_root(const char* path);
 JavaVM *g_jvm = nullptr;
 jclass g_crashHandlerClass = nullptr;
 jmethodID g_onNativeCrashMethod = nullptr;
+void* g_mcpeHandle = nullptr;
+
+struct gnustl_string_rep {
+    size_t length;
+    size_t capacity;
+    int refcount;
+};
 
 static void (*android_main_minecraft)(struct android_app *app);
 
@@ -96,6 +103,28 @@ static void patchNativeActivity(ANativeActivity *activity) {
             activity->internalDataPath = strdup(path);
             // common hook methods for ~v0.6 - v0.14 for custom game data path (JNI hooking)
             game_storage_patch__set_external_storage_root(path);
+
+            // MCPE 1.0+ AppPlatform_android::ANDROID_APPDATA_PATH binary patch
+            if (g_mcpeHandle) {
+                void* sym = dlsym(g_mcpeHandle, "_ZN19AppPlatform_android20ANDROID_APPDATA_PATHE");
+                if (sym) {
+                    std::string newPath = std::string(path) + "/";
+                    size_t len = newPath.length();
+                    char* spoof_buf = (char*)malloc(sizeof(gnustl_string_rep) + len + 1);
+                    gnustl_string_rep* rep = (gnustl_string_rep*)spoof_buf;
+                    rep->length = len;
+                    rep->capacity = len;
+                    rep->refcount = -1; // leaked refcount
+                    char* str_ptr = spoof_buf + sizeof(gnustl_string_rep);
+                    strcpy(str_ptr, newPath.c_str());
+                    
+                    *(char**)sym = str_ptr;
+                    LOGD("Patched ANDROID_APPDATA_PATH to %s", str_ptr);
+                } else {
+                    LOGD("Patch ANDROID_APPDATA_PATH skipped.");
+                }
+            }
+
             env->ReleaseStringUTFChars(pathStr, path);
         }
     }
@@ -189,6 +218,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     void *handle = openMinecraftLibrary();
     if (handle) {
+        g_mcpeHandle = handle;
         android_main_minecraft = (void (*)(struct android_app *)) (dlsym(handle, "android_main"));
         ANativeActivity_onCreate_minecraft = (void (*)(ANativeActivity *, void *, size_t)) (dlsym(
                 handle, "ANativeActivity_onCreate"));
