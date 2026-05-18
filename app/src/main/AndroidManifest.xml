@@ -28,6 +28,7 @@
             android:theme="@style/AppTheme" />
         <activity
             android:name="me.effently.moddedmcpe.FatalActivity"
+            android:process=":crash"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/FullScreenTheme" />
         <activity

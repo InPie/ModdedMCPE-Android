@@ -67,6 +67,7 @@
 
         <!-- UNNECESSARY FIELDS AS FOLLOWS. IF THERE IS COMPILE ERRORS,PLEASE REMOVE THEM. -->
         <activity android:name="com.microsoft.xal.browser.IntentHandler"
+            android:process=":game"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
@@ -80,6 +81,7 @@
         </activity>
         <activity
             android:name="com.microsoft.xal.browser.BrowserLaunchActivity"
+            android:process=":game"
             android:exported="false"
             android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
@@ -89,12 +91,14 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:name="com.microsoft.xal.browser.WebView"
+            android:process=":game"
             android:screenOrientation="sensorLandscape"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:configChanges="orientation"
             android:exported="false"
             android:name="com.microsoft.xal.browser.WebKitWebViewController"
+            android:process=":game"
             android:screenOrientation="sensorLandscape" />
         <meta-data
             android:name="xperiaplayoptimized_content"
@@ -153,7 +157,8 @@
         </service>
         <service
             android:exported="true"
-            android:name="com.microsoft.xbox.idp.model.gcm.NotificationInstanceIDListenerService">
+            android:name="com.microsoft.xbox.idp.model.gcm.NotificationInstanceIDListenerService"
+            android:process=":game">
             <intent-filter>
                 <action android:name="com.google.android.gms.iid.InstanceID" />
             </intent-filter>
@@ -170,26 +175,33 @@
 
         <activity
             android:name="com.microsoft.xbox.idp.ui.AuthFlowActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme"
             android:windowSoftInputMode="adjustPan|stateUnchanged" />
         <activity
             android:name="com.microsoft.xbox.idp.ui.ErrorActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme" />
         <activity
             android:name="com.microsoft.onlineid.interop.xbox.ui.SignUpActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme" />
         <activity
             android:name="com.microsoft.onlineid.interop.xbox.ui.SignInErrorActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme" />
         <activity
             android:name="com.microsoft.onlineid.interop.xbox.ui.XUIDCreationErrorActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme" />
         <activity
             android:name="com.microsoft.onlineid.interop.xbox.ui.WelcomeActivity"
+            android:process=":game"
             android:theme="@style/OnlineidUiTheme" />
         <activity
             android:exported="true"
             android:name="com.microsoft.onlineid.interop.singleaccount.SingleAccountActivity"
+            android:process=":game"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="com.microsoft.onlineid.interop.singleaccount.SingleAccountActivity" />
@@ -201,11 +213,13 @@
             android:icon="@drawable/msa_ms_logo"
             android:label="@string/webflow_header"
             android:name="com.microsoft.onlineid.authenticator.AccountAddPendingActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA" />
         <activity
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:name="com.microsoft.onlineid.internal.ui.WebFlowActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA"
             android:windowSoftInputMode="adjustResize" />
         <activity
@@ -214,6 +228,7 @@
             android:icon="@drawable/msa_ms_logo"
             android:label="@string/webflow_header"
             android:name="com.microsoft.onlineid.ui.AddAccountActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -227,12 +242,14 @@
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:name="com.microsoft.onlineid.ui.SignOutActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA.Transparent" />
         <activity
             android:exported="false"
             android:icon="@drawable/msa_ms_logo"
             android:label="@string/webflow_header"
             android:name="com.microsoft.onlineid.internal.ui.AccountPickerActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA.Dialog">
             <intent-filter>
                 <action android:name="com.microsoft.onlineid.internal.PICK_ACCOUNT" />
@@ -244,18 +261,22 @@
             android:icon="@drawable/msa_ms_logo"
             android:label="@string/webflow_header"
             android:name="com.microsoft.onlineid.internal.ui.InterruptResolutionActivity"
+            android:process=":game"
             android:theme="@style/Theme.MSA" />
         <activity
             android:configChanges="keyboard|keyboardHidden|screenLayout"
             android:name="com.facebook.FacebookActivity"
+            android:process=":game"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:configChanges="orientation|screenSize"
             android:name="com.microsoft.xboxtcui.FbLoginShimActivity"
+            android:process=":game"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:configChanges="orientation|screenSize"
             android:name="com.microsoft.xboxtcui.FbShareShimActivity"
+            android:process=":game"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <meta-data
@@ -286,7 +307,8 @@
             android:required="false" />
         <service
             android:exported="false"
-            android:name="com.microsoft.onlineid.internal.sso.client.BackupService">
+            android:name="com.microsoft.onlineid.internal.sso.client.BackupService"
+            android:process=":game">
             <intent-filter>
                 <action android:name="com.microsoft.onlineid.internal.sso.client.PUSH_BACKUP" />
                 <action android:name="com.microsoft.onlineid.internal.sso.client.PUSH_BACKUP_IF_NEEDED" />
@@ -296,7 +318,8 @@
         </service>
         <service
             android:exported="false"
-            android:name="com.microsoft.onlineid.internal.MsaService">
+            android:name="com.microsoft.onlineid.internal.MsaService"
+            android:process=":game">
             <intent-filter>
                 <action android:name="com.microsoft.onlineid.internal.GET_TICKET" />
                 <action android:name="com.microsoft.onlineid.internal.UPDATE_PROFILE" />
@@ -309,7 +332,8 @@
         <service
             android:enabled="true"
             android:exported="true"
-            android:name="com.microsoft.onlineid.internal.sso.service.MsaSsoService">
+            android:name="com.microsoft.onlineid.internal.sso.service.MsaSsoService"
+            android:process=":game">
             <intent-filter>
                 <action android:name="com.microsoft.msa.action.SSO_SERVICE" />
             </intent-filter>
