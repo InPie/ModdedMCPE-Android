@@ -40,6 +40,8 @@ public final class Launcher {
     private final ArrayList<String> patchLibPath;
     private boolean initializedGame;
 
+    private static final String TAG = "EnderCore-Launcher";
+
     private final static String ASSETS_MAIN_DIR = "endercore" + File.separator + "android";
     private final static String ASSETS_FILE_AGENT_DEX = ASSETS_MAIN_DIR + File.separator + "AgentMainActivity.dex";
     private final static String ASSETS_FILE_CRACKER_DEX = ASSETS_MAIN_DIR + File.separator + "CrackedLicense.dex";
@@ -82,7 +84,7 @@ public final class Launcher {
         patchLibPath.clear();
         ArrayList<NModException> nModExceptions = null;
         try {
-            Log.d("EnderCore-Launcher", "Initialization of the game...");
+            Log.d(TAG, "Initialization of the game...");
 
             if (gamePackage == null) {
                 throw new LauncherException("GamePackage is null.");
@@ -93,19 +95,19 @@ public final class Launcher {
             OptionsManager optionsManager = core.getOptionsManager();
 
             listener.onLoadGameFilesStart();
-            Log.d("EnderCore-Launcher", "File extraction skipped (handled by Builder)");
+            // deprecated
             // File extraction is handled externally by GamePackageBuilder and NModPreparer
             listener.onLoadGameFilesFinish();
 
             listener.onLoadJavaLibrariesStart();
-            Log.d("EnderCore-Launcher", "Patching Dex Files...");
+            Log.d(TAG, "Patching Dex Files...");
             try {
                 // Patch Game Dex
                 for (int i = 9; i >= 0; --i) {
                     String dexLibName = "classes" + (i == 0 ? "" : i) + ".dex";
                     File path = new File(fileEnvironment.getCodeCacheDirPathForDex(), dexLibName);
                     if (path.exists()) {
-                        Log.d("EnderCore-Launcher", "Patching: " + dexLibName);
+                        Log.d(TAG, "Patching: " + dexLibName);
                         listener.onLoadJavaLibrary(dexLibName);
                         if (!path.setReadOnly()) { // Android 15 fix
                             throw new LauncherException("Unable to set file to read-only: " + path.getAbsolutePath());
@@ -118,7 +120,7 @@ public final class Launcher {
 
                 if (optionsManager.getAutoLicense()) {
                     // Crack License Checker
-                    Log.d("EnderCore-Launcher", "Patching CrackedLicense.dex...");
+                    Log.d(TAG, "Patching CrackedLicense.dex...");
                     File licenseCrackerDex = new File(fileEnvironment.getCodeCacheDirPathForDex(), NAME_CRACKER_DEX);
                     FileUtils.copy(context.getAssets().open(ASSETS_FILE_CRACKER_DEX), licenseCrackerDex);
                     if (!licenseCrackerDex.setReadOnly()) { // Android 15 fix
@@ -133,11 +135,11 @@ public final class Launcher {
                 throw new LauncherException("Exception occurred while loading *.dex file.", e);
             }
             listener.onLoadJavaLibrariesFinish();
-            Log.d("EnderCore-Launcher", "Dex File Loaded.");
+            Log.d(TAG, "Dex File Loaded.");
 
             // Load Native Libs
             listener.onLoadNativeLibrariesStart();
-            Log.d("EnderCore-Launcher", "Patching Native Libs Dir...");
+            Log.d(TAG, "Patching Native Libs Dir...");
             try {
                 Patcher.patchNativeLibraryDir(context.getClassLoader(), fileEnvironment.getCodeCacheDirPathForNativeLib());
                 patchLibPath.add(fileEnvironment.getCodeCacheDirPathForNativeLib());
@@ -147,34 +149,34 @@ public final class Launcher {
             try {
                 File nativeLibDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
 
-                Log.d("EnderCore-Launcher", "Loading C++ Shared...");
+                Log.d(TAG, "Loading C++ Shared...");
                 if (new File(nativeLibDir, NAME_CPP_SHARED).exists()) {
                     listener.onLoadNativeLibrary(NAME_CPP_SHARED);
                     System.loadLibrary(LIB_CPP_SHARED);
                 } else {
-                    Log.e("EnderCore-Launcher", "Native library " + NAME_CPP_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
+                    Log.e(TAG, "Native library " + NAME_CPP_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                Log.d("EnderCore-Launcher", "Loading FMOD...");
+                Log.d(TAG, "Loading FMOD...");
                 if (new File(nativeLibDir, NAME_FMOD).exists()) {
                     listener.onLoadNativeLibrary(NAME_FMOD);
                     System.loadLibrary(LIB_FMOD);
                 } else {
-                    Log.e("EnderCore-Launcher", "Native library " + NAME_FMOD + " not found in " + nativeLibDir.getAbsolutePath());
+                    Log.e(TAG, "Native library " + NAME_FMOD + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                Log.d("EnderCore-Launcher", "Loading GNU STL...");
+                Log.d(TAG, "Loading GNU STL...");
                 if (new File(nativeLibDir, NAME_GNUSTL_SHARED).exists()) {
                     listener.onLoadNativeLibrary(NAME_GNUSTL_SHARED);
                     System.loadLibrary(LIB_GNUSTL_SHARED);
                 } else {
-                    Log.e("EnderCore-Launcher", "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
+                    Log.e(TAG, "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                Log.d("EnderCore-Launcher", "Loading Minecraft PE Native...");
+                Log.d(TAG, "Loading Minecraft PE Native Library...");
                 loadMinecraftNativeLibrary(context, gamePackage.getVersionName());
 
-                Log.d("EnderCore-Launcher", "Loading EnderCore Hooks...");
+                Log.d(TAG, "Loading EnderCore Hooks...");
                 listener.onLoadNativeLibrary(NAME_YURAI);
                 System.loadLibrary(LIB_YURAI);
                 listener.onLoadNativeLibrary(NAME_SUBSTRATE);
@@ -194,12 +196,12 @@ public final class Launcher {
             }
             listener.onLoadNativeLibrariesFinish();
 
-            Log.d("EnderCore-Launcher", "Native Libs Loaded.");
+            Log.d(TAG, "Native Libs Loaded.");
 
             // Load Resources
             listener.onLoadResourcesStart();
 
-            Log.d("EnderCore-Launcher", "Forming Assets Paths...");
+            Log.d(TAG, "Forming Assets Paths...");
             //  launcher
             patchAssetPath.add(context.getPackageResourcePath());
             //  game
@@ -219,7 +221,7 @@ public final class Launcher {
 
             // Load NMods Native Libs
             if (optionsManager.getUseNMods()) {
-                Log.d("EnderCore-Launcher", "Loading NMods Native Libs...");
+                Log.d(TAG, "Loading NMods Native Libs...");
                 listener.onLoadNModsStart();
                 nModExceptions = new ArrayList<>();
 
@@ -291,10 +293,10 @@ public final class Launcher {
             }
 
             for (String path : patchAssetPath) {
-                Log.d("EnderCore-Launcher", "Added asset path: " + path);
+                Log.d(TAG, "Added asset path: " + path);
             }
 
-            Log.d("EnderCore-Launcher", "Game is initialized.");
+            Log.d(TAG, "Game is initialized.");
 
         } catch (Throwable e) {
             listener.onSuspend();
@@ -328,7 +330,7 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-DATA", fileEnvironment.getInnerGameStorageDir());
             launchIntent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, fileEnvironment.getActiveWorkspaceId());
             context.startActivity(launchIntent);
-            Log.d("EnderCore-Launcher", "Game started.");
+            Log.d(TAG, "Game started.");
         } catch (IOException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new LauncherException("Start game failed.", e);
         }
@@ -339,7 +341,7 @@ public final class Launcher {
     }
 
     private void loadMinecraftNativeLibrary(Context context, String gameVersionName) throws ClassNotFoundException {
-        Log.d("EnderCore-Launcher", "MCPE version: " + gameVersionName);
+        Log.d(TAG, "MCPE version: " + gameVersionName);
         listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
 
         if (isMcpeVersion(gameVersionName, "0.6.")) {

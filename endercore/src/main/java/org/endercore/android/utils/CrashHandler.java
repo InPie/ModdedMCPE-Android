@@ -9,7 +9,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class CrashHandler implements Thread.UncaughtExceptionHandler {
-    private static final String TAG = "CrashHandler";
+    private static final String TAG = "EnderCore-CrashHandler";
 
     private static CrashHandler instance;
     private Context context;
@@ -30,13 +30,13 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         this.fatalActivityClass = fatalActivityClass;
         this.defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
-        Log.d(TAG, "Java CrashHandler initialized");
+        Log.d(TAG, "Java crash handler initialized");
     }
 
     public void initNative() {
         try {
             initNative(context.getPackageName(), fatalActivityClass.getName());
-            Log.d(TAG, "Native CrashHandler initialized");
+            Log.d(TAG, "Native crash handler is ready");
         } catch (Throwable e) {
             Log.e(TAG, "Failed to initialize native crash handler", e);
         }

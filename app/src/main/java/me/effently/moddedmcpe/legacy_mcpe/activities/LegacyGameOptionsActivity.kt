@@ -2,6 +2,7 @@ package me.effently.moddedmcpe.legacy_mcpe.activities
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -63,6 +64,10 @@ class LegacyGameOptionsActivity : AppCompatActivity() {
                 dialogTitle = getString(R.string.legacy_username)
                 setDefaultValue("Steve")
                 summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+                setOnBindEditTextListener { editText ->
+                    editText.setTextColor(ContextCompat.getColor(requireContext(), R.color.mc_text_dark))
+                    editText.setHintTextColor(ContextCompat.getColor(requireContext(), R.color.mc_brown_panel_light))
+                }
                 setOnPreferenceChangeListener { preference, newValue ->
                     val normalized = LegacyMcpe.normalizedUsername(newValue as? String)
                     if (normalized != newValue) {

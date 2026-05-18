@@ -65,6 +65,14 @@
         <item name="colorOnSurface">@color/mc_text_primary</item>
         <item name="android:editTextColor">@color/mc_text_primary</item>
         <item name="hintTextColor">@color/mc_text_secondary</item>
+        <item name="alertDialogTheme">@style/LegacyMcpeAlertDialogTheme</item>
+        <item name="android:alertDialogTheme">@style/LegacyMcpeAlertDialogTheme</item>
+    </style>
+
+    <style name="LegacyMcpeAlertDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:textColorPrimary">@color/mc_text_dark</item>
+        <item name="android:textColorSecondary">@color/mc_brown_panel_light</item>
+        <item name="colorOnSurface">@color/mc_text_dark</item>
     </style>
 
 </resources>
