@@ -316,9 +316,9 @@ public final class Launcher {
             }
             Patcher.patchDexFile(context.getClassLoader(), new File(dir, NAME_AGENT_DEX).getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
             patchDexPath.add(new File(dir, NAME_AGENT_DEX).getAbsolutePath());
-            (new File(dir, NAME_AGENT_DEX)).setWritable(true);
             DexClassLoader dexClassLoader = new DexClassLoader(new File(dir, NAME_AGENT_DEX).getAbsolutePath(), dir.getAbsolutePath(), null, context.getClass().getClassLoader());
             Class<?> activityClass = dexClassLoader.loadClass("com.mojang.minecraftpe.AgentMainActivity");
+            (new File(dir, NAME_AGENT_DEX)).setWritable(true);
             Intent launchIntent = new Intent(context, activityClass);
             launchIntent.putExtra("ENDERCORE-PATCH-ASSETS", patchAssetPath);
             launchIntent.putExtra("ENDERCORE-PATCH-DEX", patchDexPath);
