@@ -88,6 +88,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     public static void onNativeCrash(String reason, String stackTrace) {
         Log.e(TAG, "Native crash detected: " + reason);
+        Log.e(TAG, stackTrace);
         getInstance().startFatalActivity("Native Crash: " + reason + "\n\n" + stackTrace);
     }
 

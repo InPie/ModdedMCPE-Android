@@ -160,18 +160,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         return super.getResources();
     }
 
-    @Override
-    public Context getApplicationContext() {
-        if(patchAssetManager != null) {
-            // if (getApplicationContextLogCount < 5) {
-            //     Log.i(TAG, "getApplicationContext()");
-            //     getApplicationContextLogCount++;
-            // }
-            return this;
-        }
-        return super.getApplicationContext();
-    }
-
     private void prepareGameWindow() {
         Window window = getWindow();
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
