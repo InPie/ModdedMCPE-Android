@@ -114,5 +114,34 @@
     <string name="text_last_played">Last played</string>
     <string name="text_all_instances">All instances</string>
 
+    <!-- Legacy MCPE keys for 0.1-0.6 -->
+    <string name="legacy_create_world_title">Create world</string>
+    <string name="legacy_rename_world_title">Rename world</string>
+    <string name="legacy_options_title">Game options</string>
+    <string name="legacy_world_name">World name</string>
+    <string name="legacy_world_default_name">Unnamed world</string>
+    <string name="legacy_saved_world_default_name">Saved World</string>
+    <string name="legacy_world_seed">World seed</string>
+    <string name="legacy_game_mode_creative">Creative</string>
+    <string name="legacy_game_mode_survival">Survival</string>
+    <string name="legacy_create">Create</string>
+    <string name="legacy_category_multiplayer">Multiplayer</string>
+    <string name="legacy_category_graphics">Graphics</string>
+    <string name="legacy_category_controls">Controls</string>
+    <string name="legacy_category_feedback">Feedback</string>
+    <string name="legacy_category_game">Game</string>
+    <string name="legacy_username">Username</string>
+    <string name="legacy_server_visible">Server visible by default</string>
+    <string name="legacy_fancy_graphics">Fancy graphics</string>
+    <string name="legacy_low_quality">Lower graphics quality</string>
+    <string name="legacy_sensitivity">Sensitivity</string>
+    <string name="legacy_invert_y_axis">Invert Y-axis</string>
+    <string name="legacy_lefty">Lefty</string>
+    <string name="legacy_use_touchscreen">Use touch screen</string>
+    <string name="legacy_split_touch_controls">Split touch controls</string>
+    <string name="legacy_vibration">Vibration</string>
+    <string name="legacy_peaceful_mode">Peaceful mode</string>
+
+    <!-- MCPE 1.0+ key -->
     <string name="hockeyapp_android_id" translatable="false">3db796c2fc084bbc907764b7deb378c5</string>
 </resources>

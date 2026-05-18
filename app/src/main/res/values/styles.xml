@@ -49,12 +49,22 @@
         <item name="android:clickable">true</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:minHeight">10dp</item>
-        <!--        <item name="android:fontFamily">@font/minecraft_font</item>-->
+        <!-- <item name="android:fontFamily">@font/minecraft_font</item> -->
     </style>
 
     <style name="GreenButton.Small">
         <item name="android:textSize">18sp</item>
         <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- Legacy MCPE theme (fix colors) -->
+    <style name="LegacyMcpeTheme" parent="AppTheme">
+        <item name="android:textColorPrimary">@color/mc_text_primary</item>
+        <item name="android:textColorSecondary">@color/mc_text_secondary</item>
+        <item name="colorOnBackground">@color/mc_text_primary</item>
+        <item name="colorOnSurface">@color/mc_text_primary</item>
+        <item name="android:editTextColor">@color/mc_text_primary</item>
+        <item name="hintTextColor">@color/mc_text_secondary</item>
     </style>
 
 </resources>

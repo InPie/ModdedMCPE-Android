@@ -1,6 +1,9 @@
 package com.mojang.minecraftpe;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -18,6 +21,8 @@ import java.io.InputStream;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     // fullsreen code from 0.11, ...Platform19#setSystemUiVisibility(5894)
@@ -32,6 +37,12 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
     private String instanceDataPath = null;
+    private String instanceId = null;
+
+    // legacy mcpe 0.1-0.6
+    private int legacyUserInputStatus = -1;
+    private String[] legacyUserInputText = null;
+    private Boolean legacyUseProfile06 = null;
 
     // logging for debug
     private String gameApkPath = null;
@@ -40,12 +51,21 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private int getFileDataLogCount = 0;
     private int getImageDataLogCount = 0;
 
+    private static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
+    // legacy mcpe 0.1-0.6
+    private static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
+    private static final String PREF_PREFIX = "legacy_mcpe_options_";
+    private static final int DIALOG_CREATE_NEW_WORLD = 1;
+    private static final int DIALOG_MAINMENU_OPTIONS = 3;
+    private static final int DIALOG_RENAME_MP_WORLD = 4;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         prepareGameWindow();
 
         ArrayList<String> patchAssetsPath = getIntent().getStringArrayListExtra("ENDERCORE-PATCH-ASSETS");
         instanceDataPath = getIntent().getStringExtra("ENDERCORE-PATCH-DATA");
+        instanceId = getIntent().getStringExtra(EXTRA_INSTANCE_ID);
         
         if (instanceDataPath != null) {
             new File(instanceDataPath).mkdirs();
@@ -170,32 +190,33 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE_SYSTEM_UI_FLAGS);
     }
 
-    /*
-     * Called by Native code (endercore.cpp) to get our patched AssetManager
-     */
-    public AssetManager getPatchAssetManager() {
-        return patchAssetManager != null ? patchAssetManager : getAssets();
-    }
-
-    /*
-     * C.Native code to get the instance internal data path.
-     */
-    public String getPatchInternalDataPath() {
-        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
-    }
-
-    /*
-     * C.Native code to get the instance external data path.
-     */
-    public String getPatchExternalDataPath() {
-        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
-    }
-
     public String getExternalStoragePath() {
         return getPatchExternalDataPath();
     }
 
+    public String getInstanceID() {
+        return instanceId;
+    }
+
+    private File getInstanceDir() {
+        if (instanceDataPath == null) {
+            return null;
+        }
+        File dataDir = new File(instanceDataPath);
+        return dataDir.getParentFile();
+    }
+
+
+
+
+
+
+    /////////////////////////////////////////////////////
+    // ------------ PATH OVERRIDES 0.14<= ------------ //
+    /////////////////////////////////////////////////////
+
     // --- Legacy path overrides: for 0.14 and below ---
+    // and just in case ...
     @Override
     public File getFilesDir() {
         if (instanceDataPath != null) {
@@ -215,7 +236,197 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
         return super.getCacheDir();
     }
-    // --- END: legacy path overrides ---
+
+    /*
+     * Called by Native code (endercore.cpp):
+     */
+    //  get our patched AssetManager
+    public AssetManager getPatchAssetManager() {
+        return patchAssetManager != null ? patchAssetManager : getAssets();
+    }
+    //  get the instance internal data path
+    public String getPatchInternalDataPath() {
+        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
+    }
+    //  get the instance external data path
+    public String getPatchExternalDataPath() {
+        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
+    }
+
+    // --- END: Legacy path overrides ---
+
+
+
+    ///////////////////////////////////////////////
+    // ------------ FOR LEGACY MCPE ------------ //
+    ///////////////////////////////////////////////
+
+    // --- Legacy methods for MCPE 0.1-0.6 UI ---
+    public void initiateUserInput(int id) {
+        legacyUserInputText = null;
+        legacyUserInputStatus = -1;
+    }
+
+    public int getUserInputStatus() {
+        return legacyUserInputStatus;
+    }
+
+    public String[] getUserInputString() {
+        return legacyUserInputText;
+    }
+
+    public void displayDialog(int dialogId) {
+        if (instanceId == null || instanceId.length() == 0) {
+            Log.e("EnderCore-AgentMain", "Legacy dialog requested without instance id!");
+            legacyUserInputStatus = 0;
+            return;
+        }
+
+        Intent intent = new Intent();
+        intent.putExtra(EXTRA_INSTANCE_ID, instanceId);
+
+        if (dialogId == DIALOG_CREATE_NEW_WORLD) {
+            intent.setClassName(getPackageName(), "me.effently.moddedmcpe.legacy_mcpe.activities.LegacyCreateWorldActivity");
+        } else if (dialogId == DIALOG_MAINMENU_OPTIONS) {
+            intent.setClassName(getPackageName(), "me.effently.moddedmcpe.legacy_mcpe.activities.LegacyGameOptionsActivity");
+        } else if (dialogId == DIALOG_RENAME_MP_WORLD) {
+            intent.setClassName(getPackageName(), "me.effently.moddedmcpe.legacy_mcpe.activities.LegacyRenameWorldActivity");
+        } else {
+            Log.w("EnderCore-AgentMain", "Unsupported legacy dialog id: " + dialogId);
+            legacyUserInputStatus = 0;
+            return;
+        }
+
+        try {
+            startActivityForResult(intent, dialogId);
+        } catch (Throwable throwable) {
+            Log.e("EnderCore-AgentMain", "Failed to start legacy dialog " + dialogId, throwable);
+            legacyUserInputStatus = 0;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == DIALOG_MAINMENU_OPTIONS) {
+            legacyUserInputStatus = 1;
+            return;
+        }
+
+        if (requestCode == DIALOG_CREATE_NEW_WORLD || requestCode == DIALOG_RENAME_MP_WORLD) {
+            if (resultCode == RESULT_OK && data != null) {
+                legacyUserInputText = data.getStringArrayExtra(EXTRA_LEGACY_INPUT_VALUES);
+                legacyUserInputStatus = 1;
+            } else {
+                legacyUserInputText = null;
+                legacyUserInputStatus = 0;
+            }
+            return;
+        }
+
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public String[] getOptionStrings() { // options
+        boolean is06 = isLegacyProfile06();
+        LinkedHashMap<String, String> options = new LinkedHashMap<>();
+        SharedPreferences prefs = getSharedPreferences(getLegacyPrefsName(), MODE_PRIVATE);
+
+        putString(options, prefs, "mp_username", "Steve");
+        putBoolean(options, prefs, "mp_server_visible_default", true);
+        putBoolean(options, prefs, "gfx_fancygraphics", false);
+        putBoolean(options, prefs, "gfx_lowquality", false);
+        putString(options, "ctrl_sensitivity", sensitivityToGameValue(prefs.getInt("ctrl_sensitivity", 50)));
+        putBoolean(options, prefs, "ctrl_invertmouse", false);
+        putBoolean(options, prefs, "ctrl_islefthanded", false);
+        putBoolean(options, prefs, "ctrl_usetouchscreen", true);
+        if (is06) {
+            putBoolean(options, prefs, "ctrl_usetouchjoypad", false);
+        }
+        putBoolean(options, prefs, "feedback_vibration", true);
+        if (is06) {
+            boolean peaceful = prefs.getBoolean("game_difficultypeaceful", false);
+            putString(options, "game_difficulty", peaceful ? "0" : "2");
+        }
+
+        String[] out = new String[options.size() * 2];
+        int index = 0;
+        for (Map.Entry<String, String> entry : options.entrySet()) {
+            out[index++] = entry.getKey();
+            out[index++] = entry.getValue();
+        }
+        return out;
+    }
+
+    private void putString(LinkedHashMap<String, String> options, SharedPreferences prefs, String key, String defaultValue) {
+        putString(options, key, prefs.getString(key, defaultValue));
+    }
+
+    private void putString(LinkedHashMap<String, String> options, String key, String value) {
+        options.put(key, value == null ? "" : value);
+    }
+
+    private void putBoolean(LinkedHashMap<String, String> options, SharedPreferences prefs, String key, boolean defaultValue) {
+        options.put(key, Boolean.toString(prefs.getBoolean(key, defaultValue)));
+    }
+
+    private String sensitivityToGameValue(int sensitivity) {
+        return Double.toString(0.01d * sensitivity);
+    }
+
+    private String getLegacyPrefsName() {
+        if (instanceId == null || instanceId.length() == 0) {
+            return PREF_PREFIX + "unknown";
+        }
+        return PREF_PREFIX + instanceId;
+    }
+
+    private boolean isLegacyProfile06() {
+        if (legacyUseProfile06 != null) {
+            return legacyUseProfile06.booleanValue();
+        }
+
+        String versionName = getGameVersionName();
+        boolean is06 = true;
+        if (versionName != null && versionName.startsWith("0.")) {
+            int minor = parseMinorVersion(versionName);
+            is06 = minor >= 6;
+        }
+        legacyUseProfile06 = Boolean.valueOf(is06);
+        Log.i("EnderCore-AgentMain", "MCPE gui profile: " + (is06 ? "0.6.1" : "0.1.3")
+                + ", versionName=" + versionName);
+        return is06;
+    }
+
+    private int parseMinorVersion(String versionName) {
+        int firstDot = versionName.indexOf('.');
+        if (firstDot < 0) {
+            return 6;
+        }
+        int secondDot = versionName.indexOf('.', firstDot + 1);
+        String minor = secondDot < 0
+                ? versionName.substring(firstDot + 1)
+                : versionName.substring(firstDot + 1, secondDot);
+        try {
+            return Integer.parseInt(minor);
+        } catch (NumberFormatException exception) {
+            return 6;
+        }
+    }
+
+    private String getGameVersionName() {
+        if (gameApkPath == null || gameApkPath.length() == 0) {
+            return null;
+        }
+
+        PackageInfo packageInfo = getPackageManager().getPackageArchiveInfo(gameApkPath, 0);
+        if (packageInfo == null) {
+            Log.w("EnderCore-AgentMain", "Failed to read MCPE package information from " + gameApkPath);
+            return null;
+        }
+        
+        return packageInfo.versionName;
+    }
+    // --- END: Legacy methods for MCPE 0.1-0.6 UI ---
 
 
 

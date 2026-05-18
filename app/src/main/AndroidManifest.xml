@@ -56,6 +56,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Legacy MCPE Activities -->
+        <activity
+            android:name="me.effently.moddedmcpe.legacy_mcpe.activities.LegacyCreateWorldActivity"
+            android:process=":game"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/LegacyMcpeTheme" />
+        <activity
+            android:name="me.effently.moddedmcpe.legacy_mcpe.activities.LegacyRenameWorldActivity"
+            android:process=":game"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/LegacyMcpeTheme" />
+        <activity
+            android:name="me.effently.moddedmcpe.legacy_mcpe.activities.LegacyGameOptionsActivity"
+            android:process=":game"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/LegacyMcpeTheme" />
+        <!-- End -->
     </application>
 
 </manifest>

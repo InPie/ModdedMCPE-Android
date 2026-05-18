@@ -15,6 +15,7 @@ import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
 import org.endercore.android.utils.CrashHandler;
+import org.endercore.android.utils.LaunchContext;
 import org.endercore.android.utils.Patcher;
 
 import java.io.File;
@@ -325,6 +326,7 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-LIBS", patchLibPath);
             launchIntent.putExtra("ENDERCORE-PATCH-OPT", fileEnvironment.getCodeCacheDirPathForDexOpt());
             launchIntent.putExtra("ENDERCORE-PATCH-DATA", fileEnvironment.getInnerGameStorageDir());
+            launchIntent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, fileEnvironment.getActiveWorkspaceId());
             context.startActivity(launchIntent);
             Log.d("EnderCore-Launcher", "Game started.");
         } catch (IOException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
