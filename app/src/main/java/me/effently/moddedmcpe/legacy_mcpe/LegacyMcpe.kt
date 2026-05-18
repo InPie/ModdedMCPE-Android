@@ -15,7 +15,7 @@ enum class LegacyMcpeProfile {
 object LegacyMcpe {
     const val EXTRA_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES"
 
-    private const val TAG = "LegacyMcpe"
+    private const val TAG = "Modded-MCPE-UI-LegacyMcpe"
 
     fun instanceId(context: Context): String? {
         return LaunchContext.getInstanceId((context as? android.app.Activity)?.intent)

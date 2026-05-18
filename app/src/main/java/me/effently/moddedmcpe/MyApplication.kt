@@ -32,6 +32,7 @@ class MyApplication : Application() {
         private const val TAG = "Modded-MCPE-UI"
     }
 
+    // In-Game buttons
     private var minecraftActivityRef: WeakReference<Activity>? = null
     private var buttonManager: ModButtonManager? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -80,6 +81,7 @@ class MyApplication : Application() {
     private fun finishGameProcess() {
         if (!isGameProcess()) return
         mainHandler.post {
+            Log.d(TAG, "Game Finished: ${it.processName}")
             android.os.Process.killProcess(android.os.Process.myPid())
         }
     }
@@ -91,6 +93,13 @@ class MyApplication : Application() {
             it.pid == pid && it.processName.endsWith(":game")
         } == true
     }
+
+
+
+
+
+
+    // In-Game Stuff... //
 
     private fun setupButtonManager(activity: Activity) {
         if (activity.isFinishing) return
@@ -148,6 +157,14 @@ class MyApplication : Application() {
         }
     }
 }
+
+
+
+
+
+
+
+// In-Game Stuff... //
 
 /**
  * Button definition

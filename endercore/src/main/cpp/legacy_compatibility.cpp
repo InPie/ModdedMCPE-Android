@@ -4,7 +4,7 @@
 
 #include "include/xhook.h"
 
-#define LOG_TAG "EnderCore-LegacyCompat"
+#define LOG_TAG "EnderCore-LegacyCompat-Native"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 static int (*real_pthread_create)(pthread_t *thread, const pthread_attr_t *attr,

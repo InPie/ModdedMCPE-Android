@@ -16,6 +16,10 @@ import java.io.File
 import java.util.Properties
 
 class LegacyGameOptionsActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "Modded-MCPE-UI-LegacyMcpe-Options"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.legacy_options_title)
@@ -187,7 +191,7 @@ class LegacyGameOptionsActivity : AppCompatActivity() {
             try {
                 optionsFile.inputStream().use { options.load(it) }
             } catch (e: Exception) {
-                Log.w("LegacyMcpe", "Failed to read legacy options from ${optionsFile.absolutePath}", e)
+                Log.w(TAG, "Failed to read legacy options from ${optionsFile.absolutePath}", e)
             }
         }
 
@@ -204,7 +208,7 @@ class LegacyGameOptionsActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                Log.w("LegacyMcpe", "Failed to write legacy options to ${optionsFile.absolutePath}", e)
+                Log.w(TAG, "Failed to write legacy options to ${optionsFile.absolutePath}", e)
             }
         }
 
