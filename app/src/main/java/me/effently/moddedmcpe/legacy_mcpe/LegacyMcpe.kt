@@ -1,11 +1,11 @@
 package me.effently.moddedmcpe.legacy_mcpe
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceRepository
 import org.endercore.android.utils.LaunchContext
+import java.io.File
 
 enum class LegacyMcpeProfile {
     MCPE_013,
@@ -16,14 +16,14 @@ object LegacyMcpe {
     const val EXTRA_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES"
 
     private const val TAG = "LegacyMcpe"
-    private const val PREF_PREFIX = "legacy_mcpe_options_"
 
     fun instanceId(context: Context): String? {
         return LaunchContext.getInstanceId((context as? android.app.Activity)?.intent)
     }
 
-    fun preferences(context: Context, instanceId: String): SharedPreferences {
-        return context.getSharedPreferences(PREF_PREFIX + instanceId, Context.MODE_PRIVATE)
+    fun optionsFile(instanceId: String): File {
+        val repository = InstanceRepository(EnderCore.instance.fileEnvironment)
+        return File(File(repository.getInstanceDir(instanceId), "data"), "options.txt")
     }
 
     fun resolveProfile(instanceId: String?): LegacyMcpeProfile {

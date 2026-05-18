@@ -1,7 +1,6 @@
 package com.mojang.minecraftpe;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.res.AssetManager;
@@ -21,8 +20,7 @@ import java.io.InputStream;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Properties;
 
 public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     // fullsreen code from 0.11, ...Platform19#setSystemUiVisibility(5894)
@@ -51,10 +49,10 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private int getFileDataLogCount = 0;
     private int getImageDataLogCount = 0;
 
+    private static final String TAG = "EnderCore-AgentMain";
     private static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
     // legacy mcpe 0.1-0.6
     private static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
-    private static final String PREF_PREFIX = "legacy_mcpe_options_";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
     private static final int DIALOG_MAINMENU_OPTIONS = 3;
     private static final int DIALOG_RENAME_MP_WORLD = 4;
@@ -73,8 +71,8 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
         if(patchAssetsPath == null)
         {
-            Log.e("EnderCore-AgentMain","Value ENDERCORE-PATCH-ASSETS in Intent defines to be null.");
-            Log.e("EnderCore-AgentMain","Force close AgentMainActivity.");
+            Log.e(TAG,"Value ENDERCORE-PATCH-ASSETS in Intent defines to be null.");
+            Log.e(TAG,"Force close AgentMainActivity.");
             finish();
         }
         else {
@@ -82,19 +80,19 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
                 gameApkPath = patchAssetsPath.get(1);
             }
 
-            Log.i("EnderCore-AgentMain", "Start patching assets.");
+            Log.i(TAG, "Start patching assets.");
             try {
                 patchAssetManager = AssetManager.class.newInstance();
             } catch (IllegalAccessException e) {
-                Log.e("EnderCore-AgentMain", "Failed to create new instance of AssetManager.");
+                Log.e(TAG, "Failed to create new instance of AssetManager.");
                 e.printStackTrace();
-                Log.e("EnderCore-AgentMain", "Force close AgentMainActivity.");
+                Log.e(TAG, "Force close AgentMainActivity.");
                 finish();
                 return;
             } catch (InstantiationException e) {
-                Log.e("EnderCore-AgentMain", "Failed to create new instance of AssetManager.");
+                Log.e(TAG, "Failed to create new instance of AssetManager.");
                 e.printStackTrace();
-                Log.e("EnderCore-AgentMain", "Force close AgentMainActivity.");
+                Log.e(TAG, "Force close AgentMainActivity.");
                 finish();
                 return;
             }
@@ -106,25 +104,25 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
                     String path = patchAssetsPath.get(i);
                     int cookie = (Integer) method.invoke(patchAssetManager, path);
                     File file = new File(path);
-                    Log.i("EnderCore-AgentMain", "Patched [" + path + "], cookie=" + cookie
+                    Log.i(TAG, "Patched [" + path + "], cookie=" + cookie
                             + ", exists=" + file.exists() + ", canRead=" + file.canRead()
                             + ", length=" + file.length() + ".");
                 }
             } catch (Throwable t) {
-                Log.e("EnderCore", "Failed to patch assets.");
+                Log.e(TAG, "Failed to patch assets.");
                 t.printStackTrace();
-                Log.e("EnderCore-AgentMain", "Force close AgentMainActivity.");
+                Log.e(TAG, "Force close AgentMainActivity.");
                 finish();
                 return;
             }
-            Log.i("EnderCore-AgentMain", "Assets patched successfully.");
-            Log.i("EnderCore-AgentMain", "Starting to patch Resources.");
+            Log.i(TAG, "Assets patched successfully.");
+            Log.i(TAG, "Starting to patch Resources.");
             Resources resourcesOriginal = super.getResources();
             patchResources = new Resources(patchAssetManager, resourcesOriginal.getDisplayMetrics(), resourcesOriginal.getConfiguration());
-            Log.i("EnderCore-AgentMain", "Resources patching succeed.");
-            Log.i("EnderCore-AgentMain", "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
+            Log.i(TAG, "Resources patching succeed.");
+            Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
-            Log.i("EnderCore-AgentMain", "Patching finished.Activity creating.");
+            Log.i(TAG, "Patching finished.Activity creating.");
             super.onCreate(savedInstanceState);
             applyImmersiveMode();
         }
@@ -147,7 +145,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     public AssetManager getAssets() {
         if(patchAssetManager != null) {
             // if (getAssetsLogCount < 5) {
-            //     Log.i("EnderCore-AgentMain", "getAssets()");
+            //     Log.i(TAG, "getAssets()");
             //     getAssetsLogCount++;
             // }
             return patchAssetManager;
@@ -166,7 +164,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     public Context getApplicationContext() {
         if(patchAssetManager != null) {
             // if (getApplicationContextLogCount < 5) {
-            //     Log.i("EnderCore-AgentMain", "getApplicationContext()");
+            //     Log.i(TAG, "getApplicationContext()");
             //     getApplicationContextLogCount++;
             // }
             return this;
@@ -277,7 +275,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     public void displayDialog(int dialogId) {
         if (instanceId == null || instanceId.length() == 0) {
-            Log.e("EnderCore-AgentMain", "Legacy dialog requested without instance id!");
+            Log.e(TAG, "Legacy dialog requested without instance id!");
             legacyUserInputStatus = 0;
             return;
         }
@@ -292,7 +290,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         } else if (dialogId == DIALOG_RENAME_MP_WORLD) {
             intent.setClassName(getPackageName(), "me.effently.moddedmcpe.legacy_mcpe.activities.LegacyRenameWorldActivity");
         } else {
-            Log.w("EnderCore-AgentMain", "Unsupported legacy dialog id: " + dialogId);
+            Log.w(TAG, "Unsupported legacy dialog id: " + dialogId);
             legacyUserInputStatus = 0;
             return;
         }
@@ -300,7 +298,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         try {
             startActivityForResult(intent, dialogId);
         } catch (Throwable throwable) {
-            Log.e("EnderCore-AgentMain", "Failed to start legacy dialog " + dialogId, throwable);
+            Log.e(TAG, "Failed to start legacy dialog " + dialogId, throwable);
             legacyUserInputStatus = 0;
         }
     }
@@ -326,58 +324,69 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private Properties readLegacyOptions() {
+        Properties options = new Properties();
+        if (instanceDataPath == null) {
+            return options;
+        }
+
+        File optionsFile = new File(instanceDataPath, "options.txt");
+        if (!optionsFile.isFile()) {
+            return options;
+        }
+
+        try (FileInputStream input = new FileInputStream(optionsFile)) {
+            options.load(input);
+        } catch (Throwable throwable) {
+            Log.w(TAG, "Failed to read legacy options from "
+                    + optionsFile.getAbsolutePath(), throwable);
+        }
+        return options;
+    }
+
     public String[] getOptionStrings() { // options
         boolean is06 = isLegacyProfile06();
-        LinkedHashMap<String, String> options = new LinkedHashMap<>();
-        SharedPreferences prefs = getSharedPreferences(getLegacyPrefsName(), MODE_PRIVATE);
+        ArrayList<String> options = new ArrayList<>();
+        Properties savedOptions = readLegacyOptions();
 
-        putString(options, prefs, "mp_username", "Steve");
-        putBoolean(options, prefs, "mp_server_visible_default", true);
-        putBoolean(options, prefs, "gfx_fancygraphics", false);
-        putBoolean(options, prefs, "gfx_lowquality", false);
-        putString(options, "ctrl_sensitivity", sensitivityToGameValue(prefs.getInt("ctrl_sensitivity", 50)));
-        putBoolean(options, prefs, "ctrl_invertmouse", false);
-        putBoolean(options, prefs, "ctrl_islefthanded", false);
-        putBoolean(options, prefs, "ctrl_usetouchscreen", true);
+        putString(options, "mp_username", savedOptions.getProperty("mp_username", "Steve"));
+        putBoolean(options, savedOptions, "mp_server_visible_default", true);
+        putBoolean(options, savedOptions, "gfx_fancygraphics", false);
+        putBoolean(options, savedOptions, "gfx_lowquality", false);
+        putString(options, "ctrl_sensitivity", sensitivityToGameValue(getInt(savedOptions, "ctrl_sensitivity", 50)));
+        putBoolean(options, savedOptions, "ctrl_invertmouse", false);
+        putBoolean(options, savedOptions, "ctrl_islefthanded", false);
+        putBoolean(options, savedOptions, "ctrl_usetouchscreen", true);
         if (is06) {
-            putBoolean(options, prefs, "ctrl_usetouchjoypad", false);
+            putBoolean(options, savedOptions, "ctrl_usetouchjoypad", false);
         }
-        putBoolean(options, prefs, "feedback_vibration", true);
+        putBoolean(options, savedOptions, "feedback_vibration", true);
         if (is06) {
-            boolean peaceful = prefs.getBoolean("game_difficultypeaceful", false);
-            putString(options, "game_difficulty", peaceful ? "0" : "2");
+            putString(options, "game_difficulty", savedOptions.getProperty("game_difficulty", "2"));
         }
 
-        String[] out = new String[options.size() * 2];
-        int index = 0;
-        for (Map.Entry<String, String> entry : options.entrySet()) {
-            out[index++] = entry.getKey();
-            out[index++] = entry.getValue();
+        return options.toArray(new String[options.size()]);
+    }
+
+    private void putString(ArrayList<String> options, String key, String value) {
+        options.add(key);
+        options.add(value == null ? "" : value);
+    }
+
+    private void putBoolean(ArrayList<String> options, Properties savedOptions, String key, boolean defaultValue) {
+        putString(options, key, savedOptions.getProperty(key, Boolean.toString(defaultValue)));
+    }
+
+    private int getInt(Properties options, String key, int defaultValue) {
+        try {
+            return Integer.parseInt(options.getProperty(key, Integer.toString(defaultValue)));
+        } catch (NumberFormatException exception) {
+            return defaultValue;
         }
-        return out;
-    }
-
-    private void putString(LinkedHashMap<String, String> options, SharedPreferences prefs, String key, String defaultValue) {
-        putString(options, key, prefs.getString(key, defaultValue));
-    }
-
-    private void putString(LinkedHashMap<String, String> options, String key, String value) {
-        options.put(key, value == null ? "" : value);
-    }
-
-    private void putBoolean(LinkedHashMap<String, String> options, SharedPreferences prefs, String key, boolean defaultValue) {
-        options.put(key, Boolean.toString(prefs.getBoolean(key, defaultValue)));
     }
 
     private String sensitivityToGameValue(int sensitivity) {
         return Double.toString(0.01d * sensitivity);
-    }
-
-    private String getLegacyPrefsName() {
-        if (instanceId == null || instanceId.length() == 0) {
-            return PREF_PREFIX + "unknown";
-        }
-        return PREF_PREFIX + instanceId;
     }
 
     private boolean isLegacyProfile06() {
@@ -392,7 +401,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             is06 = minor >= 6;
         }
         legacyUseProfile06 = Boolean.valueOf(is06);
-        Log.i("EnderCore-AgentMain", "MCPE gui profile: " + (is06 ? "0.6.1" : "0.1.3")
+        Log.i(TAG, "MCPE gui profile: " + (is06 ? "0.6.1" : "0.1.3")
                 + ", versionName=" + versionName);
         return is06;
     }
@@ -420,7 +429,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
         PackageInfo packageInfo = getPackageManager().getPackageArchiveInfo(gameApkPath, 0);
         if (packageInfo == null) {
-            Log.w("EnderCore-AgentMain", "Failed to read MCPE package information from " + gameApkPath);
+            Log.w(TAG, "Failed to read MCPE package information from " + gameApkPath);
             return null;
         }
         
@@ -451,23 +460,23 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             InputStream input = patchAssetManager.open(path);
             int available = input.available();
             input.close();
-            Log.i("EnderCore-AgentMain", "Asset probe OK: " + path + ", available=" + available);
+            Log.i(TAG, "Asset probe OK: " + path + ", available=" + available);
         } catch (Throwable throwable) {
-            Log.e("EnderCore-AgentMain", "Asset probe failed: " + path + " -> " + throwable);
+            Log.e(TAG, "Asset probe failed: " + path + " -> " + throwable);
         }
     }
 
     private void logAssetList(String path) {
         try {
             String[] items = patchAssetManager.list(path);
-            Log.i("EnderCore-AgentMain", "Asset list " + path + " count=" + (items == null ? -1 : items.length));
+            Log.i(TAG, "Asset list " + path + " count=" + (items == null ? -1 : items.length));
             if (items != null) {
                 for (int i = 0; i < items.length && i < 8; i++) {
-                    Log.i("EnderCore-AgentMain", "Asset list item: " + path + "/" + items[i]);
+                    Log.i(TAG, "Asset list item: " + path + "/" + items[i]);
                 }
             }
         } catch (Throwable throwable) {
-            Log.e("EnderCore-AgentMain", "Asset list failed: " + path + " -> " + throwable);
+            Log.e(TAG, "Asset list failed: " + path + " -> " + throwable);
         }
     }
 
@@ -581,7 +590,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
         if (getFileDataLogCount < 80) {
             String suffix = throwable == null ? "" : ", error=" + throwable;
-            Log.i("EnderCore-AgentMain", "getFileDataBytes(" + filename + ") -> " + source
+            Log.i(TAG, "getFileDataBytes(" + filename + ") -> " + source
                     + ", length=" + length + suffix);
             getFileDataLogCount++;
         }
@@ -589,7 +598,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private void logImageDataResult(String filename, boolean success) {
         if (getImageDataLogCount < 40 || isNeededAsset(filename)) {
-            Log.i("EnderCore-AgentMain", "getImageData(" + filename + ") -> " + success);
+            Log.i(TAG, "getImageData(" + filename + ") -> " + success);
             getImageDataLogCount++;
         }
     }
