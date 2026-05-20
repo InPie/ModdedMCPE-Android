@@ -2,6 +2,7 @@ package me.effently.moddedmcpe
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.AlertDialog
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
@@ -10,6 +11,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -20,8 +22,6 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.view.ContextThemeWrapper
 import org.endercore.android.EnderCore
 import org.endercore.android.mod.script.ScriptController
 import org.endercore.android.utils.CrashHandler
@@ -30,12 +30,15 @@ import java.lang.ref.WeakReference
 class MyApplication : Application() {
     companion object {
         private const val TAG = "Modded-MCPE-UI"
+        private const val AGENT_ACTIVITY = "com.mojang.minecraftpe.AgentMainActivity"
     }
 
     // In-Game buttons
     private var minecraftActivityRef: WeakReference<Activity>? = null
     private var buttonManager: ModButtonManager? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile
+    private var xboxPatchInstalled = false
 
     override fun onCreate() {
         super.onCreate()
@@ -45,22 +48,23 @@ class MyApplication : Application() {
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 Log.d(TAG, "Activity Created: ${activity.javaClass.name}")
-                if (activity.javaClass.name == "com.mojang.minecraftpe.AgentMainActivity") {
+                if (isAgentActivity(activity)) {
+                    installXboxPatchIfNeeded(activity)
                     minecraftActivityRef = WeakReference(activity)
                 }
             }
 
             override fun onActivityStarted(activity: Activity) {}
             override fun onActivityResumed(activity: Activity) {
-                if (activity.javaClass.name == "com.mojang.minecraftpe.AgentMainActivity") {
+                if (isAgentActivity(activity)) {
+                    installXboxPatchIfNeeded(activity)
                     minecraftActivityRef = WeakReference(activity)
-
                     setupButtonManager(activity)
                 }
             }
 
             override fun onActivityPaused(activity: Activity) {
-                if (activity.javaClass.name == "com.mojang.minecraftpe.AgentMainActivity") {
+                if (isAgentActivity(activity)) {
                     removeButtonManager()
                 }
             }
@@ -68,8 +72,7 @@ class MyApplication : Application() {
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {
-                if (activity.javaClass.name == "com.mojang.minecraftpe.AgentMainActivity" &&
-                    minecraftActivityRef?.get() == activity) {
+                if (isAgentActivity(activity) && minecraftActivityRef?.get() == activity) {
                     removeButtonManager()
                     minecraftActivityRef = null
                     finishGameProcess()
@@ -93,10 +96,41 @@ class MyApplication : Application() {
         }
     }
 
+    private fun isGameProcess(): Boolean {
+        val pid = android.os.Process.myPid()
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val processName = activityManager.runningAppProcesses?.firstOrNull {
+            it.pid == pid
+        }?.processName
+        return processName?.endsWith(":game") == true
+    }
 
+    private fun installXboxPatchIfNeeded(activity: Activity) {
+        if (!isGameProcess() || xboxPatchInstalled || !activitySupportsXbox(activity)) {
+            return
+        }
+        synchronized(this) {
+            if (xboxPatchInstalled || !activitySupportsXbox(activity)) {
+                return
+            }
+            XboxResourcePatch.install(this)
+            xboxPatchInstalled = true
+        }
+    }
 
+    private fun activitySupportsXbox(activity: Activity): Boolean {
+        return try {
+            val method = activity.javaClass.getMethod("hasXboxSupport")
+            method.invoke(activity) == java.lang.Boolean.TRUE
+        } catch (throwable: Throwable) {
+            Log.w(TAG, "Failed to query Xbox support from ${activity.javaClass.name}, keeping patch enabled for safety", throwable)
+            true
+        }
+    }
 
-
+    private fun isAgentActivity(activity: Activity): Boolean {
+        return activity.javaClass.name == AGENT_ACTIVITY
+    }
 
     // In-Game Stuff... //
 

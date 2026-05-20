@@ -1,8 +1,7 @@
 package com.mojang.minecraftpe;
 
 import android.content.Intent;
-import android.content.Context;
-import android.content.pm.PackageInfo;
+import android.content.pm.Signature;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -34,6 +33,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
+    private AssetManager patchResourceAssetManager = null;
     private String instanceDataPath = null;
     private String instanceId = null;
 
@@ -78,6 +78,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         else {
             if (patchAssetsPath.size() > 1) {
                 gameApkPath = patchAssetsPath.get(1);
+                GameContextBridge.init(this, gameApkPath);
             }
 
             Log.i(TAG, "Start patching assets.");
@@ -118,7 +119,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i(TAG, "Assets patched successfully.");
             Log.i(TAG, "Starting to patch Resources.");
             Resources resourcesOriginal = super.getResources();
-            patchResources = new Resources(patchAssetManager, resourcesOriginal.getDisplayMetrics(), resourcesOriginal.getConfiguration());
+            patchResourceAssetManager = buildPatchedResourceAssetManager(patchAssetsPath);
+            patchResources = new Resources(
+                    patchResourceAssetManager != null ? patchResourceAssetManager : patchAssetManager,
+                    resourcesOriginal.getDisplayMetrics(),
+                    resourcesOriginal.getConfiguration());
             Log.i(TAG, "Resources patching succeed.");
             Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
@@ -190,6 +195,83 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
         File dataDir = new File(instanceDataPath);
         return dataDir.getParentFile();
+    }
+
+    private String getGameVersionName() {
+        return GameContextBridge.getGameVersionName();
+    }
+
+    private AssetManager buildPatchedResourceAssetManager(ArrayList<String> patchAssetsPath) {
+        if (patchAssetsPath == null || patchAssetsPath.isEmpty()) {
+            return patchAssetManager;
+        }
+
+        ArrayList<String> resourcePaths = collectResourceAssetPaths(patchAssetsPath);
+        if (resourcePaths.isEmpty()) {
+            Log.w(TAG, "No dedicated resource APKs found, falling back to merged assets manager.");
+            return patchAssetManager;
+        }
+
+        try {
+            AssetManager resourceAssetManager = AssetManager.class.newInstance();
+            Method addAssetPath = AssetManager.class.getMethod("addAssetPath", String.class);
+            for (String path : resourcePaths) {
+                int cookie = (Integer) addAssetPath.invoke(resourceAssetManager, path);
+                Log.i(TAG, "Resource path [" + path + "], cookie=" + cookie + ".");
+            }
+            return resourceAssetManager;
+        } catch (Throwable throwable) {
+            Log.w(TAG, "Failed to build dedicated resources AssetManager, using merged assets manager.", throwable);
+            return patchAssetManager;
+        }
+    }
+
+    private ArrayList<String> collectResourceAssetPaths(ArrayList<String> patchAssetsPath) {
+        ArrayList<String> resourcePaths = new ArrayList<>();
+        boolean gameOnlyResources = GameContextBridge.needsGameOnlyResources();
+        String launcherSourceDir = super.getApplicationInfo().sourceDir;
+
+        for (String path : patchAssetsPath) {
+            if (path == null || !path.endsWith(".apk")) {
+                continue;
+            }
+            if (gameOnlyResources && path.equals(launcherSourceDir)) {
+                continue;
+            }
+            resourcePaths.add(path);
+        }
+
+        Log.i(TAG, "Resource mode=" + (gameOnlyResources ? "game-only" : "merged")
+                + ", apkCount=" + resourcePaths.size());
+        return resourcePaths;
+    }
+
+    public boolean hasXboxSupport() {
+        return GameContextBridge.hasXboxSupport();
+    }
+
+    public boolean needsGameOnlyResources() {
+        return GameContextBridge.needsGameOnlyResources();
+    }
+
+    public static String getCurrentGamePackageName() {
+        return GameContextBridge.getGamePackageName();
+    }
+
+    public static String getCurrentGameVersionName() {
+        return GameContextBridge.getGameVersionName();
+    }
+
+    public static int getCurrentGameVersionCode() {
+        return GameContextBridge.getGameVersionCode();
+    }
+
+    public static Signature[] getCurrentGameSignatures() {
+        return GameContextBridge.getGameSignatures();
+    }
+
+    public static String getCurrentGameApkPath() {
+        return GameContextBridge.getGameApkPath();
     }
 
 
@@ -408,20 +490,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         } catch (NumberFormatException exception) {
             return 6;
         }
-    }
-
-    private String getGameVersionName() {
-        if (gameApkPath == null || gameApkPath.length() == 0) {
-            return null;
-        }
-
-        PackageInfo packageInfo = getPackageManager().getPackageArchiveInfo(gameApkPath, 0);
-        if (packageInfo == null) {
-            Log.w(TAG, "Failed to read MCPE package information from " + gameApkPath);
-            return null;
-        }
-        
-        return packageInfo.versionName;
     }
     // --- END: Legacy methods for MCPE 0.1-0.6 UI ---
 

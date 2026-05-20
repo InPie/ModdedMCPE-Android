@@ -32,6 +32,9 @@ android {
 }
 
 dependencies {
+    compileOnly 'com.google.firebase:firebase-iid:21.1.0'
+    compileOnly 'com.google.firebase:firebase-common:20.0.0'
+    compileOnly 'com.google.android.gms:play-services-tasks:17.2.1'
 }
 
 tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
@@ -63,17 +66,32 @@ def crackedLicenseTempOutputDir = layout.buildDirectory.dir("d8temp_cr_license")
 tasks.register('buildAgentMainDex') {
     doLast {
         def tempOutput = agentMainTempOutputDir.get().asFile.absolutePath
+        def helperClasses = fileTree("${classesDir}/com/microsoft/xbox/idp/telemetry/helpers") {
+            include '**/*.class'
+        }.files.collect { it.absolutePath }.sort()
+        def firebaseIidClasses = fileTree("${classesDir}/com/google/firebase/iid") {
+            include 'FirebaseInstanceId*.class'
+        }.files.collect { it.absolutePath }.sort()
+        def firebaseAppClasses = fileTree("${classesDir}/com/google/firebase") {
+            include 'FirebaseApp*.class'
+            include 'FirebaseOptions*.class'
+        }.files.collect { it.absolutePath }.sort()
+        def extraClasses = [
+                "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class",
+                "${classesDir}/com/mojang/minecraftpe/GameContextBridge.class",
+                "${classesDir}/com/google/android/gms/common/internal/StringResourceValueReader.class",
+                "${classesDir}/com/microsoft/onlineid/internal/PackageInfoHelper.class",
+                "${classesDir}/com/microsoft/onlineid/internal/Resources.class",
+                "${classesDir}/com/microsoft/xbox/idp/telemetry/utc/model/UTCAdditionalInfoModel.class"
+        ]
+        def dexInputs = extraClasses + helperClasses + firebaseAppClasses + firebaseIidClasses
 
         file(tempOutput).mkdirs()
 
         println "Generating dex for: ${outputDir}/AgentMainActivity.dex"
 
         providers.exec { spec ->
-            spec.commandLine(
-                    d8Executable(),
-                    "--output", tempOutput,
-                    "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class"
-            )
+            spec.commandLine([d8Executable(), "--output", tempOutput] + dexInputs)
         }.result.get()
 
         copy {
