@@ -1,0 +1,62 @@
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.isFile()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
+def releaseSigningProperty = { name ->
+    def value = project.findProperty(name)
+    if (value == null || value.toString().trim().isEmpty()) {
+        value = localProperties.getProperty(name)
+    }
+    if (value == null || value.toString().trim().isEmpty()) {
+        value = System.getenv(name)
+    }
+    return value?.toString()
+}
+
+def defaultStoreFile = 'modded-mcpe-release.jks'
+def defaultAlias = 'modded-mcpe'
+
+def releaseStoreFile = releaseSigningProperty('APP_RELEASE_STORE_FILE') ?: defaultStoreFile
+def releaseStorePassword = releaseSigningProperty('APP_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = defaultAlias
+def releaseKeyPassword = releaseSigningProperty('APP_RELEASE_KEY_PASSWORD')
+
+def releaseSigningConfigured = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+android {
+    signingConfigs {
+        release {
+            if (releaseSigningConfigured) {
+                def storeFileObj = rootProject.file(releaseStoreFile)
+                if (storeFileObj.exists()) {
+                    storeFile storeFileObj
+                    storePassword releaseStorePassword
+                    keyAlias releaseKeyAlias
+                    keyPassword releaseKeyPassword
+                } else {
+                    logger.warn("WARNING: Keystore file not found at ${storeFileObj.absolutePath}")
+                    releaseSigningConfigured = false
+                }
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+if (!releaseSigningConfigured) {
+    logger.warn("! -----------------------------------------------------------------")
+    logger.warn("WARNING: Release signing isn't configured, APK will be unsigned.")
+    logger.warn("Add to local.properties:")
+    logger.warn("APP_RELEASE_STORE_PASSWORD=your-password")
+    logger.warn("APP_RELEASE_KEY_PASSWORD=your-password")
+    logger.warn("! -----------------------------------------------------------------")
+}

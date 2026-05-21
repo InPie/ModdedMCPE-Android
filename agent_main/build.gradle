@@ -57,14 +57,17 @@ String d8Executable() {
             "${buildToolsDir}d8.bat" : "${buildToolsDir}d8"
 }
 
-def classesDir = layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")
-        .get().asFile.absolutePath
 def outputDir = new File(rootDir, "endercore/src/main/assets/endercore/android").absolutePath
-def agentMainTempOutputDir = layout.buildDirectory.dir("d8temp_agent_main")
-def crackedLicenseTempOutputDir = layout.buildDirectory.dir("d8temp_cr_license")
 
-tasks.register('buildAgentMainDex') {
-    doLast {
+def registerDexTasks = { String variantName ->
+    def variantTaskName = variantName.substring(0, 1).toUpperCase() + variantName.substring(1)
+    def classesDirProvider = layout.buildDirectory.dir("intermediates/javac/${variantName}/compile${variantTaskName}JavaWithJavac/classes")
+    def agentMainTempOutputDir = layout.buildDirectory.dir("d8temp_agent_main_${variantName}")
+    def crackedLicenseTempOutputDir = layout.buildDirectory.dir("d8temp_cr_license_${variantName}")
+
+    def buildAgentMainDex = tasks.register("buildAgentMainDex${variantTaskName}") {
+        doLast {
+        def classesDir = classesDirProvider.get().asFile.absolutePath
         def tempOutput = agentMainTempOutputDir.get().asFile.absolutePath
         def helperClasses = fileTree("${classesDir}/com/microsoft/xbox/idp/telemetry/helpers") {
             include '**/*.class'
@@ -85,6 +88,10 @@ tasks.register('buildAgentMainDex') {
                 "${classesDir}/com/microsoft/xbox/idp/telemetry/utc/model/UTCAdditionalInfoModel.class"
         ]
         def dexInputs = extraClasses + helperClasses + firebaseAppClasses + firebaseIidClasses
+        def missingInputs = dexInputs.findAll { !file(it).isFile() }
+        if (!missingInputs.isEmpty()) {
+            throw new GradleException("Cannot build AgentMainActivity.dex for ${variantName}: missing class files:\n" + missingInputs.join("\n"))
+        }
 
         file(tempOutput).mkdirs()
 
@@ -101,23 +108,27 @@ tasks.register('buildAgentMainDex') {
         }
         delete file(tempOutput)
     }
-}
+    }
 
-tasks.register('buildCrackedLicenseDex') {
-    doLast {
+    def buildCrackedLicenseDex = tasks.register("buildCrackedLicenseDex${variantTaskName}") {
+        doLast {
+        def classesDir = classesDirProvider.get().asFile.absolutePath
         def tempOutput = crackedLicenseTempOutputDir.get().asFile.absolutePath
+        def dexInputs = [
+                "${classesDir}/com/mojang/minecraftpe/store/amazonappstore/AmazonAppStore.class",
+                "${classesDir}/com/mojang/minecraftpe/store/googleplay/GooglePlayStore.class"
+        ]
+        def missingInputs = dexInputs.findAll { !file(it).isFile() }
+        if (!missingInputs.isEmpty()) {
+            throw new GradleException("Cannot build CrackedLicense.dex for ${variantName}: missing class files:\n" + missingInputs.join("\n"))
+        }
 
         file(tempOutput).mkdirs()
 
         println "Generating dex for: ${outputDir}/CrackedLicense.dex"
 
         providers.exec { spec ->
-            spec.commandLine(
-                    d8Executable(),
-                    "--output", tempOutput,
-                    "${classesDir}/com/mojang/minecraftpe/store/amazonappstore/AmazonAppStore.class",
-                    "${classesDir}/com/mojang/minecraftpe/store/googleplay/GooglePlayStore.class"
-            )
+            spec.commandLine([d8Executable(), "--output", tempOutput] + dexInputs)
         }.result.get()
         copy {
             from "${tempOutput}/classes.dex"
@@ -126,26 +137,21 @@ tasks.register('buildCrackedLicenseDex') {
         }
         delete file(tempOutput)
     }
+    }
+
+    return tasks.register("buildDex${variantTaskName}") {
+        dependsOn buildAgentMainDex, buildCrackedLicenseDex
+    }
 }
 
-tasks.register('buildDexDebug') {
-    /* println "========"
-    println "[agent_main info]:"
-    // println "Project Path: ${projectDir}"
-    // println "Working directory: ${classesDir}"
-    // println "Output directory: ${outputDir}"
-    // println "Android SDK Path: ${getSdkPath()}"
-    println "Using d8 from: ${d8Executable()}"
-    println "========" */
-
-    dependsOn buildAgentMainDex, buildCrackedLicenseDex
-}
+def buildDexDebug = registerDexTasks("debug")
+def buildDexRelease = registerDexTasks("release")
 
 afterEvaluate {
     tasks.named("compileDebugJavaWithJavac") {
         it.finalizedBy(buildDexDebug)
     }
     tasks.named("compileReleaseJavaWithJavac") {
-        it.finalizedBy(buildDexDebug)
+        it.finalizedBy(buildDexRelease)
     }
 }
