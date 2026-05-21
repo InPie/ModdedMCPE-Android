@@ -109,6 +109,13 @@
     <string name="btn_delete_all_for_version">Delete all for this version</string>
     <string name="dialog_select_action_title">Select action for %1$s</string>
     <string name="dialog_select_instance_title">Select instance to play</string>
+    <string name="dialog_arch_help_title">%1$s - %2$s</string>
+    <string name="dialog_arch_help_message">This launcher is built for %1$s, so versions for this architecture are shown.\n\nNote: 64-bit processes cannot run 32-bit libraries (and vice versa).</string>
+    <string name="btn_rename">Rename</string>
+    <string name="dialog_rename_title">Rename instance</string>
+    <string name="dialog_rename_hint">New name</string>
+    <string name="text_duplicating">Duplicating...</string>
+    <string name="text_deleting">Deleting...</string>
     <string name="toast_deleted">Deleted</string>
 
     <string name="text_last_played">Last played</string>

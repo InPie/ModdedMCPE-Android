@@ -530,7 +530,14 @@ public class InstanceOperator {
                     instance.setCreatedAt(System.currentTimeMillis());
                     instance.setSettings(new JsonObject());
                 }
-                instance.setName("Installed " + (installedPackage.getVersionName() != null ? installedPackage.getVersionName() : "MCPE"));
+                if (instance.getSettings() == null) {
+                    instance.setSettings(new JsonObject());
+                }
+                boolean hasCustomName = instance.getSettings().has("customName") &&
+                        instance.getSettings().get("customName").getAsBoolean();
+                if (!hasCustomName) {
+                    instance.setName("Installed " + (installedPackage.getVersionName() != null ? installedPackage.getVersionName() : "MCPE"));
+                }
                 InstanceSource source = new InstanceSource(InstanceSourceType.INSTALLED_PACKAGE);
                 source.setPackageName(installedPackage.getPackageName());
                 instance.setSource(source);

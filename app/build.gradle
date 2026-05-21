@@ -34,10 +34,10 @@ android {
         targetSdk 35
 
         // Defines the version number of your app.
-        versionCode 4
+        versionCode 5
 
         // Defines a user-friendly version name for your app.
-        versionName "1.5.1"
+        versionName "1.5.2"
 
         multiDexEnabled = true
 

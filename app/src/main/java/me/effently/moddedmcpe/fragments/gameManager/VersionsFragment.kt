@@ -36,14 +36,8 @@ import java.io.File
 
 class VersionsFragment : Fragment() {
     private lateinit var recyclerVersions: RecyclerView
-    private lateinit var btnImportApk: Button
     private lateinit var adapter: VersionsAdapter
     private lateinit var operator: InstanceOperator
-
-    private val importPackageLauncher =
-        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let { importPackage(it) }
-        }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_versions, container, false)
@@ -55,17 +49,27 @@ class VersionsFragment : Fragment() {
         operator = InstanceOperator(requireContext(), EnderCore.instance.fileEnvironment)
 
         recyclerVersions = view.findViewById(R.id.recycler_versions)
-        btnImportApk = view.findViewById(R.id.btn_import_apk)
+        val btnHelpArch = view.findViewById<Button>(R.id.btn_help_arch)
 
         recyclerVersions.layoutManager = LinearLayoutManager(context)
         adapter = VersionsAdapter { version -> onVersionClick(version) }
         recyclerVersions.adapter = adapter
 
-        btnImportApk.setOnClickListener {
-            pickPackageFile()
+        btnHelpArch.setOnClickListener {
+            showArchHelpDialog()
         }
 
         loadVersions()
+    }
+
+    private fun showArchHelpDialog() {
+        val is64Bit = android.os.Process.is64Bit()
+        val archName = if (is64Bit) "ARM64 (armv8)" else "ARM32 (armv7a)"
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_arch_help_title, getString(R.string.title_versions), archName))
+            .setMessage(getString(R.string.dialog_arch_help_message, archName))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun onVersionClick(version: RemoteVersion) {
@@ -75,10 +79,7 @@ class VersionsFragment : Fragment() {
         val actions = listOf(
             getString(R.string.btn_install_new_instance) to { startDownload(version) },
             getString(R.string.btn_play_existing) to { playExisting(versionInstances) },
-            getString(R.string.btn_delete_all_for_version) to {
-                versionInstances.forEach { operator.deleteInstance(it.id) }
-                Toast.makeText(context, R.string.toast_deleted, Toast.LENGTH_SHORT).show()
-            }
+            getString(R.string.btn_delete_all_for_version) to { deleteInstances(version, versionInstances) }
         )
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.dialog_select_action_title, version.name))
@@ -127,112 +128,21 @@ class VersionsFragment : Fragment() {
         }
     }
 
-    private fun pickPackageFile() {
-        importPackageLauncher.launch(
-            arrayOf(
-                "application/vnd.android.package-archive",
-                "application/zip",
-                "application/octet-stream"
-            )
-        )
-    }
-
-    private fun importPackage(uri: Uri) {
-        val context = requireContext()
-        val name = getDisplayName(uri) ?: "package.apk"
-        val extension = when {
-            name.endsWith(".zip", true) -> ".zip"
-            name.endsWith(".apk", true) -> ".apk"
-            context.contentResolver.getType(uri)?.contains("zip", ignoreCase = true) == true -> ".zip"
-            else -> ".apk"
-        }
-        val tempFile = File(context.cacheDir, "import_${System.currentTimeMillis()}$extension")
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    tempFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: throw IllegalStateException("Failed to open selected file.")
-
-                withContext(Dispatchers.Main) {
-                    showImportDialog(tempFile, extension == ".zip")
-                }
-            } catch (e: Exception) {
-                tempFile.delete()
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, getString(R.string.toast_import_error, e.message), Toast.LENGTH_LONG).show()
-                }
+    private fun deleteInstances(version: RemoteVersion, versionInstances: List<GameInstance>) {
+        activity?.let { act ->
+            InstanceUIHelper.deleteInstances(act, operator, versionInstances) {
+                // update remote version element (if needed.. now its not)
+                val pos = adapter.currentList.indexOf(version)
+                if (pos != -1) adapter.notifyItemChanged(pos)
             }
         }
-    }
-
-    private fun showImportDialog(tempFile: File, isZip: Boolean) {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_download, null)
-        val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
-        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
-        textStatus.setText(R.string.text_preparing)
-
-        val dialog = AlertDialog.Builder(requireContext())
-            .setTitle(if (isZip) R.string.dialog_import_zip_title else R.string.dialog_import_apk_title)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
-        val callback = object : InstanceOperator.InstallCallback {
-            override fun onProgress(percent: Int) {
-                activity?.runOnUiThread {
-                    if (!isAdded) return@runOnUiThread
-                    progressBar.progress = percent
-                    textStatus.text = getString(R.string.text_import_progress, percent)
-                }
-            }
-
-            override fun onSuccess() {
-                tempFile.delete()
-                activity?.runOnUiThread {
-                    if (!isAdded) return@runOnUiThread
-                    dialog.dismiss()
-                    Toast.makeText(context, R.string.toast_import_success, Toast.LENGTH_LONG).show()
-                }
-            }
-
-            override fun onError(e: Exception) {
-                tempFile.delete()
-                activity?.runOnUiThread {
-                    if (!isAdded) return@runOnUiThread
-                    dialog.dismiss()
-                    AlertDialog.Builder(requireContext())
-                        .setTitle(R.string.dialog_import_failed_title)
-                        .setMessage(e.message ?: "Unknown error occurred")
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
-            }
-        }
-
-        dialog.show()
-        if (isZip) {
-            operator.importInstanceZip(tempFile, callback)
-        } else {
-            operator.importLocalApk(tempFile, true, callback)
-        }
-    }
-
-    private fun getDisplayName(uri: Uri): String? {
-        requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex >= 0 && cursor.moveToFirst()) {
-                return cursor.getString(nameIndex)
-            }
-        }
-        return uri.lastPathSegment
     }
 
     private fun loadVersions() {
         val repository = RemoteVersionRepository(EnderCore.instance.fileEnvironment)
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val remoteVersions = repository.fetchVersions()
+            val remoteVersions = repository.fetchVersions(android.os.Process.is64Bit())
             withContext(Dispatchers.Main) {
                 adapter.submitList(remoteVersions.reversed())
 

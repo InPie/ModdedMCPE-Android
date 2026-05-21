@@ -24,6 +24,7 @@ public class RemoteVersionRepository {
     private static final String TAG = "RemoteVersionRepo";
     // Latest version list
     private static final String VERSIONS_URL = "https://gist.githubusercontent.com/Effently/4c5de3c788f7a6f4ea5e200ebcc7d889/raw/versions.json";
+    private static final String VERSIONS_ARM64_URL = "https://gist.githubusercontent.com/Effently/4c5de3c788f7a6f4ea5e200ebcc7d889/raw/versions_arm64.json";
     private static final String CACHE_FILE_NAME = "remote_versions_cache.json";
 
     private final IFileEnvironment fileEnvironment;
@@ -34,11 +35,13 @@ public class RemoteVersionRepository {
         this.gson = new Gson();
     }
 
-    public List<RemoteVersion> fetchVersions() {
+    public List<RemoteVersion> fetchVersions(boolean is64Bit) {
+        String versionsUrl = is64Bit ? VERSIONS_ARM64_URL : VERSIONS_URL;
+        
         List<RemoteVersion> versions = new ArrayList<>();
         try {
-            Log.d(TAG, "Fetching remote versions from: " + VERSIONS_URL);
-            URL url = new URL(VERSIONS_URL);
+            Log.d(TAG, "Fetching remote versions from: " + versionsUrl);
+            URL url = new URL(versionsUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);

@@ -35,6 +35,9 @@ import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
+import android.provider.OpenableColumns
+import org.endercore.android.operator.instance.model.InstanceSourceType
+
 const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
 
 class InstancesFragment : Fragment() {
@@ -51,6 +54,11 @@ class InstancesFragment : Fragment() {
             uri?.let { doExport(instance, it) }
         }
 
+    private val importPackageLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { importPackage(it) }
+        }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_instances, container, false)
     }
@@ -62,6 +70,17 @@ class InstancesFragment : Fragment() {
         
         recyclerInstances = view.findViewById(R.id.recycler_instances)
         recyclerInstances.layoutManager = LinearLayoutManager(context)
+
+        val btnImportApk = view.findViewById<Button>(R.id.btn_import_apk)
+        btnImportApk.setOnClickListener {
+            importPackageLauncher.launch(
+                arrayOf(
+                    "application/vnd.android.package-archive",
+                    "application/zip",
+                    "application/octet-stream"
+                )
+            )
+        }
 
         adapter = InstancesAdapter(
             onPlayClick = { playInstance(it) },
@@ -96,6 +115,7 @@ class InstancesFragment : Fragment() {
             else
                 add(R.string.btn_play to { playInstance(instance) })
             add(R.string.btn_info to { showInstanceInfo(instance) })
+            add(R.string.btn_rename to { renameInstance(instance) })
             add(R.string.btn_duplicate to { duplicateInstance(instance) })
             add(R.string.btn_export_zip to { exportInstance(instance) })
             add(R.string.btn_delete to { deleteInstance(instance) })
@@ -115,33 +135,107 @@ class InstancesFragment : Fragment() {
     }
 
     private fun duplicateInstance(instance: GameInstance) {
-        try {
-            operator.duplicateInstance(instance)
-            loadInstances()
-        } catch (e: Exception) {
-            Toast.makeText(context, "Failed to duplicate: ${e.message}", Toast.LENGTH_LONG).show()
+        activity?.let { act ->
+            InstanceUIHelper.duplicateInstance(act, operator, instance) {
+                loadInstances()
+            }
         }
     }
 
-    private fun showInstanceInfo(instance: GameInstance) {
-        val info = JsonObject()
-        info.add("instance", debugGson.toJsonTree(instance))
-        info.addProperty("instanceDir", operator.repository.getInstanceDir(instance.id).absolutePath)
-        info.addProperty("managedApk", operator.getManagedApkFile(instance.id).absolutePath)
-        info.addProperty("cacheDir", EnderCore.instance.fileEnvironment.getInstanceCacheDirPath(instance.id))
-        info.addProperty("nmodsCacheDir", EnderCore.instance.fileEnvironment.getInstanceNModsCacheDirPath(instance.id))
-        info.addProperty("prepared", operator.isInstancePrepared(instance))
+    private fun renameInstance(instance: GameInstance) {
+        val input = android.widget.EditText(requireContext())
+        input.setText(instance.name)
+        input.setSelection(instance.name.length)
+        input.inputType = android.text.InputType.TYPE_CLASS_TEXT
+        input.maxLines = 1
+
+        // styles
+        val margin = (16 * requireContext().resources.displayMetrics.density).toInt()
+        val container = android.widget.FrameLayout(requireContext())
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        params.setMargins(margin, margin, margin, margin)
+        input.layoutParams = params
+        container.addView(input)
 
         AlertDialog.Builder(requireContext())
-            .setTitle(R.string.dialog_instance_info_title)
-            .setMessage(debugGson.toJson(info))
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(R.string.app_copy) { _, _ ->
-                val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Instance info", debugGson.toJson(info)))
-                Toast.makeText(context, R.string.app_copied, Toast.LENGTH_SHORT).show()
+            .setTitle(R.string.dialog_rename_title)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty() && newName != instance.name) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val updatedInstance = operator.repository.getInstance(instance.id) ?: instance
+                        updatedInstance.name = newName
+                        if (updatedInstance.settings == null) {
+                            updatedInstance.settings = JsonObject()
+                        }
+                        updatedInstance.settings.addProperty("customName", true)
+                        operator.repository.saveInstance(updatedInstance)
+                        withContext(Dispatchers.Main) {
+                            loadInstances()
+                        }
+                    }
+                }
             }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun showInstanceInfo(instance: GameInstance) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val versionName = instance.packageSnapshot?.versionName ?: "Unknown"
+            val apkSizeMB = instance.packageSnapshot?.apkSize?.let { String.format(java.util.Locale.US, "%.2f MB", it / (1024.0 * 1024.0)) } ?: "Unknown"
+            val sourceType = instance.source?.type?.name ?: "Unknown"
+
+            val textInfo = """
+                Name: ${instance.name}
+                Version: $versionName
+                APK Size: $apkSizeMB
+                Source Type: $sourceType
+                State: ${instance.state}
+                Last played: ${if (instance.lastPlayedAt != null) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(instance.lastPlayedAt!!)) else "Never"}
+                
+                Paths:
+                Dir: ${operator.repository.getInstanceDir(instance.id).absolutePath}
+                APK: ${operator.getManagedApkFile(instance.id).absolutePath}
+            """.trimIndent()
+
+            withContext(Dispatchers.Main) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.dialog_instance_info_title)
+                    .setMessage(textInfo)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .setNeutralButton("JSON") { _, _ ->
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val info = JsonObject()
+                            info.add("instance", debugGson.toJsonTree(instance))
+                            info.addProperty("instanceDir", operator.repository.getInstanceDir(instance.id).absolutePath)
+                            info.addProperty("managedApk", operator.getManagedApkFile(instance.id).absolutePath)
+                            info.addProperty("cacheDir", EnderCore.instance.fileEnvironment.getInstanceCacheDirPath(instance.id))
+                            info.addProperty("nmodsCacheDir", EnderCore.instance.fileEnvironment.getInstanceNModsCacheDirPath(instance.id))
+                            info.addProperty("prepared", operator.isInstancePrepared(instance))
+                            val jsonStr = debugGson.toJson(info)
+                            
+                            withContext(Dispatchers.Main) {
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle(R.string.dialog_instance_info_title)
+                                    .setMessage(jsonStr)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .setNegativeButton(R.string.app_copy) { _, _ ->
+                                        val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Instance info", jsonStr))
+                                        Toast.makeText(context, R.string.app_copied, Toast.LENGTH_SHORT).show()
+                                    }
+                                    .show()
+                            }
+                        }
+                    }
+                    .show()
+            }
+        }
     }
 
     private fun playInstance(instance: GameInstance) {
@@ -165,8 +259,11 @@ class InstancesFragment : Fragment() {
             .setTitle(getString(R.string.dialog_delete_title, instance.name))
             .setMessage(R.string.dialog_delete_message)
             .setPositiveButton(R.string.btn_delete) { _, _ ->
-                operator.deleteInstance(instance.id)
-                loadInstances()
+                activity?.let { act ->
+                    InstanceUIHelper.deleteInstances(act, operator, listOf(instance)) {
+                        loadInstances()
+                    }
+                }
             }
             .setNegativeButton(R.string.btn_cancel, null)
             .show()
@@ -219,6 +316,98 @@ class InstancesFragment : Fragment() {
         }
     }
 
+    private fun importPackage(uri: Uri) {
+        val context = requireContext()
+        val name = getDisplayName(uri) ?: "package.apk"
+        val extension = when {
+            name.endsWith(".zip", true) -> ".zip"
+            name.endsWith(".apk", true) -> ".apk"
+            context.contentResolver.getType(uri)?.contains("zip", ignoreCase = true) == true -> ".zip"
+            else -> ".apk"
+        }
+        val tempFile = File(context.cacheDir, "import_${System.currentTimeMillis()}$extension")
+        val isZip = extension == ".zip"
+
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_download, null)
+        val textStatus = dialogView.findViewById<TextView>(R.id.text_download_status)
+        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
+        textStatus.setText(R.string.text_preparing)
+        progressBar.isIndeterminate = true
+
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(if (isZip) R.string.dialog_import_zip_title else R.string.dialog_import_apk_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+        dialog.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("Failed to open selected file.")
+
+                withContext(Dispatchers.Main) {
+                    progressBar.isIndeterminate = false
+                    val callback = object : InstanceOperator.InstallCallback {
+                        override fun onProgress(percent: Int) {
+                            activity?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread
+                                progressBar.progress = percent
+                                textStatus.text = getString(R.string.text_import_progress, percent)
+                            }
+                        }
+
+                        override fun onSuccess() {
+                            tempFile.delete()
+                            activity?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread
+                                dialog.dismiss()
+                                Toast.makeText(context, R.string.toast_import_success, Toast.LENGTH_LONG).show()
+                                loadInstances()
+                            }
+                        }
+
+                        override fun onError(e: Exception) {
+                            tempFile.delete()
+                            activity?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread
+                                dialog.dismiss()
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle(R.string.dialog_import_failed_title)
+                                    .setMessage(e.message ?: "Unknown error occurred")
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show()
+                            }
+                        }
+                    }
+
+                    if (isZip) {
+                        operator.importInstanceZip(tempFile, callback)
+                    } else {
+                        operator.importLocalApk(tempFile, true, callback)
+                    }
+                }
+            } catch (e: Exception) {
+                tempFile.delete()
+                withContext(Dispatchers.Main) {
+                    dialog.dismiss()
+                    Toast.makeText(context, getString(R.string.toast_import_error, e.message), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun getDisplayName(uri: Uri): String? {
+        requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex >= 0 && cursor.moveToFirst()) {
+                return cursor.getString(nameIndex)
+            }
+        }
+        return uri.lastPathSegment
+    }
+
     class InstancesAdapter(
         private val onPlayClick: (GameInstance) -> Unit,
         private val onDeleteClick: (GameInstance) -> Unit,
@@ -228,7 +417,7 @@ class InstancesFragment : Fragment() {
         companion object {
             private val DIFF = object : DiffUtil.ItemCallback<GameInstance>() {
                 override fun areItemsTheSame(a: GameInstance, b: GameInstance) = a.id == b.id
-                override fun areContentsTheSame(a: GameInstance, b: GameInstance) = a.id == b.id && a.state == b.state && a.lastPlayedAt == b.lastPlayedAt
+                override fun areContentsTheSame(a: GameInstance, b: GameInstance) = a.id == b.id && a.state == b.state && a.lastPlayedAt == b.lastPlayedAt && a.name == b.name
             }
         }
 
