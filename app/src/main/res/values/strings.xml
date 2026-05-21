@@ -83,6 +83,8 @@
 
     <string name="dialog_delete_title">Delete %1$s?</string>
     <string name="dialog_delete_message">This will remove game files and cache. Are you sure?</string>
+    <string name="dialog_delete_version_instances_title">Delete all instances for %1$s?</string>
+    <string name="dialog_delete_version_instances_message">This will remove %1$d instance(s), including game files and cache. Are you sure?</string>
     <string name="btn_delete">Delete</string>
     <string name="btn_cancel">Cancel</string>
     <string name="dialog_download_title">Downloading %1$s</string>

@@ -73,18 +73,23 @@ class VersionsFragment : Fragment() {
     }
 
     private fun onVersionClick(version: RemoteVersion) {
-        val versionInstances = operator.repository.instances.filter { it.source?.url == version.url }
-        if (versionInstances.isEmpty()) { startDownload(version); return }
+        lifecycleScope.launch {
+            val versionInstances = withContext(Dispatchers.IO) {
+                operator.repository.instances.filter { it.source?.url == version.url }
+            }
+            if (!isAdded) return@launch
+            if (versionInstances.isEmpty()) { startDownload(version); return@launch }
 
-        val actions = listOf(
-            getString(R.string.btn_install_new_instance) to { startDownload(version) },
-            getString(R.string.btn_play_existing) to { playExisting(versionInstances) },
-            getString(R.string.btn_delete_all_for_version) to { deleteInstances(version, versionInstances) }
-        )
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.dialog_select_action_title, version.name))
-            .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
-            .show()
+            val actions = listOf(
+                getString(R.string.btn_install_new_instance) to { startDownload(version) },
+                getString(R.string.btn_play_existing) to { playExisting(versionInstances) },
+                getString(R.string.btn_delete_all_for_version) to { deleteInstances(version, versionInstances) }
+            )
+            AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.dialog_select_action_title, version.name))
+                .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+                .show()
+        }
     }
 
     private fun playExisting(versionInstances: List<GameInstance>) {
@@ -129,13 +134,20 @@ class VersionsFragment : Fragment() {
     }
 
     private fun deleteInstances(version: RemoteVersion, versionInstances: List<GameInstance>) {
-        activity?.let { act ->
-            InstanceUIHelper.deleteInstances(act, operator, versionInstances) {
-                // update remote version element (if needed.. now its not)
-                val pos = adapter.currentList.indexOf(version)
-                if (pos != -1) adapter.notifyItemChanged(pos)
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_delete_version_instances_title, version.name))
+            .setMessage(getString(R.string.dialog_delete_version_instances_message, versionInstances.size))
+            .setPositiveButton(R.string.btn_delete) { _, _ ->
+                activity?.let { act ->
+                    InstanceUIHelper.deleteInstances(act, operator, versionInstances) {
+                        // update remote version element (if needed.. now its not)
+                        val pos = adapter.currentList.indexOf(version)
+                        if (pos != -1) adapter.notifyItemChanged(pos)
+                    }
+                }
             }
-        }
+            .setNegativeButton(R.string.btn_cancel, null)
+            .show()
     }
 
     private fun loadVersions() {

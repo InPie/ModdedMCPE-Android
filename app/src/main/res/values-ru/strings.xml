@@ -83,6 +83,8 @@
 
     <string name="dialog_delete_title">Удалить %1$s?</string>
     <string name="dialog_delete_message">Это удалит файлы игры и кеш. Вы уверены?</string>
+    <string name="dialog_delete_version_instances_title">Удалить все инстансы для %1$s?</string>
+    <string name="dialog_delete_version_instances_message">Будет удалено инстансов: %1$d, включая файлы игры и кеш. Вы уверены?</string>
     <string name="btn_delete">Удалить</string>
     <string name="btn_cancel">Отмена</string>
     <string name="dialog_download_title">Скачивание %1$s</string>
