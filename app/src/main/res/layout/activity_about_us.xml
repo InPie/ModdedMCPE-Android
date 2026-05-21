@@ -87,7 +87,7 @@
             android:background="@drawable/text_background_selector"
             android:clickable="true"
             android:focusable="true"
-            android:onClick="onDiscordClicked"
+            android:onClick="onUpdatesClicked"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:text="@string/app_updates"
