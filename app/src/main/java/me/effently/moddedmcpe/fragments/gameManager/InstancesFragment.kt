@@ -220,6 +220,7 @@ class InstancesFragment : Fragment() {
                             val jsonStr = debugGson.toJson(info)
                             
                             withContext(Dispatchers.Main) {
+                                if (!isAdded || context == null) return@withContext
                                 AlertDialog.Builder(requireContext())
                                     .setTitle(R.string.dialog_instance_info_title)
                                     .setMessage(jsonStr)

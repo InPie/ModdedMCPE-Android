@@ -66,7 +66,7 @@ public class NModPreparer {
 
         if (stateFile.exists()) {
             try (FileReader reader = new FileReader(stateFile)) {
-                List<String> previousNModIds = gson.fromJson(reader, new TypeToken<List<String>>(){}.getType());
+                List<String> previousNModIds = gson.fromJson(reader, TypeToken.getParameterized(List.class, String.class).getType());
                 if (previousNModIds != null && previousNModIds.equals(currentNModIds)) {
                     Log.d(TAG, "NMods state has not changed. Skipping rebuild.");
                     needsRebuild = false;

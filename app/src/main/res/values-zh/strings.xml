@@ -3,7 +3,7 @@
     <string name="app_title">Modded MCPE</string>
     <string name="app_start_game">开始游戏</string>
     <string name="app_manage_nmods">管理 NMod</string>
-    <string name="app_summary">针对Minecraft PE设计的专业版启动器</string>
+    <string name="app_summary">针对Minecraft设计的专业版启动器</string>
     <string name="app_permission_denied">权限未获得</string>
     <string name="app_message_permission_denied">糟糕！Modded MCPE无法获取读取存储空间的权限。这对于启动游戏很重要。请在系统设置中确保Modded MCPE已获得相关必要权限。</string>
     <string name="app_info">关于</string>

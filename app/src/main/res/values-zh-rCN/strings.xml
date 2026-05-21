@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_title">Modded MCPE</string>
-    <string name="app_summary">针对Minecraft PE设计的专业版启动器</string>
+    <string name="app_summary">针对Minecraft设计的专业版启动器</string>
     <string name="app_start_game">开始游戏</string>
     <string name="app_manage_nmods">管理 NMod</string>
     <string name="app_permission_denied">权限未获得</string>

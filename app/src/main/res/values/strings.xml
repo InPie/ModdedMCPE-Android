@@ -3,7 +3,7 @@
     <string name="app_launcher_title">Modded MCPE Launcher</string>
     <string name="app_title">Modded MCPE</string>
 
-    <string name="app_summary">A professional launcher for Minecraft PE.</string>
+    <string name="app_summary">An advanced launcher for Minecraft.</string>
     <string name="app_start_game">Start Game</string>
     <string name="app_options">Options</string>
     <string name="app_manage_nmods">Manage NMods</string>
@@ -41,7 +41,7 @@
     <string name="app_text_divider">|</string>
     <string name="app_options_title_info">Info</string>
     <string name="app_options_about_us">About us</string>
-    <string name="app_contributors" translatable="false">Dev: Effently (Contributors: listerily, TimScriptov, TripleCamera - thanks)</string>
+    <string name="app_contributors" translatable="false">Dev: Effently, Yuki (Contributors: listerily, TimScriptov, TripleCamera - thanks)</string>
     <string name="app_translators">Translators: listerily</string>
     <string name="app_source">Sources</string>
     <string name="app_discord">Discord</string>

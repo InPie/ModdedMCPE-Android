@@ -173,7 +173,7 @@ public final class Launcher {
                     Log.e(TAG, "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
 
-                Log.d(TAG, "Loading Minecraft PE Native Library...");
+                Log.d(TAG, "Loading Minecraft Native Library...");
                 loadMinecraftNativeLibrary(context, gamePackage.getVersionName());
 
                 Log.d(TAG, "Loading EnderCore Hooks...");

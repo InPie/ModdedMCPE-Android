@@ -64,7 +64,7 @@ public class RemoteVersionRepository {
             Log.e(TAG, "Error fetching remote versions.", e);
             versions = loadFromCache();
         }
-        
+
         if (versions == null) {
             versions = new ArrayList<>();
         }

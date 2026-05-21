@@ -3,7 +3,7 @@
     <string name="app_launcher_title">Лаунчер Modded MCPE</string>
 
 
-    <string name="app_summary">Профессиональный лаунчер для Minecraft PE.</string>
+    <string name="app_summary">Расширенный лаунчер для Minecraft.</string>
     <string name="app_start_game">Начать игру</string>
     <string name="app_options">Настройки</string>
     <string name="app_manage_nmods">Мененджер NMods</string>
@@ -41,7 +41,7 @@
     <string name="app_text_divider">|</string>
     <string name="app_options_title_info">Информация</string>
     <string name="app_options_about_us">О приложении</string>
-    <string name="app_contributors">Разработано: Effently (Огромный вклад: listerily, TimScriptov, TripleCamera)</string>
+    <string name="app_contributors">Разработано: Effently, Yuki (Огромный вклад: listerily, TimScriptov, TripleCamera)</string>
     <string name="app_translators">Переводчик китайского: listerily</string>
     <string name="app_source">Исходный код</string>
     <string name="app_discord">Дискорд</string>

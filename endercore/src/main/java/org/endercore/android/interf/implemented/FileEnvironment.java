@@ -32,7 +32,7 @@ public class FileEnvironment implements IFileEnvironment {
 
 
     @Override
-    public String getCodeCacheDirPath() { // deprecared
+    public String getCodeCacheDirPath() { // deprecated
         return codeCacheDirPath;
     }
 

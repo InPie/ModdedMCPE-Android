@@ -2,8 +2,9 @@
 
 This is the source code for `AgentMainActivity.dex`. This class is used for patching AssetManager and Resources for Minecraft Game.  
 This project is only compiled to class files by default. If you want to **re**generate the dex file, you need to use the build tool `dx` in Android SDK.  
+> This AgentMain Files are assembled automatically each time the application is built. No manual build required.  
 
-### Guide for Windows
+### Guide for Windows (deprecated)
 Build `app`, run the following commands, and build again.  
 `BUILD_TOOLS_VERSION` should be as same as `buildToolsVersion` in `build.gradle`.  
 ```bat

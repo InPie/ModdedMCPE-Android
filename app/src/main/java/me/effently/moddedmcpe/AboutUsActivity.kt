@@ -17,7 +17,7 @@ class AboutUsActivity : AppCompatActivity() {
     }
 
     fun onSourcesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://github.com/oldminecraftcommunity/Modded-MCPE")
+        val uri: Uri = Uri.parse("https://github.com/InPie/ModdedMCPE-Android")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
@@ -29,7 +29,7 @@ class AboutUsActivity : AppCompatActivity() {
     }
 
     fun onUpdatesClicked(view: View) {
-        val uri: Uri = Uri.parse("https://discord.gg/hex5QrRNqa")
+        val uri: Uri = Uri.parse("https://github.com/InPie/ModdedMCPE-Android/releases")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
