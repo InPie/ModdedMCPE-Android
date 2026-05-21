@@ -38,7 +38,7 @@ android {
         versionCode 5
 
         // Defines a user-friendly version name for your app.
-        versionName "1.5.3"
+        versionName "1.5.4"
 
         multiDexEnabled = true
 

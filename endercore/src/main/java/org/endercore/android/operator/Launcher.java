@@ -313,15 +313,16 @@ public final class Launcher {
         try {
             IFileEnvironment fileEnvironment = core.getFileEnvironment();
             File dir = new File(fileEnvironment.getCodeCacheDirPathForDex());
-            FileUtils.copy(context.getAssets().open(ASSETS_FILE_AGENT_DEX), new File(dir, NAME_AGENT_DEX));
-            if (!(new File(dir, NAME_AGENT_DEX)).setReadOnly()) { // Android 15 fix
-                throw new LauncherException("Unable to set file to read-only: " + (new File(dir, NAME_AGENT_DEX)).getAbsolutePath());
+            File agentDexFile = new File(dir, NAME_AGENT_DEX);
+            FileUtils.copy(context.getAssets().open(ASSETS_FILE_AGENT_DEX), agentDexFile);
+            if (!agentDexFile.setReadOnly()) { // Android 15 fix
+                throw new LauncherException("Unable to set file to read-only: " + agentDexFile.getAbsolutePath());
             }
-            Patcher.patchDexFile(context.getClassLoader(), new File(dir, NAME_AGENT_DEX).getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
-            patchDexPath.add(new File(dir, NAME_AGENT_DEX).getAbsolutePath());
-            DexClassLoader dexClassLoader = new DexClassLoader(new File(dir, NAME_AGENT_DEX).getAbsolutePath(), dir.getAbsolutePath(), null, context.getClass().getClassLoader());
+            Patcher.patchDexFile(context.getClassLoader(), agentDexFile.getAbsolutePath(), fileEnvironment.getCodeCacheDirPathForDexOpt());
+            patchDexPath.add(agentDexFile.getAbsolutePath());
+            DexClassLoader dexClassLoader = new DexClassLoader(agentDexFile.getAbsolutePath(), dir.getAbsolutePath(), null, context.getClass().getClassLoader());
             Class<?> activityClass = dexClassLoader.loadClass("com.mojang.minecraftpe.AgentMainActivity");
-            (new File(dir, NAME_AGENT_DEX)).setWritable(true);
+            agentDexFile.setWritable(true);
             Intent launchIntent = new Intent(context, activityClass);
             launchIntent.putExtra("ENDERCORE-PATCH-ASSETS", patchAssetPath);
             launchIntent.putExtra("ENDERCORE-PATCH-DEX", patchDexPath);
@@ -344,13 +345,15 @@ public final class Launcher {
         Log.d(TAG, "MCPE version: " + gameVersionName);
         listener.onLoadNativeLibrary(NAME_MINECRAFTPE);
 
-        if (isMcpeVersion(gameVersionName, "0.6.")) {
+        if (isMcpeVersion(gameVersionName, "0.1.", "0.2.", "0.3.", "0.4.", "0.5.", "0.6.", "0.7.")) {
+            Log.d(TAG, "Loading via Class.forName.");
             Class.forName(CLASS_MAIN_ACTIVITY, true, context.getClassLoader());
             return;
         }
 
         //0.8 comp
         if (isMcpeVersion(gameVersionName, "0.8.", "0.9.")) {
+            Log.d(TAG, "Loading with TemporaryEglContext.");
             try (TemporaryEglContext ignored = TemporaryEglContext.create()) {
                 Class.forName(CLASS_MAIN_ACTIVITY, true, context.getClassLoader());
             }

@@ -22,6 +22,8 @@ public final class FileUtils {
             boolean createdNewFile = to.createNewFile();
             if (!createdNewFile)
                 throw new IOException("Failed to create new file at: " + to.getAbsolutePath() + ".");
+        } else {
+            to.setWritable(true);
         }
         FileChannel input = new FileInputStream(from).getChannel();
         FileChannel output = new FileOutputStream(to).getChannel();
@@ -40,6 +42,8 @@ public final class FileUtils {
             boolean createdNewFile = to.createNewFile();
             if (!createdNewFile)
                 throw new IOException("Failed to create new file at: " + to.getAbsolutePath() + ".");
+        } else {
+            to.setWritable(true);
         }
         FileOutputStream output = new FileOutputStream(to);
         copy(from, output);
@@ -86,11 +90,18 @@ public final class FileUtils {
             for (File file : listFiles) {
                 if (file.isDirectory())
                     removeFiles(file);
-                else
-                    file.delete();
+                else {
+                    if (!file.delete()) {
+                        file.setWritable(true);
+                        file.delete();
+                    }
+                }
             }
         }
-        path.delete();
+        if (!path.delete()) {
+            path.setWritable(true);
+            path.delete();
+        }
     }
 
     public static String readFileAsString(File file) throws IOException {
