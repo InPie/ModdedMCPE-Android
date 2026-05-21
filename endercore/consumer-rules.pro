@@ -32,6 +32,10 @@
     *;
 }
 
+-keep class **.R, **.R$* {
+    *;
+}
+
 -keepclasseswithmembernames class * {
     native <methods>;
 }
