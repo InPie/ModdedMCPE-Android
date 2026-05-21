@@ -326,7 +326,7 @@ static void native_signal_handler(int signum, siginfo_t* info, void* reserved) {
 	resetSignalAndRaise(signum);
 }
 
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT jboolean JNICALL
 Java_org_endercore_android_utils_CrashHandler_initNative(
 	JNIEnv* env,
 	jobject thiz,
@@ -334,7 +334,7 @@ Java_org_endercore_android_utils_CrashHandler_initNative(
 	jstring activity_name
 ) {
 	if (g_crashHandlerClass == nullptr) {
-		jclass localClass = env->FindClass("org/endercore/android/utils/CrashHandler");
+		jclass localClass = env->GetObjectClass(thiz);
 
 		if (localClass) {
 			g_crashHandlerClass = static_cast<jclass>(env->NewGlobalRef(localClass));
@@ -355,7 +355,7 @@ Java_org_endercore_android_utils_CrashHandler_initNative(
 
 	if (g_crashHandlerClass == nullptr || g_onNativeCrashMethod == nullptr) {
 		LOGE("Failed to initialize Java crash handler references");
-		return;
+		return JNI_FALSE;
 	}
 
 	struct sigaction sa;
@@ -380,5 +380,6 @@ Java_org_endercore_android_utils_CrashHandler_initNative(
 	sigaction(SIGTRAP, &sa, nullptr);
 
 	LOGD("Native crash handler initialized");
+	return JNI_TRUE;
 }
 // ======== end crash handler ========

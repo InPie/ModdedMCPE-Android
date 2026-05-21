@@ -35,8 +35,11 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     public void initNative() {
         try {
-            initNative(context.getPackageName(), fatalActivityClass.getName());
-            Log.d(TAG, "Native crash handler is ready");
+            if (initNative(context.getPackageName(), fatalActivityClass.getName())) {
+                Log.d(TAG, "Native crash handler is ready");
+            } else {
+                Log.e(TAG, "Native crash handler failed to initialize");
+            }
         } catch (Throwable e) {
             Log.e(TAG, "Failed to initialize native crash handler", e);
         }
@@ -92,5 +95,5 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         getInstance().startFatalActivity("Native Crash: " + reason + "\n\n" + stackTrace);
     }
 
-    private native void initNative(String packageName, String activityName);
+    private native boolean initNative(String packageName, String activityName);
 }
