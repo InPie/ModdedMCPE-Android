@@ -38,7 +38,7 @@ android {
         versionCode 5
 
         // Defines a user-friendly version name for your app.
-        versionName "1.5.2"
+        versionName "1.5.3"
 
         multiDexEnabled = true
 
@@ -57,8 +57,8 @@ android {
      */
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources = true
+            minifyEnabled false
+            shrinkResources = false
 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
