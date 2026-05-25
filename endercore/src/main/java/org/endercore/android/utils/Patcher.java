@@ -2,6 +2,7 @@ package org.endercore.android.utils;
 
 import android.content.res.AssetManager;
 import android.os.Build;
+import android.util.Log;
 
 import java.io.File;
 import java.lang.reflect.Array;
@@ -18,6 +19,8 @@ import dalvik.system.DexFile;
 import dalvik.system.PathClassLoader;
 
 public final class Patcher {
+    private static final String TAG = "EnderCore-Patcher";
+
     public static void patchDexFile(ClassLoader classLoader, String dexFilePath, String dexOptFilePath) throws Exception {
         File optDir = new File(dexOptFilePath);
         optDir.mkdirs();
@@ -29,12 +32,13 @@ public final class Patcher {
         Object dexElements = field2.get(dexPathList);
 
         Object[] patchDexElements = null;
+        List<java.io.IOException> suppressedExceptions = null;
 
         if (Build.VERSION.SDK_INT >= 26) {
             // Android 8.0+ (restricts DexFile to a single ClassLoader)
             java.util.ArrayList<File> files = new java.util.ArrayList<>();
             files.add(new File(dexFilePath));
-            java.util.ArrayList<java.io.IOException> suppressedExceptions = new java.util.ArrayList<>();
+            suppressedExceptions = new java.util.ArrayList<>();
             try {
                 //  using makeDexElements and passing the target classLoader directly
                 //  if needed check compatibility with the latest Android version
@@ -64,6 +68,11 @@ public final class Patcher {
         int len1 = Array.getLength(patchDexElements);
         int len2 = Array.getLength(dexElements);
         int totalLen = len1 + len2;
+        Log.d(TAG, "patchDexFile " + new File(dexFilePath).getName()
+                + ": new=" + len1 + ", old=" + len2 + ", total=" + totalLen);
+        if (suppressedExceptions != null && !suppressedExceptions.isEmpty()) {
+            Log.w(TAG, "Suppressed dex load exceptions: " + suppressedExceptions);
+        }
         concatArray = Array.newInstance(patchDexElements.getClass().getComponentType(), totalLen);
         for (int i = 0; i < len1; i++) {
             Array.set(concatArray, i, Array.get(patchDexElements, i));

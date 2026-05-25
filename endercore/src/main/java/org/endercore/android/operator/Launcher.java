@@ -66,6 +66,12 @@ public final class Launcher {
     private final static String LIB_ENDERCORE = "endercore";
     private final static String LIB_MJSCRIPT = "mjscript";
     private final static String CLASS_MAIN_ACTIVITY = "com.mojang.minecraftpe.MainActivity";
+    private final static String[] LIFECYCLE_CLASSES = {
+            "Lifecycle", "LifecycleOwner", "LifecycleObserver", "LifecycleRegistry",
+            "Lifecycling", "ReflectiveGenericLifecycleObserver", "GenericLifecycleObserver",
+            "LifecycleEventObserver", "ClassesInfoCache", "GeneratedAdapter", "OnLifecycleEvent"
+            //"FullLifecycleObserver", "FullLifecycleObserverAdapter"
+    };
 
     public Launcher(EnderCore core) {
         initializedGame = false;
@@ -102,6 +108,9 @@ public final class Launcher {
             listener.onLoadJavaLibrariesStart();
             Log.d(TAG, "Patching Dex Files...");
             try {
+                // fix 1.17+ on new android
+                preloadLauncherLifecycleClasses(context.getClassLoader());
+
                 // Patch Game Dex
                 for (int i = 9; i >= 0; --i) {
                     String dexLibName = "classes" + (i == 0 ? "" : i) + ".dex";
@@ -339,6 +348,21 @@ public final class Launcher {
 
     public void setGameInitializationListener(IInitializationListener listener) {
         this.listener = listener;
+    }
+
+    // fix 1.17+ on new android:
+    //  load launcher lifecycle classes before game dex is prepended to avoid mixed AndroidX versions
+    private void preloadLauncherLifecycleClasses(ClassLoader classLoader) {
+        for (String name : LIFECYCLE_CLASSES) {
+            try {
+                Class.forName("androidx.lifecycle." + name, false, classLoader);
+            } catch (ClassNotFoundException exception) {
+                Log.w(TAG, "Launcher lifecycle class is not available: " + name);
+            } catch (Throwable throwable) {
+                Log.w(TAG, "Unable to preload launcher lifecycle class: " + name, throwable);
+            }
+        }
+        Log.d(TAG, "Launcher lifecycle classes are preloaded before game dex patching.");
     }
 
     private void loadMinecraftNativeLibrary(Context context, String gameVersionName) throws ClassNotFoundException {
