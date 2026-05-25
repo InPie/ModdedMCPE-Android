@@ -55,8 +55,9 @@ internal object XboxResourcePatch {
             if (instanceId.isNullOrBlank()) return
             
             core.fileEnvironment.setActiveWorkspace(instanceId)
-            val instance = InstanceOperator(appContext, core.fileEnvironment).repository.getInstance(instanceId) ?: return
-            val apkPath = InstanceOperator(appContext, core.fileEnvironment).resolveGamePackage(instance).baseApkPath
+            val operator = InstanceOperator(appContext, core.fileEnvironment)
+            val instance = operator.repository.getInstance(instanceId) ?: return
+            val apkPath = operator.resolveGamePackage(instance).baseApkPath
             
             activity.intent?.putExtra(CLIENT_PACKAGE_NAME_KEY, GamePackageManager.PACKAGE_NAME)
 
@@ -67,15 +68,16 @@ internal object XboxResourcePatch {
                 Resources(assetManager, original.displayMetrics, original.configuration)
             }
 
-            ContextThemeWrapper::class.java.getDeclaredField("mResources").apply { isAccessible = true }.set(activity, resources)
-            ContextThemeWrapper::class.java.getDeclaredField("mTheme").apply { isAccessible = true }.set(activity, null)
+            setActivityResources(activity, resources)
+            clearActivityTheme(activity)
 
             val spec = getPatchSpec(className)
-            val themeId = if (spec.theme != null) resources.getIdentifier(spec.theme, "style", GamePackageManager.PACKAGE_NAME) else 0
+            val themeId = spec.theme?.let { resources.getIdentifier(it, "style", GamePackageManager.PACKAGE_NAME) } ?: 0
 
             val activityInfoField = Activity::class.java.getDeclaredField("mActivityInfo").apply { isAccessible = true }
             val info = activityInfoField.get(activity) as? ActivityInfo
             if (info != null) {
+                clearActivityIcons(info)
                 if (themeId != 0) info.theme = themeId
                 if (spec.label != null) {
                     val labelId = resources.getIdentifier(spec.label, "string", GamePackageManager.PACKAGE_NAME)
@@ -86,12 +88,9 @@ internal object XboxResourcePatch {
                 }
                 if (spec.icon != null) {
                     val iconId = resources.getIdentifier(spec.icon, "drawable", GamePackageManager.PACKAGE_NAME)
-                    if (iconId != 0) {
+                    if (isDrawableAvailable(resources, iconId)) {
                         info.icon = iconId; info.logo = iconId
                         info.applicationInfo.icon = iconId; info.applicationInfo.logo = iconId
-                    } else {
-                        info.icon = 0; info.logo = 0
-                        info.applicationInfo.icon = 0; info.applicationInfo.logo = 0
                     }
                 }
             }
@@ -99,6 +98,40 @@ internal object XboxResourcePatch {
             
         } catch (e: Throwable) {
             Log.e(TAG, "Patch failed for $className", e)
+        }
+    }
+
+    private fun setActivityResources(activity: Activity, resources: Resources) {
+        try {
+            ContextThemeWrapper::class.java.getDeclaredField("mResources").apply { isAccessible = true }.set(activity, resources)
+        } catch (throwable: Throwable) {
+            Log.w(TAG, "Failed to replace activity resources for ${activity.javaClass.name}", throwable)
+        }
+    }
+
+    private fun clearActivityTheme(activity: Activity) {
+        try {
+            ContextThemeWrapper::class.java.getDeclaredField("mTheme").apply { isAccessible = true }.set(activity, null)
+        } catch (ignored: NoSuchFieldException) {
+            Log.d(TAG, "Activity theme field is unavailable for ${activity.javaClass.name}, continuing")
+        } catch (throwable: Throwable) {
+            Log.w(TAG, "Failed to clear activity theme for ${activity.javaClass.name}", throwable)
+        }
+    }
+
+    private fun clearActivityIcons(info: ActivityInfo) {
+        info.icon = 0; info.logo = 0
+        info.applicationInfo.icon = 0; info.applicationInfo.logo = 0
+    }
+
+    private fun isDrawableAvailable(resources: Resources, resourceId: Int): Boolean {
+        if (resourceId == 0) return false
+        return try {
+            resources.getDrawable(resourceId, null)
+            true
+        } catch (throwable: Throwable) {
+            Log.w(TAG, "Drawable resource is not available: $resourceId", throwable)
+            false
         }
     }
 
