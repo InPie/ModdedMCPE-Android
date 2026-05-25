@@ -19,7 +19,9 @@ import java.io.InputStream;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     // fullsreen code from 0.11, ...Platform19#setSystemUiVisibility(5894)
@@ -41,6 +43,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private int legacyUserInputStatus = -1;
     private String[] legacyUserInputText = null;
     private Boolean legacyUseProfile06 = null;
+    private final Set<Integer> pendingLegacyDialogRequests = new HashSet<>();
 
     // logging for debug
     private String gameApkPath = null;
@@ -366,8 +369,10 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
 
         try {
+            pendingLegacyDialogRequests.add(dialogId);
             startActivityForResult(intent, dialogId);
         } catch (Throwable throwable) {
+            pendingLegacyDialogRequests.remove(dialogId);
             Log.e(TAG, "Failed to start legacy dialog " + dialogId, throwable);
             legacyUserInputStatus = 0;
         }
@@ -375,6 +380,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (!pendingLegacyDialogRequests.remove(requestCode)) {
+            super.onActivityResult(requestCode, resultCode, data);
+            return;
+        }
+
         if (requestCode == DIALOG_MAINMENU_OPTIONS) {
             legacyUserInputStatus = 1;
             return;
