@@ -79,6 +79,10 @@ def registerDexTasks = { String variantName ->
             include 'FirebaseApp*.class'
             include 'FirebaseOptions*.class'
         }.files.collect { it.absolutePath }.sort()
+        // for 0.15
+        def junitClasses = fileTree("${classesDir}/junit/framework") {
+            include '**/*.class'
+        }.files.collect { it.absolutePath }.sort()
         def extraClasses = [
                 "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class",
                 "${classesDir}/com/mojang/minecraftpe/GameContextBridge.class",
@@ -87,7 +91,7 @@ def registerDexTasks = { String variantName ->
                 "${classesDir}/com/microsoft/onlineid/internal/Resources.class",
                 "${classesDir}/com/microsoft/xbox/idp/telemetry/utc/model/UTCAdditionalInfoModel.class"
         ]
-        def dexInputs = extraClasses + helperClasses + firebaseAppClasses + firebaseIidClasses
+        def dexInputs = extraClasses + helperClasses + firebaseAppClasses + firebaseIidClasses + junitClasses
         def missingInputs = dexInputs.findAll { !file(it).isFile() }
         if (!missingInputs.isEmpty()) {
             throw new GradleException("Cannot build AgentMainActivity.dex for ${variantName}: missing class files:\n" + missingInputs.join("\n"))

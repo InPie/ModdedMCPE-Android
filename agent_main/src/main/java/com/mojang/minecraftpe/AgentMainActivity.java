@@ -579,22 +579,35 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     @Override
     public int[] getImageData(String filename) {
-        Bitmap bitmap = BitmapFactory.decodeFile(filename);
-        if (bitmap == null && patchAssetManager != null) {
-            try {
-                InputStream inputStream = patchAssetManager.open(filename);
-                bitmap = BitmapFactory.decodeStream(inputStream);
-                inputStream.close();
-            } catch (Throwable throwable) {
-                logImageDataResult(filename, false);
-                return null;
+        return getImageData(filename, false);
+    }
+
+    @Override
+    public int[] getImageData(String filename, boolean forced) {
+        Bitmap bitmap = null;
+
+        if (filename.startsWith("/")) {
+            bitmap = BitmapFactory.decodeFile(filename);
+        } else {
+            // try internal assets
+            if (patchAssetManager != null) {
+                try (InputStream inputStream = patchAssetManager.open(filename)) {
+                    bitmap = BitmapFactory.decodeStream(inputStream);
+                    inputStream.close();
+                } catch (Exception ignored) {}
+            }
+
+            // check data directory
+            if (bitmap == null && forced) {
+                // "forced" means look into game data dir
+                File external = new File(instanceDataPath, filename);
+                if (external.exists()) {
+                    bitmap = BitmapFactory.decodeFile(external.getAbsolutePath());
+                }
             }
         }
 
-        if (bitmap == null) {
-            logImageDataResult(filename, false);
-            return null;
-        }
+        if (bitmap == null) return null;
 
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
@@ -602,7 +615,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         pixels[0] = width;
         pixels[1] = height;
         bitmap.getPixels(pixels, 2, width, 0, 0, width, height);
-        logImageDataResult(filename, true);
+        bitmap.recycle();
         return pixels;
     }
 

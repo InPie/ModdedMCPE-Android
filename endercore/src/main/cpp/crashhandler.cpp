@@ -314,8 +314,24 @@ static void native_signal_handler(int signum, siginfo_t* info, void* reserved) {
 	       << (info ? info->si_code : 0)
 	       << " at address "
 	       << (info ? info->si_addr : nullptr)
-	       << "\n\n";
+	       << "\n";
 
+    uintptr_t pc = 0;
+#if defined(__arm__)
+    pc = uc->uc_mcontext.arm_pc;
+#elif defined(__aarch64__)
+    pc = uc->uc_mcontext.pc;
+#endif
+
+    Dl_info dlinfo;
+    if (pc != 0 && dladdr((void*)pc, &dlinfo) && dlinfo.dli_fname) {
+        const char* libname = strrchr(dlinfo.dli_fname, '/');
+        libname = libname ? libname + 1 : dlinfo.dli_fname;
+        uintptr_t rel_pc = pc - (uintptr_t)dlinfo.dli_fbase;
+        report << "Crash at " << libname << " + 0x" << std::hex << rel_pc << "\n";
+    }
+
+    report << "\n";
 	dumpRegisters(report, uc);
 
 	LOGE("FATAL NATIVE CRASH: %s", signame);

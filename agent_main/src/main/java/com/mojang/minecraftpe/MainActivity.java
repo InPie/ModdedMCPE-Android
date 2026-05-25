@@ -29,6 +29,10 @@ public abstract class MainActivity extends NativeActivity {
         throw new RuntimeException("Stub!");
     }
 
+    public int[] getImageData(String filename, boolean forced) {
+        throw new RuntimeException("Stub!");
+    }
+
     public void initializeXboxLive(long xalInitArgs, long xblInitArgs) {
         throw new RuntimeException("Stub!");
     }
