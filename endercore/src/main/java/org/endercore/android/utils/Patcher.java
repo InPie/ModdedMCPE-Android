@@ -18,18 +18,47 @@ import dalvik.system.DexFile;
 import dalvik.system.PathClassLoader;
 
 public final class Patcher {
-    public static void patchDexFile(ClassLoader classLoader, String dexFilePath, String dexOptFilePath) throws NoSuchFieldException, IllegalAccessException {
-        new File(dexOptFilePath).mkdirs();
-        Field field1 = BaseDexClassLoader.class.getDeclaredField("pathList");
+    public static void patchDexFile(ClassLoader classLoader, String dexFilePath, String dexOptFilePath) throws Exception {
+        File optDir = new File(dexOptFilePath);
+        optDir.mkdirs();
+        Field field1 = dalvik.system.BaseDexClassLoader.class.getDeclaredField("pathList");
         field1.setAccessible(true);
         Object dexPathList = field1.get(classLoader);
         Field field2 = dexPathList.getClass().getDeclaredField("dexElements");
         field2.setAccessible(true);
         Object dexElements = field2.get(dexPathList);
 
-        DexClassLoader dcl = new DexClassLoader(dexFilePath, dexOptFilePath, null, classLoader);
-        Object patchDexPathList = field1.get(dcl);
-        Object patchDexElements = field2.get(patchDexPathList);
+        Object[] patchDexElements = null;
+
+        if (Build.VERSION.SDK_INT >= 26) {
+            // Android 8.0+ (restricts DexFile to a single ClassLoader)
+            java.util.ArrayList<File> files = new java.util.ArrayList<>();
+            files.add(new File(dexFilePath));
+            java.util.ArrayList<java.io.IOException> suppressedExceptions = new java.util.ArrayList<>();
+            try {
+                //  using makeDexElements and passing the target classLoader directly
+                //  if needed check compatibility with the latest Android version
+                // https://android.googlesource.com/platform/libcore/+/refs/tags/android-14.0.0_r1/dalvik/src/main/java/dalvik/system/BaseDexClassLoader.java
+                // https://android.googlesource.com/platform/libcore/+/refs/tags/android-14.0.0_r1/dalvik/src/main/java/dalvik/system/DexPathList.java
+                // https://android.googlesource.com/platform/libcore/+/refs/heads/master/dalvik/src/main/java/dalvik/system/DexPathList.java
+
+                Method makeElements = dexPathList.getClass().getDeclaredMethod("makeDexElements", java.util.List.class, File.class, java.util.List.class, ClassLoader.class);
+                makeElements.setAccessible(true);
+                patchDexElements = (Object[]) makeElements.invoke(dexPathList, files, optDir, suppressedExceptions, classLoader);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to invoke makeDexElements", e);
+            }
+        } else {
+            // Android 7.1 and below
+            DexClassLoader dcl = new DexClassLoader(dexFilePath, dexOptFilePath, null, classLoader);
+            Object patchDexPathList = field1.get(dcl);
+            patchDexElements = (Object[]) field2.get(patchDexPathList);
+        }
+
+        if (patchDexElements == null || Array.getLength(patchDexElements) == 0) {
+            return;
+        }
+
         Object concatArray;
 
         int len1 = Array.getLength(patchDexElements);
@@ -138,8 +167,8 @@ public final class Patcher {
         addAssetPath.invoke(assetManager, filePath);
     }
 
-    public static AssetManager createNewAssetManager() throws InstantiationException, IllegalAccessException {
-        return AssetManager.class.newInstance();
+    public static AssetManager createNewAssetManager() throws Exception {
+        return AssetManager.class.getDeclaredConstructor().newInstance();
     }
 
     public static void patchAssetsFile(AssetManager assetManager, ArrayList<String> filePaths) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {

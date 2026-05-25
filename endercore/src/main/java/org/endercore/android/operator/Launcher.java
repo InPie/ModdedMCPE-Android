@@ -131,7 +131,7 @@ public final class Launcher {
                     patchDexPath.add(licenseCrackerDex.getAbsolutePath());
                     licenseCrackerDex.setWritable(true);
                 }
-            } catch (IllegalAccessException | IOException | NoSuchFieldException e) {
+            } catch (Exception e) {
                 throw new LauncherException("Exception occurred while loading *.dex file.", e);
             }
             listener.onLoadJavaLibrariesFinish();
@@ -332,7 +332,7 @@ public final class Launcher {
             launchIntent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, fileEnvironment.getActiveWorkspaceId());
             context.startActivity(launchIntent);
             Log.d(TAG, "Game started.");
-        } catch (IOException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
+        } catch (Exception e) {
             throw new LauncherException("Start game failed.", e);
         }
     }

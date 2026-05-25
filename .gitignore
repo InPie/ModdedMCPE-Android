@@ -3,6 +3,7 @@
 /local.properties
 /.idea
 /_
+/app_logs
 .DS_Store
 /build
 /captures
