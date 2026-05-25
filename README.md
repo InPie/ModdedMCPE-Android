@@ -15,7 +15,7 @@ Supported minecraft versions: (what has been tested and is working)
  + Minecraft Pocket Edition: 0.1.1 - 1.1.5.1⠀(all known versions)  
  + Minecraft Bedrock: 1.16.201.01,⠀1.17.41.01  
 
- The launcher supports Android 7.1 to 16⠀(API 25-36)  
+ The launcher supports Android 7.1 to 16⠀([API](https://targetsdk.com/) 25-36)  
  
  [Download for Android](https://github.com/InPie/ModdedMCPE-Android/releases)⠀✧*｡  
  [Discord Server](https://discord.gg/sSNzZykqUR)  
