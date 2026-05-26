@@ -86,6 +86,7 @@ def registerDexTasks = { String variantName ->
         def extraClasses = [
                 "${classesDir}/com/mojang/minecraftpe/AgentMainActivity.class",
                 "${classesDir}/com/mojang/minecraftpe/GameContextBridge.class",
+                "${classesDir}/com/mojang/minecraftpe/NotificationListenerService.class",
                 "${classesDir}/com/google/android/gms/common/internal/StringResourceValueReader.class",
                 "${classesDir}/com/microsoft/onlineid/internal/PackageInfoHelper.class",
                 "${classesDir}/com/microsoft/onlineid/internal/Resources.class",
