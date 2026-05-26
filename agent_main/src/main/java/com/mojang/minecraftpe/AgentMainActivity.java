@@ -1,11 +1,17 @@
 package com.mojang.minecraftpe;
 
+import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -15,6 +21,7 @@ import android.view.WindowManager;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import java.lang.reflect.Method;
@@ -38,6 +45,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private AssetManager patchResourceAssetManager = null;
     private String instanceDataPath = null;
     private String instanceId = null;
+    private long pendingSkinPickerCallback = 0L;
 
     // legacy mcpe 0.1-0.6
     private int legacyUserInputStatus = -1;
@@ -54,6 +62,8 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private static final String TAG = "EnderCore-AgentMain";
     private static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
+    private static final String IAB_BROADCAST_ACTION = "com.android.vending.billing.PURCHASES_UPDATED";
+    private static final int PICK_IMAGE_REQUEST = 0x4D51;
     // legacy mcpe 0.1-0.6
     private static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
@@ -166,6 +176,17 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         if(patchResources != null)
             return patchResources;
         return super.getResources();
+    }
+
+    @Override
+    public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= 33 && receiver != null) {
+            int flags = filter != null && filter.hasAction(IAB_BROADCAST_ACTION)
+                    ? Context.RECEIVER_EXPORTED
+                    : Context.RECEIVER_NOT_EXPORTED;
+            return super.registerReceiver(receiver, filter, flags);
+        }
+        return super.registerReceiver(receiver, filter);
     }
 
     private void prepareGameWindow() {
@@ -324,6 +345,34 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
     }
 
+    void pickImage(long callback) {
+        pendingSkinPickerCallback = callback;
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/png");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        try {
+            startActivityForResult(intent, PICK_IMAGE_REQUEST);
+        } catch (ActivityNotFoundException exception) {
+            finishImagePick(null);
+        } catch (Throwable throwable) {
+            Log.w(TAG, "Failed to start image picker.", throwable);
+            finishImagePick(null);
+        }
+    }
+
+    private void finishImagePick(String path) {
+        if (pendingSkinPickerCallback != 0L) {
+            if (path != null) {
+                nativeOnPickImageSuccess(pendingSkinPickerCallback, path);
+            } else {
+                nativeOnPickImageCanceled(pendingSkinPickerCallback);
+            }
+            pendingSkinPickerCallback = 0L;
+        }
+    }
+
     // --- END: Legacy path overrides ---
 
 
@@ -380,23 +429,59 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (!pendingLegacyDialogRequests.remove(requestCode)) {
-            super.onActivityResult(requestCode, resultCode, data);
-            return;
-        }
-
-        if (requestCode == DIALOG_MAINMENU_OPTIONS) {
-            legacyUserInputStatus = 1;
-            return;
-        }
-
-        if (requestCode == DIALOG_CREATE_NEW_WORLD || requestCode == DIALOG_RENAME_MP_WORLD) {
-            if (resultCode == RESULT_OK && data != null) {
-                legacyUserInputText = data.getStringArrayExtra(EXTRA_LEGACY_INPUT_VALUES);
+        if (pendingLegacyDialogRequests.remove(requestCode)) {
+            if (requestCode == DIALOG_MAINMENU_OPTIONS) {
                 legacyUserInputStatus = 1;
-            } else {
-                legacyUserInputText = null;
-                legacyUserInputStatus = 0;
+                return;
+            }
+
+            if (requestCode == DIALOG_CREATE_NEW_WORLD || requestCode == DIALOG_RENAME_MP_WORLD) {
+                if (resultCode == RESULT_OK && data != null) {
+                    legacyUserInputText = data.getStringArrayExtra(EXTRA_LEGACY_INPUT_VALUES);
+                    legacyUserInputStatus = 1;
+                } else {
+                    legacyUserInputText = null;
+                    legacyUserInputStatus = 0;
+                }
+                return;
+            }
+
+            Log.w(TAG, "Unexpected legacy dialog result id: " + requestCode);
+            return;
+        }
+
+        if (requestCode == PICK_IMAGE_REQUEST) {
+            if (pendingSkinPickerCallback != 0L) {
+                if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                    try {
+                        Uri uri = data.getData();
+                        File skinPickerDir = new File(getCacheDir(), "skin_picker");
+                        if (!skinPickerDir.exists() && !skinPickerDir.mkdirs()) {
+                            throw new IllegalStateException("Unable to create skin picker cache: "
+                                    + skinPickerDir.getAbsolutePath());
+                        }
+                        File pickedImage = new File(skinPickerDir,
+                                "selected_skin_" + System.currentTimeMillis() + "_" + System.nanoTime() + ".png");
+                        try (InputStream input = getContentResolver().openInputStream(uri);
+                             FileOutputStream output = new FileOutputStream(pickedImage)) {
+                            if (input == null) {
+                                throw new IllegalStateException("ContentResolver returned null stream for " + uri);
+                            }
+                            byte[] buffer = new byte[16 * 1024];
+                            int read;
+                            while ((read = input.read(buffer)) != -1) {
+                                output.write(buffer, 0, read);
+                            }
+                        }
+                        pickedImage.setReadable(true, false);
+                        finishImagePick(pickedImage.getAbsolutePath());
+                    } catch (Throwable throwable) {
+                        Log.w(TAG, "Failed to import picked skin image.", throwable);
+                        finishImagePick(null);
+                    }
+                } else {
+                    finishImagePick(null);
+                }
             }
             return;
         }

@@ -36,4 +36,8 @@ public abstract class MainActivity extends NativeActivity {
     public void initializeXboxLive(long xalInitArgs, long xblInitArgs) {
         throw new RuntimeException("Stub!");
     }
+
+    native void nativeOnPickImageCanceled(long callback);
+
+    native void nativeOnPickImageSuccess(long callback, String path);
 }
