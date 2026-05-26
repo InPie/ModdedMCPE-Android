@@ -25,7 +25,11 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -303,6 +307,95 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
 
 
+    ///////////////////////////////////////////
+    // ------------ 1.19+ stuff ------------ //
+    ///////////////////////////////////////////
+
+    // 1.19+
+
+    public String[] getBroadcastAddresses() {
+        ArrayList<String> addresses = new ArrayList<>();
+        try {
+            System.setProperty("java.net.preferIPv4Stack", "true");
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = networkInterfaces.nextElement();
+                if (!networkInterface.isLoopback()) {
+                    for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+                        if (interfaceAddress.getBroadcast() != null) {
+                            addresses.add(interfaceAddress.getBroadcast().toString().substring(1));
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return addresses.toArray(new String[addresses.size()]);
+    }
+
+    boolean isChromebook() {
+        return getWindow().getContext().getPackageManager().hasSystemFeature("android.hardware.type.pc");
+    }
+
+    boolean isHardwareKeyboardHidden() {
+        return getWindow().getContext().getResources().getConfiguration().hardKeyboardHidden == 2;
+    }
+
+    boolean isTablet() {
+        if (isChromebook()) {
+            return isHardwareKeyboardHidden();
+        }
+        return getProp("ro.build.characteristics").contains("tablet");
+    }
+
+    String getProp(String propertyKey) {
+        try {
+            Class<?> systemProperties = Class.forName("android.os.SystemProperties");
+            Method getPropMethod = systemProperties.getMethod("get", String.class);
+            return (String) getPropMethod.invoke(systemProperties, propertyKey);
+        } catch (Exception exception) {
+            Log.e("MCPE", "Exception occured while getting a property [" + propertyKey + "]\n"
+                    + exception.getMessage());
+            return "";
+        }
+    }
+
+    String chromebookCompatibilityIP() {
+        return isChromebook() ? getProp("arc.net.ipv4.host_address") : "";
+    }
+
+    public String[] getIPAddresses() {
+        ArrayList<String> addresses = new ArrayList<>();
+        String chromebookCompatibilityIP = chromebookCompatibilityIP();
+        if (!chromebookCompatibilityIP.isEmpty()) {
+            addresses.add(chromebookCompatibilityIP);
+        }
+        try {
+            System.setProperty("java.net.preferIPv4Stack", "true");
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = networkInterfaces.nextElement();
+                if (!networkInterface.isLoopback() && networkInterface.isUp()) {
+                    for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
+                        InetAddress address = interfaceAddress.getAddress();
+                        if (address != null
+                                && !address.isAnyLocalAddress()
+                                && !address.isMulticastAddress()
+                                && !address.isLinkLocalAddress()) {
+                            addresses.add(interfaceAddress.getAddress().toString().substring(1));
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return addresses.toArray(new String[addresses.size()]);
+    }
+
+    // --- END: 1.19+
+
+
+
     /////////////////////////////////////////////////////
     // ------------ PATH OVERRIDES 0.14<= ------------ //
     /////////////////////////////////////////////////////
@@ -382,6 +475,8 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     ///////////////////////////////////////////////
 
     // --- Legacy methods for MCPE 0.1-0.6 UI ---
+    // ...and a half of skin picker (0.11+)
+
     public void initiateUserInput(int id) {
         legacyUserInputText = null;
         legacyUserInputStatus = -1;
@@ -772,5 +867,5 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
                 || filename.indexOf("resourcepacks") >= 0;
     }
 
-    // END: logging for debug
+    // --- END: logging for debug
 }
