@@ -64,8 +64,9 @@ adb shell am start -n me.effently.moddedmcpe/.MainActivity
  + Sign your name in the project files /app/src/res/values/strings.xml: tag "app_contributors".  
 
 ## Other launchers
- + LeviLauncher is a launcher for **modern** Minecraft: Bedrock Edition for [Android (LeviLaunchroid)](https://github.com/LiteLDev/LeviLauncher) and for [Windows (simply LeviLauncher)](<https://github.com/LiteLDev/LeviLauncher)>).  
+ + LeviLauncher is a launcher for **modern** Minecraft: Bedrock Edition for [Android (LeviLaunchroid)](https://github.com/LiteLDev/LeviLaunchroid) and for [Windows (simply LeviLauncher)](<https://github.com/LiteLDev/LeviLauncher)>).  
  + [Ninecraft](https://github.com/MCPI-Revival/Ninecraft) is mcpe 0.1.0 - 0.11.1 launcher for linux and windows (desktop).  
  + [NostalgiaLauncher](https://github.com/NLauncher/NostalgiaLauncherDesktop) is mcpe 0.1.0 - 0.11.1 launcher for linux and windows with advanced features, is based on Ninecraft.  
- + [BedrockLauncher](https://github.com/BedrockLauncher/BedrockLauncher) is a bedrock launcher for windows.  
+ + [MCLauncher](https://github.com/MCMrARM/mc-w10-version-launcher) is a bedrock launcher for windows.  
+ + [BedrockLauncher](https://github.com/BedrockLauncher/BedrockLauncher) is another bedrock launcher for windows.  
  

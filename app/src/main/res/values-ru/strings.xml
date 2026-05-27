@@ -14,7 +14,7 @@
     <string name="app_loading">Загрузка</string>
     <string name="app_loading_summary">Загрузка игры, пожалуйста подождите…</string>
     <string name="app_fatal_message_title">Критическая ошибка</string>
-    <string name="app_fatal_message_summary">При запуске игры произошла критическая ошибка. Пожалуйста, проанализируйте эту ошибку или отправьте ее разработчикам. Если это произойдет снова, попробуйте очистить данные приложения.</string>
+    <string name="app_fatal_message_summary">Произошла критическая ошибка. Пожалуйста, проанализируйте эту ошибку или отправьте ее разработчикам.</string>
     <string name="app_app_data_cleared">Очищено</string>
     <string name="app_clear_data">Очистить данные</string>
     <string name="app_copy">Копировать</string>

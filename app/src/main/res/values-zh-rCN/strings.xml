@@ -12,7 +12,7 @@
     <string name="app_exit">退出</string>
     <string name="app_options">选项</string>
     <string name="app_fatal_message_title">严重错误</string>
-    <string name="app_fatal_message_summary">发生了一个致命错误。请查看下面的错误报告，或者将它发送给开发者。如果这条消息再次出现，请尝试清除应用数据。</string>
+    <string name="app_fatal_message_summary">发生了一个致命错误。请查看下面的错误报告，或者将它发送给开发者。</string>
     <string name="app_text_divider">|</string>
     <string name="app_name">Modded MCPE</string>
     <string name="app_app_data_cleared">已清除</string>

@@ -14,7 +14,7 @@
     <string name="app_loading">Loading</string>
     <string name="app_loading_summary">Loading game,please wait.</string>
     <string name="app_fatal_message_title">Fatal Error</string>
-    <string name="app_fatal_message_summary">An unexpected fatal error has occurred while initializing game.Please analyse this error or send it to developers.If this occurred again,consider clearing app data.</string>
+    <string name="app_fatal_message_summary">An unexpected fatal error has occurred. Please analyse this error or send it to developers.</string>
     <string name="app_app_data_cleared">Cleared</string>
     <string name="app_clear_data">Clear Data</string>
     <string name="app_copy">Copy</string>
