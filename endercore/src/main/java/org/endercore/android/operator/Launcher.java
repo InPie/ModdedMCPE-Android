@@ -53,6 +53,10 @@ public final class Launcher {
     private final static String NAME_XHOOK = "libxhook.so";
     private final static String NAME_FMOD = "libfmod.so";
     private final static String NAME_GNUSTL_SHARED = "libgnustl_shared.so";
+    private final static String NAME_HTTP_CLIENT = "libHttpClient.Android.so";
+    private final static String NAME_MAESDK = "libmaesdk.so";
+    private final static String NAME_MEDIA_DECODERS = "libMediaDecoders_Android.so";
+    private final static String NAME_PLAYFAB = "libPlayFabMultiplayer.so";
     private final static String NAME_MINECRAFTPE = "libminecraftpe.so";
     private final static String NAME_ENDERCORE = "libendercore.so";
     private final static String NAME_MJSCRIPT = "libmjscript.so";
@@ -62,6 +66,10 @@ public final class Launcher {
     private final static String LIB_XHOOK = "xhook";
     private final static String LIB_FMOD = "fmod";
     private final static String LIB_GNUSTL_SHARED = "gnustl_shared";
+    private final static String LIB_HTTP_CLIENT = "HttpClient.Android";
+    private final static String LIB_MAESDK = "maesdk";
+    private final static String LIB_MEDIA_DECODERS = "MediaDecoders_Android";
+    private final static String LIB_PLAYFAB = "PlayFabMultiplayer";
     private final static String LIB_MINECRAFTPE = "minecraftpe";
     private final static String LIB_ENDERCORE = "endercore";
     private final static String LIB_MJSCRIPT = "mjscript";
@@ -181,6 +189,40 @@ public final class Launcher {
                 } else {
                     Log.e(TAG, "Native library " + NAME_GNUSTL_SHARED + " not found in " + nativeLibDir.getAbsolutePath());
                 }
+
+                // 1.21 stuff
+                Log.d(TAG, "Loading HttpClient.Android...");
+                if (new File(nativeLibDir, NAME_HTTP_CLIENT).exists()) {
+                    listener.onLoadNativeLibrary(NAME_HTTP_CLIENT);
+                    System.loadLibrary(LIB_HTTP_CLIENT);
+                } else {
+                    Log.d(TAG, "Native library " + NAME_HTTP_CLIENT + " not found. Skipping.");
+                }
+
+                Log.d(TAG, "Loading MediaDecoders_Android...");
+                if (new File(nativeLibDir, NAME_MEDIA_DECODERS).exists()) {
+                    listener.onLoadNativeLibrary(NAME_MEDIA_DECODERS);
+                    System.loadLibrary(LIB_MEDIA_DECODERS);
+                } else {
+                    Log.d(TAG, "Native library " + NAME_MEDIA_DECODERS + " not found. Skipping.");
+                }
+
+                Log.d(TAG, "Loading MAESDK...");
+                if (new File(nativeLibDir, NAME_MAESDK).exists()) {
+                    listener.onLoadNativeLibrary(NAME_MAESDK);
+                    System.loadLibrary(LIB_MAESDK);
+                } else {
+                    Log.d(TAG, "Native library " + NAME_MAESDK + " not found. Skipping.");
+                }
+
+                Log.d(TAG, "Loading PlayFabMultiplayer...");
+                if (new File(nativeLibDir, NAME_PLAYFAB).exists()) {
+                    listener.onLoadNativeLibrary(NAME_PLAYFAB);
+                    System.loadLibrary(LIB_PLAYFAB);
+                } else {
+                    Log.d(TAG, "Native library " + NAME_PLAYFAB + " not found. Skipping.");
+                }
+                // end 1.21 stuff
 
                 Log.d(TAG, "Loading Minecraft Native Library...");
                 loadMinecraftNativeLibrary(context, gamePackage.getVersionName());

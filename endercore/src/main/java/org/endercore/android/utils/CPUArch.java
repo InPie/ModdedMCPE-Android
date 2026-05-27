@@ -48,22 +48,22 @@ public final class CPUArch {
         FileInputStream fileInputStream = new FileInputStream(file);
         byte[] elfHeader = new byte[64];
         int bytesRead = fileInputStream.read(elfHeader);
+        fileInputStream.close();
         if (bytesRead < 52) {
-            throw new IOException("Could not read this elf file.");
+            throw new IOException("Could not read this elf file. Bytes read: " + bytesRead);
         }
-        int bitIdentifier = elfHeader[0x4];
-        int machineIdentifier = 0x00;
-        machineIdentifier |= (int) elfHeader[0x12] << 8;
-        machineIdentifier |= elfHeader[0x13];
+        int machineIdentifier = ((elfHeader[0x13] & 0xFF) << 8) | (elfHeader[0x12] & 0xFF);
+        
+        Log.d("EnderCore-CPUArch", "Debug ELF Machine Identifier: " + machineIdentifier + " (0x" + Integer.toHexString(machineIdentifier) + ") for file: " + file.getAbsolutePath());
 
         switch (machineIdentifier) {
-            case 40:
+            case 40: // EM_ARM
                 return ARCH_ARM_32;
-            case 183:
+            case 183: // EM_AARCH64
                 return ARCH_ARM_64;
-            case 3:
+            case 3: // EM_386
                 return ARCH_X86_32;
-            case 62:
+            case 62: // EM_X86_64
                 return ARCH_X86_64;
             default:
                 return ARCH_OTHERS;
@@ -85,6 +85,13 @@ public final class CPUArch {
     }
 
     public static String[] getSystemSupportedAbis() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (android.os.Process.is64Bit()) {
+                return Build.SUPPORTED_64_BIT_ABIS;
+            } else {
+                return Build.SUPPORTED_32_BIT_ABIS;
+            }
+        }
         return Build.SUPPORTED_ABIS;
     }
 
