@@ -74,28 +74,6 @@ public class InstanceOperator {
             new File(dexDir, "classes.dex").isFile() &&
             new File(nativeDir, "libminecraftpe.so").isFile();
 
-        // it's really not necessary, but
-        if (baseFilesReady) {
-            try {
-                int arch = org.endercore.android.utils.CPUArch.getELFArch(new File(nativeDir, "libminecraftpe.so"));
-                String archName = org.endercore.android.utils.CPUArch.getArchName(arch);
-                boolean isArchSupported = false;
-                for (String abi : org.endercore.android.utils.CPUArch.getSystemSupportedAbis()) {
-                    if (abi.equals(archName)) {
-                        isArchSupported = true;
-                        break;
-                    }
-                }
-                if (!isArchSupported) {
-                    baseFilesReady = false;
-                    Log.w(TAG, "Extracted libminecraftpe.so architecture (" + archName + ") is not supported by current process. Forcing rebuild.");
-                }
-            } catch (Exception e) {
-                baseFilesReady = false;
-                Log.w(TAG, "Failed to check libminecraftpe.so architecture. Forcing rebuild.", e);
-            }
-        }
-
         Log.d(TAG, "isBaseFilesReady: " + baseFilesReady);
 
 
