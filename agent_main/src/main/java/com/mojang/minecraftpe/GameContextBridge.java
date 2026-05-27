@@ -121,7 +121,7 @@ public final class GameContextBridge {
 
     public static boolean needsGameOnlyResources() {
         String versionName = gameVersionName;
-        return !isBlank(versionName) && compareVersion(versionName, 1, 17) >= 0;
+        return !isBlank(versionName) && compareVersion(versionName, 1, 17) >= 0 && compareVersion(versionName, 1, 21) < 0;
     }
 
     public static Resources getGameResources(Context context) {
