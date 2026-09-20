@@ -18,7 +18,7 @@ Supported minecraft versions: (what has been tested and is working)
  The launcher supports Android 7.1 to 16⠀([API](https://targetsdk.com/) 25-36)  
  
  [Download for Android](https://github.com/InPie/ModdedMCPE-Android/releases)⠀✧*｡  
- [Discord Server](https://discord.gg/sSNzZykqUR)  
+ [Discord Server](https://discord.gg/BZvDJVpvzB)  
 
 ## Some notes
 - **Status**:  
@@ -59,7 +59,7 @@ adb shell am start -n me.effently.moddedmcpe/.MainActivity
  + Help us solve the issues.  
  
 ## Make Contributions
- + [Join our discord](https://discord.gg/sSNzZykqUR)
+ + [Join our discord](https://discord.gg/BZvDJVpvzB)
  + Send us pull requests.  
  + Sign your name in the project files /app/src/res/values/strings.xml: tag "app_contributors".  
 
