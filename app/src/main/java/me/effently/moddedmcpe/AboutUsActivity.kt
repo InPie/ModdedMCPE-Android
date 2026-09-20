@@ -23,7 +23,7 @@ class AboutUsActivity : AppCompatActivity() {
     }
 
     fun onDiscordClicked(view: View) {
-        val uri: Uri = Uri.parse("https://discord.gg/hex5QrRNqa")
+        val uri: Uri = Uri.parse("https://discord.gg/BZvDJVpvzB")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }
