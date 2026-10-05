@@ -3,7 +3,7 @@
 
 **Features**:  
  + Multi-instance support.  
- + A basic list of external versions is available for download (for arm32 and arm64).  
+ + A basic list of external versions is available for download (for arm32 and arm64)*.  
  + Ability to import APK, import/export an instance with all worlds and settings.  
  + Each instance has its own dedicated space for worlds and settings.  
  + Data caching for fast game launch.  
@@ -12,8 +12,11 @@
  *NMods haven't been tested in recent builds and are not completed rn.*  
 
 Supported minecraft versions: (what has been tested and is working)  
- + Minecraft Pocket Edition: 0.1.1 - 1.1.5.1⠀(all known versions)  
- + Minecraft Bedrock: 1.16.201.01,⠀1.17.41.01  
+ + Minecraft Pocket Edition: 0.1.1 - 1.1.5.1⠀(all known versions)*  
+ + Minecraft Bedrock: 1.2.9,⠀1.5,⠀1.16.201.01,⠀1.17.41.01  
+
+*\*instead of 0.2-0.5, another broken archive builds*  
+*\*\*app is built for armv7a, an armv8a (arm64) version is possible without support for versions below 1.14 and isn't ready rn*
 
  The launcher supports Android 7.1 to 16⠀([API](https://targetsdk.com/) 25-36)  
  
