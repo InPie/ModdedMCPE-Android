@@ -14,7 +14,7 @@ android {
      * means your app can use the API features included in this API level and lower.
      */
     namespace = "me.effently.moddedmcpe"
-    compileSdk 35 // Android 15
+    compileSdk 36 // Android 16
 
     /**
      * The defaultConfig block encapsulates default settings and entries for all build variants, and
@@ -32,17 +32,17 @@ android {
         minSdk 25
 
         // Specifies the API level used to test the app.
-        targetSdk 35
+        targetSdk 36
 
         // Defines the version number of your app.
         versionCode 5
 
         // Defines a user-friendly version name for your app.
-        versionName "1.5.4"
+        versionName "1.5.5"
 
         multiDexEnabled = true
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters 'armeabi-v7a' // Only 32-bit
@@ -75,19 +75,6 @@ android {
 
     defaultConfig {
         buildConfigField "String", "BUILD_DATE", '"' + getCurrentDate() + '"'
-    }
-
-    packagingOptions {
-        jniLibs {
-            // If true, all .so files will be compressed, which will cause them to be extracted from the APK to /data/app/...
-            useLegacyPackaging = true
-        }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
 }
 

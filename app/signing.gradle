@@ -49,6 +49,11 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+        /*debug {
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
+        }*/
     }
 }
 
