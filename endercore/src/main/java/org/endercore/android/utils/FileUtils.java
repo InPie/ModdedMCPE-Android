@@ -1,5 +1,7 @@
 package org.endercore.android.utils;
 
+import android.os.Build;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,6 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 public final class FileUtils {
     public static void copy(File from, File to) throws IOException {
@@ -25,11 +30,18 @@ public final class FileUtils {
         } else {
             to.setWritable(true);
         }
-        FileChannel input = new FileInputStream(from).getChannel();
-        FileChannel output = new FileOutputStream(to).getChannel();
-        output.transferFrom(input, 0, input.size());
-        input.close();
-        output.close();
+        try (FileChannel input = new FileInputStream(from).getChannel();
+             FileChannel output = new FileOutputStream(to).getChannel()) {
+            long size = input.size();
+            long position = 0;
+            // transferFrom may copy fewer bytes than requested
+            while (position < size) {
+                long transferred = output.transferFrom(input, position, size - position);
+                if (transferred <= 0)
+                    throw new IOException("Failed to copy " + from.getAbsolutePath() + ": stopped at " + position + " of " + size + " bytes.");
+                position += transferred;
+            }
+        }
     }
 
     public static void copy(InputStream from, File to) throws IOException {
@@ -45,15 +57,37 @@ public final class FileUtils {
         } else {
             to.setWritable(true);
         }
-        FileOutputStream output = new FileOutputStream(to);
-        copy(from, output);
-        output.close();
+        try (FileOutputStream output = new FileOutputStream(to)) {
+            copy(from, output);
+        }
     }
 
     public static void copy(File from, OutputStream to) throws IOException {
-        FileInputStream input = new FileInputStream(from);
-        copy(input, to);
-        input.close();
+        try (FileInputStream input = new FileInputStream(from)) {
+            copy(input, to);
+        }
+    }
+
+    public static void writeAtomic(File target, String content) throws IOException {
+        File temp = File.createTempFile(target.getName() + ".", ".tmp", target.getAbsoluteFile().getParentFile());
+        try {
+            try (FileOutputStream output = new FileOutputStream(temp)) {
+                output.write(content.getBytes(StandardCharsets.UTF_8));
+                output.getFD().sync();
+            }
+            moveReplacing(temp, target);
+        } catch (IOException e) {
+            temp.delete();
+            throw e;
+        }
+    }
+
+    public static void moveReplacing(File from, File to) throws IOException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Files.move(from.toPath(), to.toPath(), StandardCopyOption.ATOMIC_MOVE);
+        } else if (!from.renameTo(to)) {
+            throw new IOException("Failed to move " + from.getAbsolutePath() + " to " + to.getAbsolutePath() + ".");
+        }
     }
 
     public static void copy(InputStream from, OutputStream to) throws IOException {

@@ -42,8 +42,8 @@ class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        EnderCore.instance.initialize(this, EnderCore.MODE_PUBLIC)
         CrashHandler.getInstance().init(this, FatalActivity::class.java)
+        EnderCore.instance.initialize(this, EnderCore.MODE_PUBLIC)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

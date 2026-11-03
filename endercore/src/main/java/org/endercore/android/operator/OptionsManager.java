@@ -1,23 +1,46 @@
 package org.endercore.android.operator;
 
-import com.google.gson.Gson;
+import android.util.Log;
 
-import org.endercore.android.EnderCore;
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
+
 import org.endercore.android.interf.IOptionsData;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 public final class OptionsManager {
+    private static final String TAG = "EnderCore-Options";
+
     private OptionsJsonBean optionsJsonBean;
     private final IOptionsData optionsData;
 
-    public OptionsManager(EnderCore core) throws IOException {
-        this.optionsData = core.getOptionsData();
-        this.optionsJsonBean = new Gson().fromJson(optionsData.getJSONAsString(new Gson().toJson(new OptionsJsonBean())), OptionsJsonBean.class);
-        if (optionsJsonBean == null)
-            optionsJsonBean = new OptionsJsonBean();
-        saveDataToFile();
+    public OptionsManager(IOptionsData optionsData) {
+        this.optionsData = optionsData;
+        this.optionsJsonBean = loadOptions();
+    }
+
+    // Runs on start of every process, so it must not fail or write
+    private OptionsJsonBean loadOptions() {
+        OptionsJsonBean loaded = null;
+        try {
+            loaded = new Gson().fromJson(optionsData.getJSONAsString(new Gson().toJson(new OptionsJsonBean())), OptionsJsonBean.class);
+        } catch (IOException | JsonParseException e) {
+            Log.e(TAG, "Failed to read options, using defaults.", e);
+        }
+        if (loaded == null)
+            loaded = new OptionsJsonBean();
+
+        ArrayList<NModOptionsElement> validNMods = new ArrayList<>();
+        if (loaded.installed_nmods != null) {
+            for (NModOptionsElement element : loaded.installed_nmods) {
+                if (element != null && element.uuid != null)
+                    validNMods.add(element);
+            }
+        }
+        loaded.installed_nmods = validNMods.toArray(new NModOptionsElement[0]);
+        return loaded;
     }
 
     public void setUseNMods(boolean val) {

@@ -5,8 +5,11 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
 
+import org.endercore.android.utils.FileUtils;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -49,35 +52,38 @@ public class InstanceDownloader {
             return new DownloadTask(null);
         }
 
-        Thread thread = new Thread(() -> {
-            HttpURLConnection connection = null;
-            InputStream input = null;
-            FileOutputStream output = null;
-            try {
-                Log.d(TAG, "Starting download from: " + downloadUrl);
-                URL url = new URL(downloadUrl);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(10000);
-                connection.setReadTimeout(10000);
-                connection.connect();
+        Thread thread = new Thread(() -> download(downloadUrl, destinationFile, listener));
+        thread.start();
+        return new DownloadTask(thread);
+    }
 
-                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                    throw new Exception("Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage());
-                }
+    void download(String downloadUrl, File destinationFile, DownloadListener listener) {
+        File partFile = new File(destinationFile.getPath() + ".part");
+        HttpURLConnection connection = null;
+        try {
+            Log.d(TAG, "Starting download from: " + downloadUrl);
+            URL url = new URL(downloadUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+            connection.connect();
 
-                int fileLength = connection.getContentLength();
-                Log.d(TAG, "File size: " + fileLength + " bytes");
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new Exception("Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage());
+            }
 
-                if (!destinationFile.getParentFile().exists()) {
-                    destinationFile.getParentFile().mkdirs();
-                }
+            long fileLength = connection.getContentLengthLong();
+            Log.d(TAG, "File size: " + fileLength + " bytes");
 
-                input = connection.getInputStream();
-                output = new FileOutputStream(destinationFile);
+            if (!destinationFile.getParentFile().exists()) {
+                destinationFile.getParentFile().mkdirs();
+            }
 
+            long total = 0;
+            try (InputStream input = connection.getInputStream();
+                 FileOutputStream output = new FileOutputStream(partFile)) {
                 byte[] data = new byte[4096];
-                long total = 0;
                 int count;
                 int lastProgress = -1;
 
@@ -98,25 +104,27 @@ public class InstanceDownloader {
                     }
                     output.write(data, 0, count);
                 }
-
-                Log.d(TAG, "Download finished: " + destinationFile.getAbsolutePath());
-                if (listener != null) {
-                    listener.onSuccess(destinationFile);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Download failed", e);
-                if (listener != null) {
-                    listener.onError(e);
-                }
-            } finally {
-                try {
-                    if (output != null) output.close();
-                    if (input != null) input.close();
-                } catch (Exception ignored) {}
-                if (connection != null) connection.disconnect();
+                output.getFD().sync();
             }
-        });
-        thread.start();
-        return new DownloadTask(thread);
+
+            if (fileLength > 0 && total != fileLength) {
+                throw new IOException("Download is incomplete: received " + total + " of " + fileLength + " bytes.");
+            }
+            FileUtils.moveReplacing(partFile, destinationFile);
+        } catch (Exception e) {
+            Log.e(TAG, "Download failed", e);
+            partFile.delete();
+            if (listener != null) {
+                listener.onError(e);
+            }
+            return;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+
+        Log.d(TAG, "Download finished: " + destinationFile.getAbsolutePath());
+        if (listener != null) {
+            listener.onSuccess(destinationFile);
+        }
     }
 }

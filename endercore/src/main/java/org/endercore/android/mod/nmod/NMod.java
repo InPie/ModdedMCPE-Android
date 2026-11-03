@@ -1,6 +1,7 @@
 package org.endercore.android.mod.nmod;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 
 import org.endercore.android.EnderCore;
 import org.endercore.android.exception.NModException;
@@ -25,13 +26,15 @@ public class NMod {
     public static final String NMOD_PLATFORM = "android";
 
     public NMod(EnderCore enderCore, String uuid) throws NModException {
-        try {
-            IFileEnvironment fileEnvironment = enderCore.getFileEnvironment();
-            installationDir = new File(fileEnvironment.getNModDirPathFor(uuid));
-            manifest = new Gson().fromJson(new FileReader(new File(installationDir, MANIFEST_PATH)), NModJsonBean.PackageManifest.class);
-        } catch (IOException e) {
-            throw new NModException("IO failed while loading installed nmod, uuid = " + uuid + ".", e);
+        IFileEnvironment fileEnvironment = enderCore.getFileEnvironment();
+        installationDir = new File(fileEnvironment.getNModDirPathFor(uuid));
+        try (FileReader reader = new FileReader(new File(installationDir, MANIFEST_PATH))) {
+            manifest = new Gson().fromJson(reader, NModJsonBean.PackageManifest.class);
+        } catch (IOException | JsonParseException e) {
+            throw new NModException("Failed to load installed nmod, uuid = " + uuid + ".", e);
         }
+        if (manifest == null || manifest.uuid == null)
+            throw new NModException("Manifest of installed nmod is invalid, uuid = " + uuid + ".");
     }
 
     public final String getUUID() {

@@ -5,11 +5,14 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class CrashHandler implements Thread.UncaughtExceptionHandler {
     private static final String TAG = "EnderCore-CrashHandler";
+    private static final String CRASH_PROCESS_SUFFIX = ":crash";
 
     private static CrashHandler instance;
     private Context context;
@@ -70,8 +73,13 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     public void startFatalActivity(String message) {
         try {
             String processName = getProcessName();
+            // Don't restart FatalActivity from its own process
+            if (processName.endsWith(CRASH_PROCESS_SUFFIX)) {
+                Log.e(TAG, "Crash in the crash screen process: " + message);
+                return;
+            }
             String fullMessage = "Process: " + processName + "\n\n" + message;
-            
+
             Intent intent = new Intent(context, fatalActivityClass);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             intent.putExtra("FATAL_MESSAGES", fullMessage);
@@ -86,7 +94,11 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             return android.app.Application.getProcessName();
         }
-        return "Unknown Process";
+        try {
+            return FileUtils.readFileAsString(new File("/proc/self/cmdline")).trim();
+        } catch (IOException e) {
+            return "Unknown Process";
+        }
     }
 
     public static void onNativeCrash(String reason, String stackTrace) {

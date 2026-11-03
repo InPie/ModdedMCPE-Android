@@ -21,6 +21,7 @@ import org.endercore.android.mod.nmod.NModPackage
 import org.endercore.android.utils.FileUtils
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.concurrent.Executors
@@ -96,7 +97,11 @@ class OptionsActivity : AppCompatActivity() {
                                 }
                             }
                         }
-                        EnderCore.getInstance().optionsManager.saveDataToFile()
+                        try {
+                            EnderCore.getInstance().optionsManager.saveDataToFile()
+                        } catch (e: IOException) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
                     }
             preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(listener)
         }

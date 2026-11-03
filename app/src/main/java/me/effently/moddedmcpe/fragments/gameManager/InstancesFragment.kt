@@ -32,6 +32,7 @@ import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceState
 import java.io.File
+import java.io.IOException
 import java.text.DateFormat
 import java.util.Date
 
@@ -173,8 +174,14 @@ class InstancesFragment : Fragment() {
                             updatedInstance.settings = JsonObject()
                         }
                         updatedInstance.settings.addProperty("customName", true)
-                        operator.repository.saveInstance(updatedInstance)
+                        val error = try {
+                            operator.repository.saveInstance(updatedInstance)
+                            null
+                        } catch (e: IOException) { e }
                         withContext(Dispatchers.Main) {
+                            if (error != null) {
+                                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_LONG).show()
+                            }
                             loadInstances()
                         }
                     }

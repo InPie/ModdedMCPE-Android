@@ -25,7 +25,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -33,7 +35,8 @@ import java.util.zip.ZipOutputStream;
 public class InstanceOperator {
     private static final String TAG = "InstanceOperator";
 
-    private static final String INSTANCE_FILE_NAME = "instance.json";
+    // Instances with a download or an import running in this process
+    static final Set<String> activeOperations = ConcurrentHashMap.newKeySet();
 
     private final IFileEnvironment fileEnvironment;
     private final InstanceRepository repository;
@@ -51,7 +54,41 @@ public class InstanceOperator {
     }
 
     public File getManagedApkFile(String instanceId) {
-        return new File(repository.getInstanceDir(instanceId), "apk/game.apk");
+        return repository.getManagedApkFile(instanceId);
+    }
+
+    // A process killed during a download or an import leaves these states on disk
+    public void recoverInterruptedInstances() {
+        for (GameInstance instance : repository.getInstances()) {
+            if (activeOperations.contains(instance.getId())) {
+                continue;
+            }
+            if (instance.getState() == InstanceState.DOWNLOADING) {
+                saveFailedState(instance, InstanceState.DOWNLOAD_FAILED);
+            } else if (instance.getState() == InstanceState.PREPARING) {
+                saveFailedState(instance, InstanceState.PREPARE_FAILED);
+            }
+        }
+    }
+
+    GamePackage readGamePackage(File apkFile) throws Exception {
+        return ApkGamePackageManager.getGamePackageFromApk(context, apkFile);
+    }
+
+    private void saveFailedState(GameInstance instance, InstanceState state) {
+        instance.setState(state);
+        try {
+            repository.saveInstance(instance);
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to save state of instance: " + instance.getId(), e);
+        }
+    }
+
+    private void discardFailedImport(String instanceId) {
+        if (instanceId != null) {
+            repository.deleteInstance(instanceId);
+            activeOperations.remove(instanceId);
+        }
     }
 
     // used in showInstanceInfo
@@ -72,7 +109,8 @@ public class InstanceOperator {
             nativeDir.exists() &&
             dexOptDir.exists() &&
             new File(dexDir, "classes.dex").isFile() &&
-            new File(nativeDir, "libminecraftpe.so").isFile();
+            new File(nativeDir, "libminecraftpe.so").isFile() &&
+            new GamePackageBuilder(fileEnvironment, instance.getId()).isBuildComplete(gamePackage);
 
         Log.d(TAG, "isBaseFilesReady: " + baseFilesReady);
 
@@ -150,7 +188,12 @@ public class InstanceOperator {
         GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instance.getId());
 
         if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance, gamePackage)) {
-            builder.build(gamePackage);
+            try {
+                builder.build(gamePackage);
+            } catch (LauncherException e) {
+                saveFailedState(instance, InstanceState.PREPARE_FAILED);
+                throw e;
+            }
             instance.setState(InstanceState.READY);
             Log.d(TAG, "Instance was built.");
 
@@ -191,13 +234,27 @@ public class InstanceOperator {
         
         duplicate.setPackageSnapshot(instance.getPackageSnapshot());
 
+        try {
+            copyInstanceFiles(instance, duplicate);
+            repository.saveInstance(duplicate);
+        } catch (Exception e) {
+            repository.deleteInstance(newId);
+            throw e;
+        }
+        return newId;
+    }
+
+    private void copyInstanceFiles(GameInstance instance, GameInstance duplicate) throws IOException {
+        InstanceSource source = instance.getSource();
+        String newId = duplicate.getId();
+
         switch (source.getType()) {
             case MANAGED_APK: {
                 File srcApk = getManagedApkFile(instance.getId());
                 File destApk = getManagedApkFile(newId);
                 destApk.getParentFile().mkdirs();
                 FileUtils.copy(srcApk, destApk);
-                
+
                 InstanceSource newSource = new InstanceSource(InstanceSourceType.MANAGED_APK);
                 newSource.setOrigin(source.getOrigin());
                 newSource.setUrl(source.getUrl());
@@ -213,7 +270,7 @@ public class InstanceOperator {
                 File destApk = getManagedApkFile(newId);
                 destApk.getParentFile().mkdirs();
                 FileUtils.copy(new File(pkg.getBaseApkPath()), destApk);
-                
+
                 InstanceSource newSource = new InstanceSource(InstanceSourceType.MANAGED_APK);
                 newSource.setOrigin("installed_copy");
                 duplicate.setSource(newSource);
@@ -236,9 +293,6 @@ public class InstanceOperator {
             File destDataDir = new File(repository.getInstanceDir(newId), "data");
             FileUtils.copyDirectory(srcDataDir, destDataDir);
         }
-
-        repository.saveInstance(duplicate);
-        return newId;
     }
 
     public void deleteInstance(String instanceId) {
@@ -265,13 +319,6 @@ public class InstanceOperator {
         source.setUrl(version.getUrl());
         source.setLabel(version.getName());
         gameInstance.setSource(source);
-        
-        try {
-            repository.saveInstance(gameInstance);
-        } catch (Exception e) {
-            callback.onError(e);
-            return () -> {};
-        }
 
         return startDownloadForInstance(gameInstance, callback);
     }
@@ -282,19 +329,22 @@ public class InstanceOperator {
             return () -> {};
         }
         gameInstance.setState(InstanceState.DOWNLOADING);
-        try {
-            repository.saveInstance(gameInstance);
-        } catch (Exception e) {
-            callback.onError(e);
-            return () -> {};
-        }
         return startDownloadForInstance(gameInstance, callback);
     }
 
     private Runnable startDownloadForInstance(GameInstance gameInstance, InstallCallback callback) {
+        activeOperations.add(gameInstance.getId());
+        try {
+            repository.saveInstance(gameInstance);
+        } catch (Exception e) {
+            activeOperations.remove(gameInstance.getId());
+            callback.onError(e);
+            return () -> {};
+        }
+
         File apkFile = getManagedApkFile(gameInstance.getId());
         apkFile.getParentFile().mkdirs();
-        
+
         InstanceDownloader downloader = new InstanceDownloader();
         InstanceDownloader.DownloadTask task = downloader.downloadApk(context, gameInstance.getSource().getUrl(), apkFile, new InstanceDownloader.DownloadListener() {
             @Override
@@ -310,7 +360,7 @@ public class InstanceOperator {
                     gameInstance.getSource().setOrigin("remote");
                     repository.saveInstance(gameInstance);
 
-                    GamePackage gamePackage = ApkGamePackageManager.getGamePackageFromApk(context, downloadedFile);
+                    GamePackage gamePackage = readGamePackage(downloadedFile);
                     gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
                     
                     GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, gameInstance.getId());
@@ -318,23 +368,20 @@ public class InstanceOperator {
                     
                     gameInstance.setState(InstanceState.READY);
                     repository.saveInstance(gameInstance);
-                    
-                    callback.onSuccess();
                 } catch (Exception e) {
-                    gameInstance.setState(InstanceState.PREPARE_FAILED);
-                    try {
-                        repository.saveInstance(gameInstance);
-                    } catch (Exception ignored) {}
+                    saveFailedState(gameInstance, InstanceState.PREPARE_FAILED);
+                    activeOperations.remove(gameInstance.getId());
                     callback.onError(e);
+                    return;
                 }
+                activeOperations.remove(gameInstance.getId());
+                callback.onSuccess();
             }
 
             @Override
             public void onError(Exception e) {
-                gameInstance.setState(InstanceState.DOWNLOAD_FAILED);
-                try {
-                    repository.saveInstance(gameInstance);
-                } catch (Exception ignored) {}
+                saveFailedState(gameInstance, InstanceState.DOWNLOAD_FAILED);
+                activeOperations.remove(gameInstance.getId());
                 callback.onError(e);
             }
         });
@@ -344,22 +391,20 @@ public class InstanceOperator {
 
     public void importLocalApk(File apkFile, boolean copy, InstallCallback callback) {
         new Thread(() -> {
+            String instanceId = null;
             try {
-                GamePackage gamePackage = ApkGamePackageManager.getGamePackageFromApk(context, apkFile);
-                String instanceId = UUID.randomUUID().toString().substring(0, 8) + "-" + gamePackage.getVersionName().replaceAll("[^a-zA-Z0-9.-]", "_");
-                
+                GamePackage gamePackage = readGamePackage(apkFile);
+                instanceId = UUID.randomUUID().toString().substring(0, 8) + "-" + gamePackage.getVersionName().replaceAll("[^a-zA-Z0-9.-]", "_");
+                activeOperations.add(instanceId);
+
                 GameInstance gameInstance = new GameInstance();
                 gameInstance.setId(instanceId);
                 gameInstance.setName("Custom " + gamePackage.getVersionName());
                 gameInstance.setState(InstanceState.PREPARING);
                 gameInstance.setCreatedAt(System.currentTimeMillis());
                 gameInstance.setSettings(new JsonObject());
-                
+
                 if (copy) {
-                    File destApk = getManagedApkFile(instanceId);
-                    destApk.getParentFile().mkdirs();
-                    FileUtils.copy(apkFile, destApk);
-                    
                     InstanceSource source = new InstanceSource(InstanceSourceType.MANAGED_APK);
                     source.setOrigin("imported");
                     gameInstance.setSource(source);
@@ -368,26 +413,35 @@ public class InstanceOperator {
                     source.setApkPath(apkFile.getAbsolutePath());
                     gameInstance.setSource(source);
                 }
-                
+
                 gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
+                // Saved before the copy so that an interrupted import stays listed
                 repository.saveInstance(gameInstance);
-                
+
+                if (copy) {
+                    File destApk = getManagedApkFile(instanceId);
+                    destApk.getParentFile().mkdirs();
+                    FileUtils.copy(apkFile, destApk);
+                }
+
                 GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instanceId);
                 builder.build(gamePackage);
-                
+
                 gameInstance.setState(InstanceState.READY);
                 repository.saveInstance(gameInstance);
-                
-                callback.onSuccess();
             } catch (Exception e) {
+                discardFailedImport(instanceId);
                 callback.onError(e);
+                return;
             }
+            activeOperations.remove(instanceId);
+            callback.onSuccess();
         }).start();
     }
 
     public void exportInstanceZip(String instanceId, File destinationFile) throws IOException {
         File instanceDir = repository.getInstanceDir(instanceId);
-        if (!new File(instanceDir, INSTANCE_FILE_NAME).isFile()) {
+        if (!new File(instanceDir, InstanceRepository.INSTANCE_FILE_NAME).isFile()) {
             throw new IOException("Instance metadata not found: " + instanceId);
         }
         if (destinationFile.getParentFile() != null && !destinationFile.getParentFile().exists()) {
@@ -401,12 +455,13 @@ public class InstanceOperator {
     public void importInstanceZip(File zipFile, InstallCallback callback) {
         new Thread(() -> {
             File tempDir = new File(context.getCacheDir(), "instance_zip_import_" + System.currentTimeMillis());
+            String newId = null;
             try {
                 callback.onProgress(0);
                 unzipInstance(zipFile, tempDir);
 
-                File instanceFile = new File(tempDir, INSTANCE_FILE_NAME);
-                File apkFile = new File(tempDir, "apk/game.apk");
+                File instanceFile = new File(tempDir, InstanceRepository.INSTANCE_FILE_NAME);
+                File apkFile = new File(tempDir, InstanceRepository.MANAGED_APK_PATH);
                 if (!instanceFile.isFile()) {
                     throw new IOException("ZIP does not contain instance.json.");
                 }
@@ -423,13 +478,13 @@ public class InstanceOperator {
                 }
 
                 callback.onProgress(35);
-                GamePackage gamePackage = ApkGamePackageManager.getGamePackageFromApk(context, apkFile);
-                String newId = UUID.randomUUID().toString().substring(0, 8) + "-" + safeIdPart(gamePackage.getVersionName());
+                GamePackage gamePackage = readGamePackage(apkFile);
+                newId = UUID.randomUUID().toString().substring(0, 8) + "-" + safeIdPart(gamePackage.getVersionName());
+                activeOperations.add(newId);
                 File finalDir = repository.getInstanceDir(newId);
                 if (finalDir.exists()) {
                     FileUtils.removeFiles(finalDir);
                 }
-                FileUtils.copyDirectory(tempDir, finalDir);
 
                 imported.setId(newId);
                 if (imported.getName() == null || imported.getName().trim().isEmpty()) {
@@ -445,23 +500,28 @@ public class InstanceOperator {
                 if (imported.getSettings() == null) {
                     imported.setSettings(new JsonObject());
                 }
-                repository.saveInstance(imported);
+                FileUtils.writeAtomic(instanceFile, gson.toJson(imported));
+                if (!tempDir.renameTo(finalDir)) {
+                    FileUtils.copyDirectory(tempDir, finalDir);
+                }
 
                 callback.onProgress(70);
-                GamePackage finalPackage = ApkGamePackageManager.getGamePackageFromApk(context, getManagedApkFile(newId));
+                GamePackage finalPackage = readGamePackage(getManagedApkFile(newId));
                 GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, newId);
                 builder.build(finalPackage);
                 imported.setPackageSnapshot(createPackageSnapshot(finalPackage));
                 imported.setState(InstanceState.READY);
                 repository.saveInstance(imported);
-
-                callback.onProgress(100);
-                callback.onSuccess();
             } catch (Exception e) {
+                discardFailedImport(newId);
                 callback.onError(e);
+                return;
             } finally {
                 FileUtils.removeFiles(tempDir);
             }
+            activeOperations.remove(newId);
+            callback.onProgress(100);
+            callback.onSuccess();
         }).start();
     }
 

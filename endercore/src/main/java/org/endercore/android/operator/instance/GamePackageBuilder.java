@@ -17,6 +17,7 @@ import java.util.zip.ZipFile;
 
 public class GamePackageBuilder {
     private static final String TAG = "GamePackageBuilder";
+    private static final String BUILD_MARKER_FILE_NAME = "build_complete";
 
     private final IFileEnvironment fileEnvironment;
     private final String instanceId;
@@ -28,20 +29,62 @@ public class GamePackageBuilder {
 
     public void build(GamePackage gamePackage) throws LauncherException {
         Log.d(TAG, "Starting GamePackageBuilder for instance: " + instanceId);
-        
+
         // Set Workspace
         fileEnvironment.setActiveWorkspace(instanceId);
-        
+
         File dexDir = new File(fileEnvironment.getCodeCacheDirPathForDex());
         File nativeDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
         File dexOptDir = new File(fileEnvironment.getCodeCacheDirPathForDexOpt());
+        File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
 
+        // Written last: a missing marker means an unfinished build
+        File buildMarker = getBuildMarkerFile();
+        buildMarker.delete();
+
+        try {
+            extractGameFiles(gamePackage, dexDir, nativeDir, dexOptDir, assetsDir);
+            FileUtils.writeAtomic(buildMarker, getPackageFingerprint(gamePackage));
+        } catch (IOException e) {
+            clearCache(dexDir, nativeDir, assetsDir);
+            throw new LauncherException("Failed to extract game files: " + e.getMessage(), e);
+        } catch (LauncherException e) {
+            clearCache(dexDir, nativeDir, assetsDir);
+            throw e;
+        }
+
+        Log.d(TAG, "GamePackageBuilder finished successfully.");
+    }
+
+    public boolean isBuildComplete(GamePackage gamePackage) {
+        File buildMarker = getBuildMarkerFile();
+        try {
+            return buildMarker.isFile() && getPackageFingerprint(gamePackage).equals(FileUtils.readFileAsString(buildMarker));
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to read build marker: " + buildMarker.getAbsolutePath(), e);
+            return false;
+        }
+    }
+
+    private File getBuildMarkerFile() {
+        return new File(fileEnvironment.getInstanceCacheDirPath(instanceId), BUILD_MARKER_FILE_NAME);
+    }
+
+    private String getPackageFingerprint(GamePackage gamePackage) {
+        return gamePackage.getVersionCode() + ":" + new File(gamePackage.getBaseApkPath()).length();
+    }
+
+    private void clearCache(File... cacheDirs) {
         Log.d(TAG, "Clearing cache directories...");
-        
+        for (File cacheDir : cacheDirs) {
+            FileUtils.removeFiles(cacheDir);
+        }
+    }
+
+    private void extractGameFiles(GamePackage gamePackage, File dexDir, File nativeDir, File dexOptDir, File assetsDir) throws LauncherException, IOException {
         // Clear old cache
-        FileUtils.removeFiles(dexDir);
-        FileUtils.removeFiles(nativeDir);
-        
+        clearCache(dexDir, nativeDir, assetsDir);
+
         if (!dexDir.exists() && !dexDir.mkdirs()) {
             throw new LauncherException("Failed to create dex cache directory: " + dexDir.getAbsolutePath());
         }
@@ -58,7 +101,7 @@ public class GamePackageBuilder {
         }
 
         Log.d(TAG, "Finding target ABI...");
-        
+
         // Find target arch
         String targetArch = findTargetArch(allApkFiles);
         if (targetArch == null) {
@@ -67,7 +110,7 @@ public class GamePackageBuilder {
         Log.d(TAG, "Selected ABI: " + targetArch);
 
         Log.d(TAG, "Extracting native libraries...");
-        
+
         // Extract All Native Libs for target ABI
         for (File apkFile : allApkFiles) {
             try (ZipFile zipFile = new ZipFile(apkFile)) {
@@ -84,8 +127,6 @@ public class GamePackageBuilder {
                         }
                     }
                 }
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to read APK for native libs: " + apkFile.getAbsolutePath(), e);
             }
         }
 
@@ -95,7 +136,7 @@ public class GamePackageBuilder {
         }
 
         Log.d(TAG, "Extracting dex files...");
-        
+
         // Extract Dex Files
         for (int i = 0; i < 10; ++i) {
             String dexName = "classes" + (i == 0 ? "" : i) + ".dex";
@@ -105,11 +146,14 @@ public class GamePackageBuilder {
             }
         }
 
+        if (!new File(dexDir, "classes.dex").isFile()) {
+            throw new LauncherException("Critical error: classes.dex was not found in the game package.");
+        }
+
         if (gamePackage.isVersion015AndAbove()) {
             Log.d(TAG, "Extracting all game assets...");
-            File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
             if (!assetsDir.exists() && !assetsDir.mkdirs()) {
-                Log.w(TAG, "Failed to create assets cache directory");
+                throw new LauncherException("Failed to create assets cache directory: " + assetsDir.getAbsolutePath());
             }
             for (File apkFile : allApkFiles) {
                 try (ZipFile zipFile = new ZipFile(apkFile)) {
@@ -130,15 +174,11 @@ public class GamePackageBuilder {
                             }
                         }
                     }
-                } catch (IOException e) {
-                    Log.w(TAG, "Failed to extract assets from APK: " + apkFile.getAbsolutePath(), e);
                 }
             }
         } else {
             Log.d(TAG, "Skipped assets extraction for older game version.");
         }
-
-        Log.d(TAG, "GamePackageBuilder finished successfully.");
     }
 
     private String findTargetArch(List<File> apkFiles) {
@@ -160,7 +200,7 @@ public class GamePackageBuilder {
         return null;
     }
 
-    private boolean extractFileFromApks(List<File> apkFiles, String zipPath, File destFile) {
+    private boolean extractFileFromApks(List<File> apkFiles, String zipPath, File destFile) throws IOException {
         for (File apkFile : apkFiles) {
             try (ZipFile zipFile = new ZipFile(apkFile)) {
                 ZipEntry entry = zipFile.getEntry(zipPath);
@@ -168,7 +208,6 @@ public class GamePackageBuilder {
                     FileUtils.copy(zipFile.getInputStream(entry), destFile);
                     return true;
                 }
-            } catch (IOException ignored) {
             }
         }
         return false;

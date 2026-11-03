@@ -4,7 +4,6 @@ import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.interf.IOptionsData;
 import org.endercore.android.utils.FileUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 
@@ -26,7 +25,6 @@ public class OptionsData implements IOptionsData {
 
     @Override
     public void setJSONAsString(String val) throws IOException {
-        File jsonFile = new File(environment.getOptionsFilePath());
-        FileUtils.copy(new ByteArrayInputStream(val.getBytes()), jsonFile);
+        FileUtils.writeAtomic(new File(environment.getOptionsFilePath()), val);
     }
 }

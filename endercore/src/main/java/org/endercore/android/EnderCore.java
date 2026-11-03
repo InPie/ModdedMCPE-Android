@@ -11,8 +11,6 @@ import org.endercore.android.operator.Launcher;
 import org.endercore.android.operator.NModManager;
 import org.endercore.android.operator.OptionsManager;
 
-import java.io.IOException;
-
 public final class EnderCore {
 
     private Launcher launcher;
@@ -50,19 +48,14 @@ public final class EnderCore {
         initialized = true;
         this.mode = mode;
 
-        try {
-            if (environment == null)
-                environment = new FileEnvironment(context);
-            if (optionsData == null)
-                optionsData = new OptionsData(environment);
-            optionsManager = new OptionsManager(this);
-            gamePackageManager = new GamePackageManager(context);
-            nmodManager = new NModManager(this);
-            launcher = new Launcher(this);
-        } catch (IOException ioException) {
-            initialized = false;
-            throw new RuntimeException("Initialize failed.", ioException);
-        }
+        if (environment == null)
+            environment = new FileEnvironment(context);
+        if (optionsData == null)
+            optionsData = new OptionsData(environment);
+        optionsManager = new OptionsManager(optionsData);
+        gamePackageManager = new GamePackageManager(context);
+        nmodManager = new NModManager(this);
+        launcher = new Launcher(this);
     }
 
     public void destroy() {

@@ -84,6 +84,9 @@ public class NModPreparer {
             return;
         }
 
+        // Written back when the rebuild is finished
+        stateFile.delete();
+
         File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForNModsAssets());
         Log.d(TAG, "Clearing assets cache directory: " + assetsDir.getAbsolutePath());
         FileUtils.removeFiles(assetsDir);
@@ -116,7 +119,8 @@ public class NModPreparer {
                         }
                     }
                 }
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                throw new LauncherException("Failed to extract base assets for NMods: " + e.getMessage(), e);
             }
         }
 

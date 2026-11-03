@@ -22,6 +22,7 @@ class GameManagerActivity : AppCompatActivity() {
 
         val operator = InstanceOperator(this, EnderCore.instance.fileEnvironment)
         operator.ensureInstalledGameInstanceExists()
+        operator.recoverInterruptedInstances()
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         bottomNav.setOnNavigationItemSelectedListener { item ->
