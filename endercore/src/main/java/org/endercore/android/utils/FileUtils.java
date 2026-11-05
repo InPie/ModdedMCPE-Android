@@ -91,7 +91,7 @@ public final class FileUtils {
     }
 
     public static void copy(InputStream from, OutputStream to) throws IOException {
-        byte[] buffer = new byte[1 << 10];
+        byte[] buffer = new byte[1 << 13];
         int len;
         while ((len = from.read(buffer)) > 0) {
             to.write(buffer, 0, len);
