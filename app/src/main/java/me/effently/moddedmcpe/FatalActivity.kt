@@ -8,6 +8,10 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.BuildConfig
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
@@ -16,6 +20,7 @@ import org.endercore.android.utils.CPUArch
 import org.endercore.android.utils.FileUtils
 import org.endercore.android.utils.LaunchContext
 import java.io.File
+import java.io.IOException
 
 class FatalActivity : AppCompatActivity() {
     private var message: String? = null
@@ -79,10 +84,23 @@ class FatalActivity : AppCompatActivity() {
                -----------------------
                
                """.trimIndent()
-        val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        val mClipData = ClipData.newPlainText("Modded MCPE Error Message", messageHead + message)
-        cm.setPrimaryClip(mClipData)
-        Toast.makeText(this, R.string.app_copied, Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            val logcat = withContext(Dispatchers.IO) { readRecentLogcat() }
+            val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val mClipData = ClipData.newPlainText("Modded MCPE Error Message", "$messageHead$message\n\n$logcat")
+            cm.setPrimaryClip(mClipData)
+            Toast.makeText(this@FatalActivity, R.string.app_copied, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Android only returns the log lines of this app
+    private fun readRecentLogcat(): String {
+        return try {
+            val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", LOGCAT_LINES.toString()))
+            process.inputStream.bufferedReader().use { it.readText() }
+        } catch (e: IOException) {
+            "Failed to read logcat: ${e.message}"
+        }
     }
 
     fun onClearClicked(view: View) {
@@ -107,5 +125,6 @@ class FatalActivity : AppCompatActivity() {
 
     companion object {
         const val TAG_FATAL_MESSAGES = "FATAL_MESSAGES"
+        private const val LOGCAT_LINES = 500
     }
 }
