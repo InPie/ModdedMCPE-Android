@@ -1,12 +1,10 @@
 package org.endercore.android;
 
-import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.pm.PackageManager;
 
 import java.io.File;
 
-// Files under a temporary folder, game not installed
+// Files under a temporary folder
 public final class TestContext extends ContextWrapper {
     private final File root;
 
@@ -30,10 +28,5 @@ public final class TestContext extends ContextWrapper {
         File dir = new File(root, name);
         dir.mkdirs();
         return dir;
-    }
-
-    @Override
-    public Context createPackageContext(String packageName, int flags) throws PackageManager.NameNotFoundException {
-        throw new PackageManager.NameNotFoundException();
     }
 }

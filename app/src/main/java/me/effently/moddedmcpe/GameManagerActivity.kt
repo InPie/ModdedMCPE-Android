@@ -12,14 +12,13 @@ import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 
 class GameManagerActivity : ToolbarActivity() {
+    private lateinit var operator: InstanceOperator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game_manager)
 
-        val operator = InstanceOperator(this, EnderCore.instance.fileEnvironment)
-        operator.ensureInstalledGameInstanceExists()
-        operator.recoverInterruptedInstances()
+        operator = InstanceOperator(this, EnderCore.instance.fileEnvironment)
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
         bottomNav.setOnNavigationItemSelectedListener { item ->
@@ -43,6 +42,12 @@ class GameManagerActivity : ToolbarActivity() {
         if (savedInstanceState == null) {
             bottomNav.selectedItemId = R.id.nav_instances
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        operator.ensureInstalledGameInstanceExists()
+        operator.recoverInterruptedInstances()
     }
 
     private fun loadFragment(fragment: Fragment) {
