@@ -35,6 +35,9 @@ import java.util.zip.ZipOutputStream;
 public class InstanceOperator {
     private static final String TAG = "InstanceOperator";
 
+    // Copies the game assets to a separate asset pack. Without it the game reads them from its APK.
+    private static final boolean PACK_GAME_ASSETS = false;
+
     // Instances with a download or an import running in this process
     static final Set<String> activeOperations = ConcurrentHashMap.newKeySet();
 
@@ -104,26 +107,20 @@ public class InstanceOperator {
         File nativeDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
         File dexOptDir = new File(fileEnvironment.getCodeCacheDirPathForDexOpt());
 
-        boolean baseFilesReady = cacheDir.exists() &&
+        boolean filesReady = cacheDir.exists() &&
             dexDir.exists() &&
             nativeDir.exists() &&
             dexOptDir.exists() &&
             new File(dexDir, "classes.dex").isFile() &&
             new File(nativeDir, "libminecraftpe.so").isFile() &&
-            new GamePackageBuilder(fileEnvironment, instance.getId()).isBuildComplete(gamePackage);
+            newBuilder(instance.getId()).isBuildComplete(gamePackage);
 
-        Log.d(TAG, "isBaseFilesReady: " + baseFilesReady);
+        Log.d(TAG, "isFilesReady: " + filesReady);
+        return filesReady;
+    }
 
-
-        boolean assetsFilesReady = true;
-        if (gamePackage.isVersion015AndAbove()) {
-            assetsFilesReady = new File(fileEnvironment.getCodeCacheDirPathForGameAssets()).isDirectory();
-        } else {
-            Log.d(TAG, "getVersionName: " + gamePackage.getVersionName());
-        }
-        Log.d(TAG, "isAssetsFilesReady: " + assetsFilesReady);
-
-        return baseFilesReady && assetsFilesReady;
+    private GamePackageBuilder newBuilder(String instanceId) {
+        return new GamePackageBuilder(fileEnvironment, instanceId, PACK_GAME_ASSETS);
     }
 
     public PackageSnapshot createPackageSnapshot(GamePackage gamePackage) {
@@ -185,7 +182,7 @@ public class InstanceOperator {
     public GamePackage prepareInstance(GameInstance instance) throws Exception {
         fileEnvironment.setActiveWorkspace(instance.getId());
         GamePackage gamePackage = resolveGamePackage(instance);
-        GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instance.getId());
+        GamePackageBuilder builder = newBuilder(instance.getId());
 
         if (instance.getState() != InstanceState.READY || !isInstancePrepared(instance, gamePackage)) {
             try {
@@ -363,7 +360,7 @@ public class InstanceOperator {
                     GamePackage gamePackage = readGamePackage(downloadedFile);
                     gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
                     
-                    GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, gameInstance.getId());
+                    GamePackageBuilder builder = newBuilder(gameInstance.getId());
                     builder.build(gamePackage);
                     
                     gameInstance.setState(InstanceState.READY);
@@ -424,7 +421,7 @@ public class InstanceOperator {
                     FileUtils.copy(apkFile, destApk);
                 }
 
-                GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, instanceId);
+                GamePackageBuilder builder = newBuilder(instanceId);
                 builder.build(gamePackage);
 
                 gameInstance.setState(InstanceState.READY);
@@ -507,7 +504,7 @@ public class InstanceOperator {
 
                 callback.onProgress(70);
                 GamePackage finalPackage = readGamePackage(getManagedApkFile(newId));
-                GamePackageBuilder builder = new GamePackageBuilder(fileEnvironment, newId);
+                GamePackageBuilder builder = newBuilder(newId);
                 builder.build(finalPackage);
                 imported.setPackageSnapshot(createPackageSnapshot(finalPackage));
                 imported.setState(InstanceState.READY);

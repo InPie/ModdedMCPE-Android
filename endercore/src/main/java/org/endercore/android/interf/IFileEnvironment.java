@@ -23,7 +23,7 @@ public interface IFileEnvironment {
 
     String getCodeCacheDirPathForNMods();
 
-    String getCodeCacheDirPathForGameAssets();
+    String getCodeCacheFilePathForGameAssets();
 
     String getCodeCacheDirPathForNModsAssets();
 

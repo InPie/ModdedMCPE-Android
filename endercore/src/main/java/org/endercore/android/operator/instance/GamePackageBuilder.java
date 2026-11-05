@@ -9,22 +9,30 @@ import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public class GamePackageBuilder {
     private static final String TAG = "GamePackageBuilder";
     private static final String BUILD_MARKER_FILE_NAME = "build_complete";
+    private static final String ASSETS_ENTRY_PREFIX = "assets/";
+    private static final String MANIFEST_ENTRY = "AndroidManifest.xml";
 
     private final IFileEnvironment fileEnvironment;
     private final String instanceId;
+    private final boolean packGameAssets;
 
-    public GamePackageBuilder(IFileEnvironment fileEnvironment, String instanceId) {
+    public GamePackageBuilder(IFileEnvironment fileEnvironment, String instanceId, boolean packGameAssets) {
         this.fileEnvironment = fileEnvironment;
         this.instanceId = instanceId;
+        this.packGameAssets = packGameAssets;
     }
 
     public void build(GamePackage gamePackage) throws LauncherException {
@@ -36,20 +44,23 @@ public class GamePackageBuilder {
         File dexDir = new File(fileEnvironment.getCodeCacheDirPathForDex());
         File nativeDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
         File dexOptDir = new File(fileEnvironment.getCodeCacheDirPathForDexOpt());
-        File assetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
+        File assetsPack = new File(fileEnvironment.getCodeCacheFilePathForGameAssets());
+        File cacheDir = new File(fileEnvironment.getInstanceCacheDirPath(instanceId));
 
         // Written last: a missing marker means an unfinished build
         File buildMarker = getBuildMarkerFile();
         buildMarker.delete();
+        Log.d(TAG, "Clearing cache directory...");
+        FileUtils.removeFiles(cacheDir);
 
         try {
-            extractGameFiles(gamePackage, dexDir, nativeDir, dexOptDir, assetsDir);
-            FileUtils.writeAtomic(buildMarker, getPackageFingerprint(gamePackage));
+            extractGameFiles(gamePackage, dexDir, nativeDir, dexOptDir, assetsPack);
+            FileUtils.writeAtomic(buildMarker, getBuildFingerprint(gamePackage));
         } catch (IOException e) {
-            clearCache(dexDir, nativeDir, assetsDir);
+            FileUtils.removeFiles(cacheDir);
             throw new LauncherException("Failed to extract game files: " + e.getMessage(), e);
         } catch (LauncherException e) {
-            clearCache(dexDir, nativeDir, assetsDir);
+            FileUtils.removeFiles(cacheDir);
             throw e;
         }
 
@@ -59,7 +70,7 @@ public class GamePackageBuilder {
     public boolean isBuildComplete(GamePackage gamePackage) {
         File buildMarker = getBuildMarkerFile();
         try {
-            return buildMarker.isFile() && getPackageFingerprint(gamePackage).equals(FileUtils.readFileAsString(buildMarker));
+            return buildMarker.isFile() && getBuildFingerprint(gamePackage).equals(FileUtils.readFileAsString(buildMarker));
         } catch (IOException e) {
             Log.w(TAG, "Failed to read build marker: " + buildMarker.getAbsolutePath(), e);
             return false;
@@ -70,21 +81,11 @@ public class GamePackageBuilder {
         return new File(fileEnvironment.getInstanceCacheDirPath(instanceId), BUILD_MARKER_FILE_NAME);
     }
 
-    private String getPackageFingerprint(GamePackage gamePackage) {
-        return gamePackage.getVersionCode() + ":" + new File(gamePackage.getBaseApkPath()).length();
+    private String getBuildFingerprint(GamePackage gamePackage) {
+        return gamePackage.getVersionCode() + ":" + new File(gamePackage.getBaseApkPath()).length() + ":" + packGameAssets;
     }
 
-    private void clearCache(File... cacheDirs) {
-        Log.d(TAG, "Clearing cache directories...");
-        for (File cacheDir : cacheDirs) {
-            FileUtils.removeFiles(cacheDir);
-        }
-    }
-
-    private void extractGameFiles(GamePackage gamePackage, File dexDir, File nativeDir, File dexOptDir, File assetsDir) throws LauncherException, IOException {
-        // Clear old cache
-        clearCache(dexDir, nativeDir, assetsDir);
-
+    private void extractGameFiles(GamePackage gamePackage, File dexDir, File nativeDir, File dexOptDir, File assetsPack) throws LauncherException, IOException {
         if (!dexDir.exists() && !dexDir.mkdirs()) {
             throw new LauncherException("Failed to create dex cache directory: " + dexDir.getAbsolutePath());
         }
@@ -150,34 +151,39 @@ public class GamePackageBuilder {
             throw new LauncherException("Critical error: classes.dex was not found in the game package.");
         }
 
-        if (gamePackage.isVersion015AndAbove()) {
-            Log.d(TAG, "Extracting all game assets...");
-            if (!assetsDir.exists() && !assetsDir.mkdirs()) {
-                throw new LauncherException("Failed to create assets cache directory: " + assetsDir.getAbsolutePath());
-            }
-            for (File apkFile : allApkFiles) {
+        if (packGameAssets && gamePackage.isVersion015AndAbove()) {
+            Log.d(TAG, "Packing game assets...");
+            writeAssetsPack(allApkFiles, assetsPack);
+        } else {
+            Log.d(TAG, "Skipped packing game assets.");
+        }
+    }
+
+    // A zip is the only asset path form AssetManager accepts on every Android version.
+    // Android 8 and below also require a manifest in it.
+    private void writeAssetsPack(List<File> apkFiles, File assetsPack) throws IOException {
+        Set<String> writtenEntries = new HashSet<>();
+        try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(assetsPack))) {
+            for (File apkFile : apkFiles) {
                 try (ZipFile zipFile = new ZipFile(apkFile)) {
                     Enumeration<? extends ZipEntry> entries = zipFile.entries();
                     while (entries.hasMoreElements()) {
                         ZipEntry entry = entries.nextElement();
                         String name = entry.getName();
-                        if (name.startsWith("assets/")) {
-                            File destFile = new File(assetsDir, name.substring("assets/".length()));
-                            if (entry.isDirectory()) {
-                                destFile.mkdirs();
-                            } else {
-                                File parent = destFile.getParentFile();
-                                if (parent != null && !parent.exists()) {
-                                    parent.mkdirs();
-                                }
-                                FileUtils.copy(zipFile.getInputStream(entry), destFile);
-                            }
+                        boolean isPackEntry = name.startsWith(ASSETS_ENTRY_PREFIX) || name.equals(MANIFEST_ENTRY);
+                        if (isPackEntry && !entry.isDirectory() && writtenEntries.add(name)) {
+                            ZipEntry packEntry = new ZipEntry(name);
+                            packEntry.setMethod(ZipEntry.STORED);
+                            packEntry.setSize(entry.getSize());
+                            packEntry.setCompressedSize(entry.getSize());
+                            packEntry.setCrc(entry.getCrc());
+                            output.putNextEntry(packEntry);
+                            FileUtils.copy(zipFile.getInputStream(entry), output);
+                            output.closeEntry();
                         }
                     }
                 }
             }
-        } else {
-            Log.d(TAG, "Skipped assets extraction for older game version.");
         }
     }
 

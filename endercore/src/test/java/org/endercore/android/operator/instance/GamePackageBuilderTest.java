@@ -11,18 +11,23 @@ import org.endercore.android.exception.LauncherException;
 import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.interf.implemented.FileEnvironment;
 import org.endercore.android.operator.GamePackage;
+import org.endercore.android.utils.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class GamePackageBuilderTest {
     private static final String ID = "abc12345-1.0.0";
@@ -38,13 +43,15 @@ public class GamePackageBuilderTest {
         entries.put("lib/armeabi-v7a/libminecraftpe.so", "native".getBytes(StandardCharsets.UTF_8));
         entries.put("classes.dex", "dex".getBytes(StandardCharsets.UTF_8));
         entries.put("assets/images/title.png", "png".getBytes(StandardCharsets.UTF_8));
+        entries.put("AndroidManifest.xml", "manifest".getBytes(StandardCharsets.UTF_8));
+        entries.put("res/raw/other.txt", "other".getBytes(StandardCharsets.UTF_8));
         return entries;
     }
 
     @Before
     public void setUp() {
         environment = new FileEnvironment(new TestContext(folder.getRoot()));
-        builder = new GamePackageBuilder(environment, ID);
+        builder = new GamePackageBuilder(environment, ID, true);
     }
 
     private File newApk(String name, Map<String, byte[]> entries) throws Exception {
@@ -63,8 +70,16 @@ public class GamePackageBuilderTest {
         return new File(environment.getCodeCacheDirPathForNativeLib(), "libminecraftpe.so");
     }
 
-    private File asset() {
-        return new File(environment.getCodeCacheDirPathForGameAssets(), "images/title.png");
+    private File assetsPack() {
+        return new File(environment.getInstanceCacheDirPath(ID), FileEnvironment.FILE_GAME_ASSETS);
+    }
+
+    private static String readEntry(ZipFile zipFile, String name) throws Exception {
+        try (InputStream input = zipFile.getInputStream(zipFile.getEntry(name));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            FileUtils.copy(input, output);
+            return output.toString(StandardCharsets.UTF_8.name());
+        }
     }
 
     @Test
@@ -75,7 +90,49 @@ public class GamePackageBuilderTest {
 
         assertTrue(builder.isBuildComplete(gamePackage));
         assertEquals("native", TestFiles.read(nativeLib()));
-        assertEquals("png", TestFiles.read(asset()));
+    }
+
+    @Test
+    public void assetsPackKeepsApkLayout() throws Exception {
+        builder.build(gamePackage(1, newApk("game.apk", apkEntries())));
+
+        try (ZipFile pack = new ZipFile(assetsPack())) {
+            assertEquals(2, pack.size());
+            assertEquals("png", readEntry(pack, "assets/images/title.png"));
+            assertEquals("manifest", readEntry(pack, "AndroidManifest.xml"));
+            assertEquals(ZipEntry.STORED, pack.getEntry("assets/images/title.png").getMethod());
+        }
+    }
+
+    @Test
+    public void assetsPackTakesFirstOfDuplicateEntries() throws Exception {
+        Map<String, byte[]> splitEntries = new LinkedHashMap<>();
+        splitEntries.put("assets/images/title.png", "split".getBytes(StandardCharsets.UTF_8));
+
+        builder.build(gamePackage(1, newApk("game.apk", apkEntries()), newApk("split.apk", splitEntries)));
+
+        try (ZipFile pack = new ZipFile(assetsPack())) {
+            assertEquals("png", readEntry(pack, "assets/images/title.png"));
+        }
+    }
+
+    @Test
+    public void assetsAreNotPackedWhenDisabled() throws Exception {
+        GamePackageBuilder withoutPack = new GamePackageBuilder(environment, ID, false);
+        GamePackage gamePackage = gamePackage(1, newApk("game.apk", apkEntries()));
+
+        withoutPack.build(gamePackage);
+
+        assertTrue(withoutPack.isBuildComplete(gamePackage));
+        assertFalse(assetsPack().exists());
+    }
+
+    @Test
+    public void changingAssetsPackSettingRequiresRebuild() throws Exception {
+        GamePackage gamePackage = gamePackage(1, newApk("game.apk", apkEntries()));
+        builder.build(gamePackage);
+
+        assertFalse(new GamePackageBuilder(environment, ID, false).isBuildComplete(gamePackage));
     }
 
     @Test
@@ -121,8 +178,7 @@ public class GamePackageBuilderTest {
         assertThrows(LauncherException.class, () -> builder.build(gamePackage));
 
         assertFalse(builder.isBuildComplete(gamePackage));
-        assertFalse(new File(environment.getInstanceCacheDirPath(ID), "build_complete").exists());
-        assertFalse(asset().exists());
+        assertFalse(new File(environment.getInstanceCacheDirPath(ID)).exists());
     }
 
     @Test
@@ -135,16 +191,13 @@ public class GamePackageBuilderTest {
     }
 
     @Test
-    public void rebuildRemovesStaleAssets() throws Exception {
-        File apk = newApk("game.apk", apkEntries());
-        GamePackage gamePackage = gamePackage(1, apk);
-        builder.build(gamePackage);
-        File staleAsset = new File(environment.getCodeCacheDirPathForGameAssets(), "stale.png");
-        TestFiles.write(staleAsset, "stale");
+    public void rebuildRemovesEverythingFromOldCache() throws Exception {
+        File staleDir = new File(environment.getInstanceCacheDirPath(ID), FileEnvironment.DIR_ASSETS);
+        TestFiles.write(new File(staleDir, "images/title.png"), "stale");
 
-        builder.build(gamePackage);
+        builder.build(gamePackage(1, newApk("game.apk", apkEntries())));
 
-        assertFalse(staleAsset.exists());
+        assertFalse(staleDir.exists());
     }
 
     @Test
@@ -161,7 +214,7 @@ public class GamePackageBuilderTest {
 
         builder.build(gamePackage);
 
-        assertTrue(new File(environment.getInstanceCacheDirPath(ID), "game_assets/images/title.png").isFile());
+        assertTrue(assetsPack().isFile());
         assertFalse(new File(environment.getInstanceCacheDirPath("other")).exists());
     }
 }

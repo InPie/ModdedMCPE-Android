@@ -19,6 +19,7 @@ public class FileEnvironment implements IFileEnvironment {
     public final static String DIR_DEX_LIBS = "dex_libs";
     public final static String DIR_DEX_OPT = "opt";
     public final static String DIR_ASSETS = "game_assets";
+    public final static String FILE_GAME_ASSETS = "game_assets.zip";
 
     public final static String DATA_FILE_ENDERCORE_OPTIONS = "options.json";
 
@@ -97,9 +98,9 @@ public class FileEnvironment implements IFileEnvironment {
     }
 
     @Override
-    public String getCodeCacheDirPathForGameAssets() {
+    public String getCodeCacheFilePathForGameAssets() {
         checkWorkspace();
-        return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_ASSETS;
+        return getInstanceCacheDirPath(activeInstanceId) + File.separator + FILE_GAME_ASSETS;
     }
 
     @Override

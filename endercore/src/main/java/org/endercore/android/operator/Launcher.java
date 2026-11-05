@@ -333,9 +333,9 @@ public final class Launcher {
             listener.onArrange();
             
             //  game assets
-            File gameAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForGameAssets());
-            if (gameAssetsDir.exists()) {
-                patchAssetPath.add(gameAssetsDir.getAbsolutePath());
+            File gameAssetsPack = new File(fileEnvironment.getCodeCacheFilePathForGameAssets());
+            if (gameAssetsPack.exists()) {
+                patchAssetPath.add(gameAssetsPack.getAbsolutePath());
             }
             //  nmods patched assets
             File nmodsAssetsDir = new File(fileEnvironment.getCodeCacheDirPathForNModsAssets());
