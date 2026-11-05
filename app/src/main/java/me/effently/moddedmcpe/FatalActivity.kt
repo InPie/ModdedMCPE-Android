@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.BuildConfig
+import me.effently.moddedmcpe.ui.applySystemInsetsAsPadding
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
@@ -32,6 +33,7 @@ class FatalActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_fatal)
+        findViewById<View>(R.id.fatal_root).applySystemInsetsAsPadding()
         message = intent.getStringExtra(TAG_FATAL_MESSAGES)
         if (message == null) return
         val gamePackageManager = EnderCore.instance.gamePackageManager

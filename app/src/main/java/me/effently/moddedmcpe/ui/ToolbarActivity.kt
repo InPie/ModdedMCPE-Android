@@ -26,9 +26,7 @@ abstract class ToolbarActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.toolbar_root)) { _, windowInsets ->
-            val insets = windowInsets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime()
-            )
+            val insets = windowInsets.systemInsets
             toolbar.updatePadding(left = insets.left, top = insets.top, right = insets.right)
             contentContainer.updatePadding(left = insets.left, right = insets.right, bottom = insets.bottom)
             WindowInsetsCompat.CONSUMED

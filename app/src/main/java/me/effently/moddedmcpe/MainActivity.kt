@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import me.effently.moddedmcpe.BuildConfig
+import me.effently.moddedmcpe.ui.applySystemInsetsAsPadding
 import androidx.core.net.toUri
 
 
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        findViewById<View>(R.id.main_root).applySystemInsetsAsPadding()
         findViewById<TextView>(R.id.version_name_textview).text = BuildConfig.VERSION_NAME
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
