@@ -1,7 +1,6 @@
 package me.effently.moddedmcpe.fragments.gameManager
 
 import android.app.AlertDialog
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -24,7 +23,6 @@ import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.utils.InstanceUIHelper
 import org.endercore.android.EnderCore
@@ -257,9 +255,7 @@ class InstancesFragment : Fragment() {
             return
         }
 
-        val intent = Intent(context, InitializingActivity::class.java)
-        intent.putExtra("INSTANCE_ID", instance.id)
-        startActivity(intent)
+        InstanceUIHelper.launchInstance(requireContext(), instance)
     }
 
     private fun deleteInstance(instance: GameInstance) {

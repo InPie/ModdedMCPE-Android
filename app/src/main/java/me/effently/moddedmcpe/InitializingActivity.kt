@@ -30,7 +30,7 @@ class InitializingActivity : AppCompatActivity() {
                 })
                 try {
                     val core = EnderCore.instance
-                    val instanceId = intent.getStringExtra("INSTANCE_ID")
+                    val instanceId = LaunchContext.getInstanceId(intent)
                         ?: throw LauncherException("Instance id is missing.")
                     LaunchContext.setActiveInstanceId(instanceId)
                     val operator = InstanceOperator(this@InitializingActivity, core.fileEnvironment)

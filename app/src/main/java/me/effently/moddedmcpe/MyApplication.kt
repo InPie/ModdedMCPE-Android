@@ -31,6 +31,7 @@ class MyApplication : Application() {
     companion object {
         private const val TAG = "Modded-MCPE-UI"
         private const val AGENT_ACTIVITY = "com.mojang.minecraftpe.AgentMainActivity"
+        const val GAME_PROCESS_SUFFIX = ":game"
     }
 
     // In-Game buttons
@@ -88,7 +89,7 @@ class MyApplication : Application() {
             it.pid == pid
         }?.processName
 
-        if (processName?.endsWith(":game") == true) {
+        if (processName?.endsWith(GAME_PROCESS_SUFFIX) == true) {
             mainHandler.post {
                 Log.d(TAG, "Game Finished: ${processName}")
                 android.os.Process.killProcess(pid)
@@ -102,7 +103,7 @@ class MyApplication : Application() {
         val processName = activityManager.runningAppProcesses?.firstOrNull {
             it.pid == pid
         }?.processName
-        return processName?.endsWith(":game") == true
+        return processName?.endsWith(GAME_PROCESS_SUFFIX) == true
     }
 
     private fun installXboxPatchIfNeeded(activity: Activity) {

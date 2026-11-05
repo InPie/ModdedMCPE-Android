@@ -1,11 +1,14 @@
 package me.effently.moddedmcpe.utils
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Process
 import android.view.LayoutInflater
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -14,12 +17,31 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.effently.moddedmcpe.InitializingActivity
+import me.effently.moddedmcpe.MyApplication
 import me.effently.moddedmcpe.R
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.RemoteVersion
+import org.endercore.android.utils.LaunchContext
 
 object InstanceUIHelper {
+
+    fun launchInstance(context: Context, instance: GameInstance) {
+        killGameProcess(context)
+        context.startActivity(
+            Intent(context, InitializingActivity::class.java)
+                .putExtra(LaunchContext.EXTRA_INSTANCE_ID, instance.id)
+        )
+    }
+
+    // Game code can't be unloaded from a process, and a new launch would run on top of it
+    private fun killGameProcess(context: Context) {
+        val gameProcessName = context.packageName + MyApplication.GAME_PROCESS_SUFFIX
+        context.getSystemService(ActivityManager::class.java)?.runningAppProcesses
+            ?.firstOrNull { it.processName == gameProcessName }
+            ?.let { Process.killProcess(it.pid) }
+    }
 
     fun isNetworkAvailable(context: Context): Boolean {
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return false
