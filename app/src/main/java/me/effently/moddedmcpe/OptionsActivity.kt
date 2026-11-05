@@ -6,14 +6,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import me.effently.moddedmcpe.ui.ToolbarActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.exception.NModException
 import org.endercore.android.mod.nmod.NMod
@@ -27,7 +26,7 @@ import java.io.StringWriter
 import java.util.concurrent.Executors
 
 
-class OptionsActivity : AppCompatActivity() {
+class OptionsActivity : ToolbarActivity() {
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pickNModPackage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -41,7 +40,6 @@ class OptionsActivity : AppCompatActivity() {
                 .beginTransaction()
                 .replace(R.id.viewOptions, OptionsFragment())
                 .commit()
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     fun onManageNModsClicked() {
@@ -149,13 +147,6 @@ class OptionsActivity : AppCompatActivity() {
             }
             mainHandler.post { showNModInstallSucceed(nmod) }
         }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     override fun onDestroy() {

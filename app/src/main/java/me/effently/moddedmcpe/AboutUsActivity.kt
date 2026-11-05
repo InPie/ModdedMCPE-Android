@@ -3,17 +3,14 @@ package me.effently.moddedmcpe
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.MenuItem
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
+import me.effently.moddedmcpe.ui.ToolbarActivity
 
 
-class AboutUsActivity : AppCompatActivity() {
+class AboutUsActivity : ToolbarActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_about_us)
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     fun onSourcesClicked(view: View) {
@@ -32,12 +29,5 @@ class AboutUsActivity : AppCompatActivity() {
         val uri: Uri = Uri.parse("https://github.com/InPie/ModdedMCPE-Android/releases")
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

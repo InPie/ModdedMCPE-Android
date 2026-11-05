@@ -6,20 +6,19 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
-import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.legacy_mcpe.LegacyMcpe
+import me.effently.moddedmcpe.ui.ToolbarActivity
 
-class LegacyRenameWorldActivity : AppCompatActivity() {
+class LegacyRenameWorldActivity : ToolbarActivity() {
     private lateinit var worldNameInput: TextInputEditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.legacy_rename_world_title)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setContentView(createContent())
     }
 

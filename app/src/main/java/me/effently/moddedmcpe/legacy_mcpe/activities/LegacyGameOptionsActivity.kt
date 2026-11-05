@@ -2,7 +2,6 @@ package me.effently.moddedmcpe.legacy_mcpe.activities
 
 import android.os.Bundle
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceCategory
@@ -12,10 +11,11 @@ import androidx.preference.SwitchPreferenceCompat
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.legacy_mcpe.LegacyMcpe
 import me.effently.moddedmcpe.legacy_mcpe.LegacyMcpeProfile
+import me.effently.moddedmcpe.ui.ToolbarActivity
 import java.io.File
 import java.util.Properties
 
-class LegacyGameOptionsActivity : AppCompatActivity() {
+class LegacyGameOptionsActivity : ToolbarActivity() {
     companion object {
         private const val TAG = "Modded-MCPE-UI-LegacyMcpe-Options"
     }
@@ -23,9 +23,8 @@ class LegacyGameOptionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         title = getString(R.string.legacy_options_title)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportFragmentManager.beginTransaction()
-            .replace(android.R.id.content, LegacyGameOptionsFragment())
+            .replace(R.id.toolbar_content, LegacyGameOptionsFragment())
             .commit()
     }
 

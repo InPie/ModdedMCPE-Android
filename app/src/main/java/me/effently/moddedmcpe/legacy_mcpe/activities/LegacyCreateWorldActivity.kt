@@ -7,7 +7,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
@@ -15,8 +14,9 @@ import com.google.android.material.textfield.TextInputLayout
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.legacy_mcpe.LegacyMcpe
 import me.effently.moddedmcpe.legacy_mcpe.LegacyMcpeProfile
+import me.effently.moddedmcpe.ui.ToolbarActivity
 
-class LegacyCreateWorldActivity : AppCompatActivity() {
+class LegacyCreateWorldActivity : ToolbarActivity() {
     private lateinit var worldNameInput: TextInputEditText
     private lateinit var seedInput: TextInputEditText
     private var gameModeGroup: MaterialButtonToggleGroup? = null
@@ -27,7 +27,6 @@ class LegacyCreateWorldActivity : AppCompatActivity() {
         val instanceId = LegacyMcpe.instanceId(this)
         profile = LegacyMcpe.resolveProfile(instanceId)
         title = getString(R.string.legacy_create_world_title)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setContentView(createContent())
     }
 

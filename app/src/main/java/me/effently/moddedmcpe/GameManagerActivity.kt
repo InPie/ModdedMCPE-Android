@@ -1,24 +1,21 @@
 package me.effently.moddedmcpe
 
 import android.os.Bundle
-import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.fragments.gameManager.AddonsFragment
 import me.effently.moddedmcpe.fragments.gameManager.InstancesFragment
 import me.effently.moddedmcpe.fragments.gameManager.VersionsFragment
+import me.effently.moddedmcpe.ui.ToolbarActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 
-class GameManagerActivity : AppCompatActivity() {
+class GameManagerActivity : ToolbarActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game_manager)
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val operator = InstanceOperator(this, EnderCore.instance.fileEnvironment)
         operator.ensureInstalledGameInstanceExists()
@@ -46,13 +43,6 @@ class GameManagerActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             bottomNav.selectedItemId = R.id.nav_instances
         }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     private fun loadFragment(fragment: Fragment) {

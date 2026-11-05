@@ -4,28 +4,26 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import me.effently.moddedmcpe.ui.ToolbarActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.mod.nmod.NMod
 import org.endercore.android.operator.NModManager
 import java.io.FileNotFoundException
 
-class ManageNModsActivity : AppCompatActivity() {
+class ManageNModsActivity : ToolbarActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_manage_nmods)
 
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         val recyclerView = findViewById<RecyclerView>(R.id.manageNModsRecycler)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = NModsAdapter(EnderCore.instance.nModManager, this)
@@ -85,12 +83,5 @@ class ManageNModsActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

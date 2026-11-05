@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="AppTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/mc_green</item>
         <item name="colorPrimaryDark">@color/mc_green_dark</item>
         <item name="colorAccent">@color/mc_green_light</item>
