@@ -5,6 +5,7 @@ import android.os.Build;
 import android.util.Log;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -32,13 +33,12 @@ public final class Patcher {
         Object dexElements = field2.get(dexPathList);
 
         Object[] patchDexElements = null;
-        List<java.io.IOException> suppressedExceptions = null;
+        List<IOException> suppressedExceptions = new ArrayList<>();
 
         if (Build.VERSION.SDK_INT >= 26) {
             // Android 8.0+ (restricts DexFile to a single ClassLoader)
             java.util.ArrayList<File> files = new java.util.ArrayList<>();
             files.add(new File(dexFilePath));
-            suppressedExceptions = new java.util.ArrayList<>();
             try {
                 //  using makeDexElements and passing the target classLoader directly
                 //  if needed check compatibility with the latest Android version
@@ -60,7 +60,7 @@ public final class Patcher {
         }
 
         if (patchDexElements == null || Array.getLength(patchDexElements) == 0) {
-            return;
+            throw new IOException("Failed to load dex file " + dexFilePath + ": " + suppressedExceptions);
         }
 
         Object concatArray;
@@ -70,9 +70,6 @@ public final class Patcher {
         int totalLen = len1 + len2;
         Log.d(TAG, "patchDexFile " + new File(dexFilePath).getName()
                 + ": new=" + len1 + ", old=" + len2 + ", total=" + totalLen);
-        if (suppressedExceptions != null && !suppressedExceptions.isEmpty()) {
-            Log.w(TAG, "Suppressed dex load exceptions: " + suppressedExceptions);
-        }
         concatArray = Array.newInstance(patchDexElements.getClass().getComponentType(), totalLen);
         for (int i = 0; i < len1; i++) {
             Array.set(concatArray, i, Array.get(patchDexElements, i));
