@@ -37,8 +37,6 @@ import java.util.Date
 import android.provider.OpenableColumns
 import org.endercore.android.operator.instance.model.InstanceSourceType
 
-const val INSTALLED_MCPE_INSTANCE_ID = "installed-minecraftpe"
-
 class InstancesFragment : Fragment() {
     private lateinit var recyclerInstances: RecyclerView
     private lateinit var adapter: InstancesAdapter

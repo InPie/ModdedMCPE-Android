@@ -43,7 +43,7 @@ public final class GamePackageManager {
                 packageInfo.versionCode,
                 applicationInfo.sourceDir,
                 availableApkFiles,
-                "Installed " + packageInfo.versionName
+                "Installed " + (packageInfo.versionName != null ? packageInfo.versionName : "MCPE")
         );
     }
 }

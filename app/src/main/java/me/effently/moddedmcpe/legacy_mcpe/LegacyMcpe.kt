@@ -2,6 +2,7 @@ package me.effently.moddedmcpe.legacy_mcpe
 
 import android.content.Context
 import android.util.Log
+import com.mojang.minecraftpe.AgentMainActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceRepository
 import org.endercore.android.utils.LaunchContext
@@ -13,7 +14,7 @@ enum class LegacyMcpeProfile {
 }
 
 object LegacyMcpe {
-    const val EXTRA_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES"
+    const val EXTRA_INPUT_VALUES = AgentMainActivity.EXTRA_LEGACY_INPUT_VALUES
 
     private const val TAG = "Modded-MCPE-UI-LegacyMcpe"
 

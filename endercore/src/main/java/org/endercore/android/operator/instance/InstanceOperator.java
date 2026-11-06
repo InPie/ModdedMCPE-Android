@@ -34,6 +34,7 @@ import java.util.zip.ZipOutputStream;
 
 public class InstanceOperator {
     private static final String TAG = "InstanceOperator";
+    private static final String INSTALLED_INSTANCE_ID = "installed-minecraftpe";
 
     // Copies the game assets to a separate asset pack. Without it the game reads them from its APK.
     private static final boolean PACK_GAME_ASSETS = false;
@@ -165,11 +166,7 @@ public class InstanceOperator {
                 return ApkGamePackageManager.getGamePackageFromApk(context, new File(source.getApkPath()));
             }
             case INSTALLED_PACKAGE: {
-                GamePackage pkg = EnderCore.getInstance().getGamePackageManager().getGamePackage();
-                if (pkg == null) {
-                    throw new LauncherException("Installed MCPE package is not available.");
-                }
-                return pkg;
+                return requireInstalledPackage();
             }
             case REMOTE_APK: {
                 throw new LauncherException("Remote instance is not downloaded yet: " + instance.getName());
@@ -210,6 +207,14 @@ public class InstanceOperator {
         return gamePackage;
     }
 
+    private GamePackage requireInstalledPackage() throws LauncherException {
+        GamePackage gamePackage = EnderCore.getInstance().getGamePackageManager().getGamePackage();
+        if (gamePackage == null) {
+            throw new LauncherException("Installed MCPE package is not available.");
+        }
+        return gamePackage;
+    }
+
     public String duplicateInstance(GameInstance instance) throws Exception {
         InstanceSource source = instance.getSource();
         if (source == null) {
@@ -241,7 +246,7 @@ public class InstanceOperator {
         return newId;
     }
 
-    private void copyInstanceFiles(GameInstance instance, GameInstance duplicate) throws IOException {
+    private void copyInstanceFiles(GameInstance instance, GameInstance duplicate) throws IOException, LauncherException {
         InstanceSource source = instance.getSource();
         String newId = duplicate.getId();
 
@@ -260,10 +265,7 @@ public class InstanceOperator {
                 break;
             }
             case INSTALLED_PACKAGE: {
-                GamePackage pkg = EnderCore.getInstance().getGamePackageManager().getGamePackage();
-                if (pkg == null) {
-                    throw new IllegalStateException("Installed MCPE package is not available.");
-                }
+                GamePackage pkg = requireInstalledPackage();
                 File destApk = getManagedApkFile(newId);
                 destApk.getParentFile().mkdirs();
                 FileUtils.copy(new File(pkg.getBaseApkPath()), destApk);
@@ -580,10 +582,10 @@ public class InstanceOperator {
         GamePackage installedPackage = EnderCore.getInstance().getGamePackageManager().getGamePackage();
         try {
             if (installedPackage != null) {
-                GameInstance instance = repository.getInstance("installed-minecraftpe");
+                GameInstance instance = repository.getInstance(INSTALLED_INSTANCE_ID);
                 if (instance == null) {
                     instance = new GameInstance();
-                    instance.setId("installed-minecraftpe");
+                    instance.setId(INSTALLED_INSTANCE_ID);
                     instance.setCreatedAt(System.currentTimeMillis());
                     instance.setSettings(new JsonObject());
                 }
@@ -593,7 +595,7 @@ public class InstanceOperator {
                 boolean hasCustomName = instance.getSettings().has("customName") &&
                         instance.getSettings().get("customName").getAsBoolean();
                 if (!hasCustomName) {
-                    instance.setName("Installed " + (installedPackage.getVersionName() != null ? installedPackage.getVersionName() : "MCPE"));
+                    instance.setName(installedPackage.getSourceLabel());
                 }
                 InstanceSource source = new InstanceSource(InstanceSourceType.INSTALLED_PACKAGE);
                 source.setPackageName(installedPackage.getPackageName());
@@ -602,7 +604,7 @@ public class InstanceOperator {
                 instance.setState(isInstancePrepared(instance, installedPackage) ? InstanceState.READY : InstanceState.REBUILD_REQUIRED);
                 repository.saveInstance(instance);
             } else {
-                GameInstance instance = repository.getInstance("installed-minecraftpe");
+                GameInstance instance = repository.getInstance(INSTALLED_INSTANCE_ID);
                 if (instance != null) {
                     instance.setState(InstanceState.MISSING_SOURCE);
                     repository.saveInstance(instance);

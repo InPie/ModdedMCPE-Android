@@ -65,11 +65,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private int getImageDataLogCount = 0;
 
     private static final String TAG = "EnderCore-AgentMain";
-    private static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
+    public static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
     private static final String IAB_BROADCAST_ACTION = "com.android.vending.billing.PURCHASES_UPDATED";
     private static final int PICK_IMAGE_REQUEST = 0x4D51;
     // legacy mcpe 0.1-0.6
-    private static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
+    public static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
     private static final int DIALOG_MAINMENU_OPTIONS = 3;
     private static final int DIALOG_RENAME_MP_WORLD = 4;

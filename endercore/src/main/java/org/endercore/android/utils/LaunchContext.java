@@ -2,8 +2,10 @@ package org.endercore.android.utils;
 
 import android.content.Intent;
 
+import com.mojang.minecraftpe.AgentMainActivity;
+
 public final class LaunchContext {
-    public static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
+    public static final String EXTRA_INSTANCE_ID = AgentMainActivity.EXTRA_INSTANCE_ID;
 
     private static String activeInstanceId;
 
