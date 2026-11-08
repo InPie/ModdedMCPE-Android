@@ -97,10 +97,7 @@ public final class NModManager {
         File installationPath = new File(fileEnvironment.getNModDirPathFor(uuid));
         FileUtils.removeFiles(installationPath);
         core.getOptionsManager().removeNModElement(uuid);
-        for (NMod nmod : allNMods) {
-            if (nmod.getUUID().equals(uuid))
-                allNMods.remove(nmod);
-        }
+        allNMods.removeIf(nmod -> nmod.getUUID().equals(uuid));
     }
 
     public boolean hasNewerVersionInstalled(NModPackage newPackage) {

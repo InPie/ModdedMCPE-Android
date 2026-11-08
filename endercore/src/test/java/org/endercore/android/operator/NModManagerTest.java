@@ -67,4 +67,14 @@ public class NModManagerTest {
         assertTrue(core.getNModManager().getAllNMods().isEmpty());
     }
 
+    @Test
+    public void uninstallRemovesOnlyNMod() throws Exception {
+        core.getNModManager().installNMod(newPackage("android/data.txt", "data"));
+
+        core.getNModManager().uninstallNMod(UUID);
+
+        assertTrue(core.getNModManager().getAllNMods().isEmpty());
+        assertFalse(installationDir().exists());
+        assertEquals(0, core.getOptionsManager().getInstalledNMods().length);
+    }
 }
