@@ -553,14 +553,10 @@ public class InstanceOperator {
             throw new IOException("Failed to create temp import directory: " + destinationDir.getAbsolutePath());
         }
 
-        String destinationPath = destinationDir.getCanonicalPath() + File.separator;
         try (ZipInputStream input = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
             while ((entry = input.getNextEntry()) != null) {
-                File target = new File(destinationDir, entry.getName());
-                if (!target.getCanonicalPath().startsWith(destinationPath)) {
-                    throw new IOException("Invalid ZIP entry path: " + entry.getName());
-                }
+                File target = FileUtils.resolveInside(destinationDir, entry.getName());
                 if (entry.isDirectory()) {
                     target.mkdirs();
                 } else {

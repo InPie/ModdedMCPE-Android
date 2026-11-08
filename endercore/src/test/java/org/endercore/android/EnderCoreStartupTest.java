@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 
 public class EnderCoreStartupTest {
     private static final String NMOD_UUID = "6f1c3a52-2c1f-4c8e-9d43-0a7b1f2e3d4c";
@@ -26,11 +25,7 @@ public class EnderCoreStartupTest {
     }
 
     private EnderCore startCore() throws Exception {
-        Constructor<EnderCore> constructor = EnderCore.class.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        EnderCore core = constructor.newInstance();
-        core.initialize(new TestContext(folder.getRoot()), EnderCore.MODE_PUBLIC);
-        return core;
+        return TestCore.start(folder.getRoot());
     }
 
     @Test

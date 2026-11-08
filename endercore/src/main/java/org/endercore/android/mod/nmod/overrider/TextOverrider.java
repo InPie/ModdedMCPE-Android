@@ -1,5 +1,7 @@
 package org.endercore.android.mod.nmod.overrider;
 
+import org.endercore.android.utils.FileUtils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -17,29 +19,29 @@ public final class TextOverrider extends BaseOverrider {
 
     @Override
     public void performOverride(File root, String name, String mode) throws IOException {
-        File sourceFile = new File(root, name);
-        FileInputStream inputStream = new FileInputStream(sourceFile);
+        File target = FileUtils.resolveInside(overridePath, name);
+        FileInputStream inputStream = new FileInputStream(FileUtils.resolveInside(root, name));
         byte[] bufferAll = new byte[inputStream.available()];
         int sizeRead = inputStream.read(bufferAll);
 
         switch (mode) {
             case "replace": {
-                FileOutputStream outputStream = new FileOutputStream(new File(overridePath, name), false);
+                FileOutputStream outputStream = new FileOutputStream(target, false);
                 outputStream.write(bufferAll);
                 break;
             }
             case "append": {
-                FileOutputStream outputStream = new FileOutputStream(new File(overridePath, name), true);
+                FileOutputStream outputStream = new FileOutputStream(target, true);
                 outputStream.write(bufferAll);
                 break;
             }
             case "prepend": {
-                FileInputStream inputOri = new FileInputStream(new File(overridePath, name));
+                FileInputStream inputOri = new FileInputStream(target);
 
                 byte[] bufferOri = new byte[inputOri.available()];
                 int bytesReadOri = inputOri.read(bufferOri);
                 inputOri.close();
-                FileOutputStream outputStream = new FileOutputStream(new File(overridePath, name));
+                FileOutputStream outputStream = new FileOutputStream(target);
                 outputStream.write(bufferAll);
                 outputStream.write(bufferOri);
                 break;

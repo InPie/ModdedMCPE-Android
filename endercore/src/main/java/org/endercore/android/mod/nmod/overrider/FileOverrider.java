@@ -3,8 +3,6 @@ package org.endercore.android.mod.nmod.overrider;
 import org.endercore.android.utils.FileUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 public final class FileOverrider extends BaseOverrider {
@@ -14,9 +12,6 @@ public final class FileOverrider extends BaseOverrider {
 
     @Override
     public void performOverride(File root, String name, String mode) throws IOException {
-        File sourceFile = new File(root, name);
-        FileInputStream inputStream = new FileInputStream(sourceFile);
-        FileOutputStream outputStream = new FileOutputStream(new File(overridePath, name));
-        FileUtils.copy(inputStream, outputStream);
+        FileUtils.copy(FileUtils.resolveInside(root, name), FileUtils.resolveInside(overridePath, name));
     }
 }

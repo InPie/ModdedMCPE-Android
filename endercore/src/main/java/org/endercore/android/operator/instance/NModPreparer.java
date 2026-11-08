@@ -110,7 +110,7 @@ public class NModPreparer {
                     ZipEntry entry = enumeration.nextElement();
                     String name = entry.getName();
                     if (name.startsWith("assets/")) {
-                        File destFile = new File(assetsDir, name); // .substring("assets/".length())
+                        File destFile = FileUtils.resolveInside(assetsDir, name); // .substring("assets/".length())
                         if (entry.isDirectory()) {
                             destFile.mkdirs();
                         } else {

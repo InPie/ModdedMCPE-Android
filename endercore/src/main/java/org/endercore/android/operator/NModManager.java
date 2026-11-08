@@ -6,7 +6,6 @@ import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.mod.nmod.NMod;
 import org.endercore.android.mod.nmod.NModPackage;
 import org.endercore.android.utils.FileUtils;
-import org.endercore.android.utils.NModJsonBean;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,22 +56,22 @@ public final class NModManager {
             //Copy package to internal dir
             FileUtils.copy(nmodPackage.getPackageFilePath(), new File(installationDir, "base.zip"));
 
-            //Open manifest
-            ZipFile zipFile = new ZipFile(nmodPackage.getPackageFilePath());
-            ZipEntry entry = zipFile.getEntry(NMod.MANIFEST_PATH);
-            FileUtils.copy(zipFile.getInputStream(entry), new File(installationDir, NMod.MANIFEST_PATH));
-            NModJsonBean.PackageManifest manifest = nmodPackage.getPackageManifest();
+            try (ZipFile zipFile = new ZipFile(nmodPackage.getPackageFilePath())) {
+                //Open manifest
+                ZipEntry entry = zipFile.getEntry(NMod.MANIFEST_PATH);
+                FileUtils.copy(zipFile.getInputStream(entry), new File(installationDir, NMod.MANIFEST_PATH));
 
-            //Unpack all files
-            Enumeration<? extends ZipEntry> entries = zipFile.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry thisEntry = entries.nextElement();
-                if (thisEntry.isDirectory()) {
-                    boolean mkdirsResult2 = new File(installationDir, thisEntry.getName()).mkdirs();
-                    if (!mkdirsResult2)
-                        throw new NModException("Failed to mkdirs: " + installationDir.getAbsolutePath() + File.separator + thisEntry.getName());
-                } else
-                    FileUtils.copy(zipFile.getInputStream(thisEntry), new File(installationDir, thisEntry.getName()));
+                //Unpack all files
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry thisEntry = entries.nextElement();
+                    File target = FileUtils.resolveInside(installationDir, thisEntry.getName());
+                    if (thisEntry.isDirectory()) {
+                        if (!target.mkdirs())
+                            throw new NModException("Failed to mkdirs: " + target.getAbsolutePath());
+                    } else
+                        FileUtils.copy(zipFile.getInputStream(thisEntry), target);
+                }
             }
             NMod result = new NMod(core, nmodPackage.getUUID());
 

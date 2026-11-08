@@ -17,12 +17,14 @@ public final class JsonOverrider extends BaseOverrider {
 
     @Override
     public void performOverride(File root, String name, String mode) throws IOException, JSONException {
+        File source = FileUtils.resolveInside(root, name);
+        File target = FileUtils.resolveInside(overridePath, name);
         if (mode.equals("merge")) {
-            String json1 = FileUtils.readFileAsString(new File(root, name));
-            String json2 = FileUtils.readFileAsString(new File(overridePath, name));
-            FileUtils.copy(new ByteArrayInputStream(new JSONMerger(json1, json2).merge().getBytes()), new File(overridePath, name));
+            String json1 = FileUtils.readFileAsString(source);
+            String json2 = FileUtils.readFileAsString(target);
+            FileUtils.copy(new ByteArrayInputStream(new JSONMerger(json1, json2).merge().getBytes()), target);
         } else if (mode.equals("replace")) {
-            FileUtils.copy(new File(root, name), new File(overridePath, name));
+            FileUtils.copy(source, target);
         }
     }
 

@@ -116,6 +116,14 @@ public final class FileUtils {
         }
     }
 
+    public static File resolveInside(File dir, String relativePath) throws IOException {
+        File file = new File(dir, relativePath);
+        if (!file.getCanonicalPath().startsWith(dir.getCanonicalPath() + File.separator)) {
+            throw new IOException("Path leaves " + dir.getAbsolutePath() + ": " + relativePath);
+        }
+        return file;
+    }
+
     public static void removeFiles(File path) {
         if (!path.exists())
             return;

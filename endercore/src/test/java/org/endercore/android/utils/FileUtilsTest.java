@@ -75,4 +75,20 @@ public class FileUtilsTest {
         assertTrue(target.isFile());
         assertArrayEquals(content, Files.readAllBytes(target.toPath()));
     }
+
+    @Test
+    public void resolveInsideKeepsNestedPath() throws Exception {
+        File dir = folder.getRoot();
+
+        assertEquals(new File(dir, "a/b.txt"), FileUtils.resolveInside(dir, "a/b.txt"));
+    }
+
+    @Test
+    public void resolveInsideRejectsPathLeavingDirectory() {
+        File dir = new File(folder.getRoot(), "mod");
+
+        assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, "../mod-other/b.txt"));
+        assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, "a/../../b.txt"));
+        assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, ""));
+    }
 }
