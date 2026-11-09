@@ -18,9 +18,7 @@ import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.utils.CPUArch
-import org.endercore.android.utils.FileUtils
 import org.endercore.android.utils.LaunchContext
-import java.io.File
 import java.io.IOException
 
 class FatalActivity : AppCompatActivity() {
@@ -103,12 +101,6 @@ class FatalActivity : AppCompatActivity() {
         } catch (e: IOException) {
             "Failed to read logcat: ${e.message}"
         }
-    }
-
-    fun onClearClicked(view: View) {
-        FileUtils.removeFiles(File(EnderCore.getInstance().fileEnvironment.codeCacheDirPath))
-        FileUtils.removeFiles(File(EnderCore.getInstance().fileEnvironment.enderCoreDirPath))
-        Toast.makeText(this, R.string.app_app_data_cleared, Toast.LENGTH_LONG).show()
     }
 
     private fun getGameVersionFromActiveInstance(): String? {

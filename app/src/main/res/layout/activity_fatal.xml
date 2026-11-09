@@ -121,19 +121,6 @@
             android:layout_height="1dp"
             android:background="?android:attr/listDivider" />
 
-        <!-- <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/app_clear_data"
-            android:clickable="true"
-            android:focusable="true"
-            android:onClick="onClearClicked"
-            android:textSize="21sp"
-            android:textColor="@color/text_selector"
-            android:background="@drawable/text_background_selector"
-            android:gravity="center"
-            android:layout_margin="4dp"/> -->
-
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
