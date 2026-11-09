@@ -35,20 +35,11 @@ tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {
     options.compilerArgs.add("-Xlint:-options")
 }
 
-String getSdkPath() {
-    File localPropertiesFile = new File(project.rootDir, "local.properties")
-    Properties localProperties = new Properties()
-    localProperties.load(new FileReader(localPropertiesFile))
-    return localProperties.getProperty("sdk.dir")
-}
-
-String d8Executable() {
+// The SDK comes from local.properties or ANDROID_HOME, as for the rest of the build
+def d8Path = androidComponents.sdkComponents.sdkDirectory.map { sdk ->
     def buildToolsVersion = "36.0.0" // real
-
-    def sdkPath = getSdkPath()
-    def buildToolsDir = "${sdkPath}/build-tools/${buildToolsVersion}/"
-    return System.properties['os.name'].toLowerCase().contains("windows") ?
-            "${buildToolsDir}d8.bat" : "${buildToolsDir}d8"
+    def d8Name = System.properties['os.name'].toLowerCase().contains("windows") ? "d8.bat" : "d8"
+    sdk.file("build-tools/${buildToolsVersion}/${d8Name}").asFile.absolutePath
 }
 
 def outputDir = new File(rootDir, "endercore/src/main/assets/endercore/android").absolutePath
@@ -108,7 +99,7 @@ def registerDexTasks = { String variantName ->
     def variantTaskName = variantName.substring(0, 1).toUpperCase() + variantName.substring(1)
     def compileTaskName = "compile${variantTaskName}JavaWithJavac"
     def classesDir = layout.buildDirectory.dir("intermediates/javac/${variantName}/${compileTaskName}/classes")
-    def d8Exe = d8Executable()
+    def d8Exe = d8Path
 
     def buildAgentMainDex = tasks.register("buildAgentMainDex${variantTaskName}", D8Task) {
         dependsOn(compileTaskName)
