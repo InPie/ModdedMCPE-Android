@@ -131,9 +131,9 @@ public class GamePackageBuilder {
             }
         }
 
-        File mainGameLib = new File(nativeDir, "libminecraftpe.so");
+        File mainGameLib = new File(nativeDir, GamePackage.GAME_LIBRARY);
         if (!mainGameLib.isFile()) {
-            throw new LauncherException("Critical error: main game library (libminecraftpe.so) was not found for the selected ABI (" + targetArch + "). The APK might be corrupted or missing required libraries for this architecture.");
+            throw new LauncherException("Critical error: main game library (" + GamePackage.GAME_LIBRARY + ") was not found for the selected ABI (" + targetArch + "). The APK might be corrupted or missing required libraries for this architecture.");
         }
 
         Log.d(TAG, "Extracting dex files...");

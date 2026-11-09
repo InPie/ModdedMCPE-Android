@@ -6,6 +6,7 @@ public class InstanceSource {
     // For REMOTE_APK
     private String url;
     private String label;
+    private String sha256;
 
     // For MANAGED_APK
     private String origin;
@@ -45,6 +46,14 @@ public class InstanceSource {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public String getSha256() {
+        return sha256;
+    }
+
+    public void setSha256(String sha256) {
+        this.sha256 = sha256;
     }
 
     public String getOrigin() {

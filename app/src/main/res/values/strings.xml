@@ -94,6 +94,12 @@
     <string name="toast_export_success">Exported.</string>
     <string name="toast_export_error">Export error: %1$s</string>
     <string name="toast_import_success">Imported.</string>
+    <string name="dialog_apk_signer_title">APK is not signed by Mojang</string>
+    <string name="dialog_apk_signer_message">The APK is intact, but it is signed by:
+%1$s
+SHA-256: %2$s
+
+Such an APK may have been changed. Play it only if you trust its source.</string>
     <string name="toast_import_error">Import error: %1$s</string>
     <string name="dialog_import_apk_title">Importing APK</string>
     <string name="dialog_import_zip_title">Importing ZIP</string>

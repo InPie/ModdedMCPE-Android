@@ -57,7 +57,7 @@ public final class Launcher {
     private final static String NAME_MAESDK = "libmaesdk.so";
     private final static String NAME_MEDIA_DECODERS = "libMediaDecoders_Android.so";
     private final static String NAME_PLAYFAB = "libPlayFabMultiplayer.so";
-    private final static String NAME_MINECRAFTPE = "libminecraftpe.so";
+    private final static String NAME_MINECRAFTPE = GamePackage.GAME_LIBRARY;
     private final static String NAME_ENDERCORE = "libendercore.so";
     private final static String NAME_MJSCRIPT = "libmjscript.so";
     private final static String LIB_CPP_SHARED = "c++_shared";

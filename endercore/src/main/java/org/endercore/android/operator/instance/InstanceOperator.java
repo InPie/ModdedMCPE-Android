@@ -11,7 +11,9 @@ import org.endercore.android.EnderCore;
 import org.endercore.android.exception.LauncherException;
 import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.operator.ApkGamePackageManager;
+import org.endercore.android.operator.ApkVerifier;
 import org.endercore.android.operator.GamePackage;
+import org.endercore.android.operator.instance.model.ApkCheck;
 import org.endercore.android.operator.instance.model.GameInstance;
 import org.endercore.android.operator.instance.model.InstanceSource;
 import org.endercore.android.operator.instance.model.InstanceSourceType;
@@ -79,6 +81,19 @@ public class InstanceOperator {
         return ApkGamePackageManager.getGamePackageFromApk(context, apkFile);
     }
 
+    // Throws when the APK differs from the catalog, has no game library or a broken signature
+    ApkCheck checkApk(File apkFile, String expectedSha256) throws IOException, LauncherException {
+        String sha256 = ApkVerifier.checkSha256(apkFile, expectedSha256);
+        ApkVerifier.requireGameLibrary(apkFile);
+        ApkCheck check = readSigner(apkFile);
+        check.setApkSha256(sha256);
+        return check;
+    }
+
+    ApkCheck readSigner(File apkFile) throws LauncherException {
+        return ApkVerifier.readSigner(context, apkFile);
+    }
+
     private void saveFailedState(GameInstance instance, InstanceState state) {
         instance.setState(state);
         try {
@@ -113,7 +128,7 @@ public class InstanceOperator {
             nativeDir.exists() &&
             dexOptDir.exists() &&
             new File(dexDir, "classes.dex").isFile() &&
-            new File(nativeDir, "libminecraftpe.so").isFile() &&
+            new File(nativeDir, GamePackage.GAME_LIBRARY).isFile() &&
             newBuilder(instance.getId()).isBuildComplete(gamePackage);
 
         Log.d(TAG, "isFilesReady: " + filesReady);
@@ -235,6 +250,7 @@ public class InstanceOperator {
         }
         
         duplicate.setPackageSnapshot(instance.getPackageSnapshot());
+        duplicate.setApkCheck(instance.getApkCheck());
 
         try {
             copyInstanceFiles(instance, duplicate);
@@ -300,7 +316,7 @@ public class InstanceOperator {
     
     public interface InstallCallback {
         void onProgress(int percent);
-        void onSuccess();
+        void onSuccess(GameInstance instance);
         void onError(Exception e);
     }
 
@@ -317,6 +333,7 @@ public class InstanceOperator {
         InstanceSource source = new InstanceSource(InstanceSourceType.REMOTE_APK);
         source.setUrl(version.getUrl());
         source.setLabel(version.getName());
+        source.setSha256(version.getSha256());
         gameInstance.setSource(source);
 
         return startDownloadForInstance(gameInstance, callback);
@@ -353,28 +370,7 @@ public class InstanceOperator {
 
             @Override
             public void onSuccess(File downloadedFile) {
-                try {
-                    gameInstance.setState(InstanceState.PREPARING);
-                    gameInstance.getSource().setType(InstanceSourceType.MANAGED_APK);
-                    gameInstance.getSource().setOrigin("remote");
-                    repository.saveInstance(gameInstance);
-
-                    GamePackage gamePackage = readGamePackage(downloadedFile);
-                    gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
-                    
-                    GamePackageBuilder builder = newBuilder(gameInstance.getId());
-                    builder.build(gamePackage);
-                    
-                    gameInstance.setState(InstanceState.READY);
-                    repository.saveInstance(gameInstance);
-                } catch (Exception e) {
-                    saveFailedState(gameInstance, InstanceState.PREPARE_FAILED);
-                    activeOperations.remove(gameInstance.getId());
-                    callback.onError(e);
-                    return;
-                }
-                activeOperations.remove(gameInstance.getId());
-                callback.onSuccess();
+                finishDownload(gameInstance, downloadedFile, callback);
             }
 
             @Override
@@ -388,17 +384,54 @@ public class InstanceOperator {
         return task::cancel;
     }
 
+    void finishDownload(GameInstance gameInstance, File apkFile, InstallCallback callback) {
+        try {
+            gameInstance.setApkCheck(checkApk(apkFile, gameInstance.getSource().getSha256()));
+        } catch (Exception e) {
+            // A REMOTE_APK source keeps the instance available for retry
+            apkFile.delete();
+            saveFailedState(gameInstance, InstanceState.DOWNLOAD_FAILED);
+            activeOperations.remove(gameInstance.getId());
+            callback.onError(e);
+            return;
+        }
+        try {
+            gameInstance.setState(InstanceState.PREPARING);
+            gameInstance.getSource().setType(InstanceSourceType.MANAGED_APK);
+            gameInstance.getSource().setOrigin("remote");
+            repository.saveInstance(gameInstance);
+
+            GamePackage gamePackage = readGamePackage(apkFile);
+            gameInstance.setPackageSnapshot(createPackageSnapshot(gamePackage));
+
+            GamePackageBuilder builder = newBuilder(gameInstance.getId());
+            builder.build(gamePackage);
+
+            gameInstance.setState(InstanceState.READY);
+            repository.saveInstance(gameInstance);
+        } catch (Exception e) {
+            saveFailedState(gameInstance, InstanceState.PREPARE_FAILED);
+            activeOperations.remove(gameInstance.getId());
+            callback.onError(e);
+            return;
+        }
+        activeOperations.remove(gameInstance.getId());
+        callback.onSuccess(gameInstance);
+    }
+
     public void importLocalApk(File apkFile, boolean copy, InstallCallback callback) {
         new Thread(() -> {
             String instanceId = null;
+            GameInstance gameInstance = new GameInstance();
             try {
+                ApkCheck apkCheck = checkApk(apkFile, null);
                 GamePackage gamePackage = readGamePackage(apkFile);
                 instanceId = UUID.randomUUID().toString().substring(0, 8) + "-" + gamePackage.getVersionName().replaceAll("[^a-zA-Z0-9.-]", "_");
                 activeOperations.add(instanceId);
 
-                GameInstance gameInstance = new GameInstance();
                 gameInstance.setId(instanceId);
                 gameInstance.setName("Custom " + gamePackage.getVersionName());
+                gameInstance.setApkCheck(apkCheck);
                 gameInstance.setState(InstanceState.PREPARING);
                 gameInstance.setCreatedAt(System.currentTimeMillis());
                 gameInstance.setSettings(new JsonObject());
@@ -434,7 +467,7 @@ public class InstanceOperator {
                 return;
             }
             activeOperations.remove(instanceId);
-            callback.onSuccess();
+            callback.onSuccess(gameInstance);
         }).start();
     }
 
@@ -455,6 +488,7 @@ public class InstanceOperator {
         new Thread(() -> {
             File tempDir = new File(context.getCacheDir(), "instance_zip_import_" + System.currentTimeMillis());
             String newId = null;
+            GameInstance imported;
             try {
                 callback.onProgress(0);
                 unzipInstance(zipFile, tempDir);
@@ -467,8 +501,8 @@ public class InstanceOperator {
                 if (!apkFile.isFile()) {
                     throw new IOException("ZIP does not contain apk/game.apk.");
                 }
+                ApkCheck apkCheck = checkApk(apkFile, null);
 
-                GameInstance imported;
                 try (FileReader reader = new FileReader(instanceFile)) {
                     imported = gson.fromJson(reader, GameInstance.class);
                 }
@@ -496,6 +530,7 @@ public class InstanceOperator {
                 source.setOrigin("zip_import");
                 imported.setSource(source);
                 imported.setPackageSnapshot(createPackageSnapshot(gamePackage));
+                imported.setApkCheck(apkCheck);
                 if (imported.getSettings() == null) {
                     imported.setSettings(new JsonObject());
                 }
@@ -521,7 +556,7 @@ public class InstanceOperator {
             }
             activeOperations.remove(newId);
             callback.onProgress(100);
-            callback.onSuccess();
+            callback.onSuccess(imported);
         }).start();
     }
 

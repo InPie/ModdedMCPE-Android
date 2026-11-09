@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.List;
 
 public class GamePackage {
+    public static final String GAME_LIBRARY = "libminecraftpe.so";
+
     public enum SourceKind {
         INSTALLED_PACKAGE,
         APK_FILE

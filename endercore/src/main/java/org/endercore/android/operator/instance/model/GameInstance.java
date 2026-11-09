@@ -7,6 +7,7 @@ public class GameInstance {
     private String name;
     private InstanceSource source;
     private PackageSnapshot packageSnapshot;
+    private ApkCheck apkCheck;
     private InstanceState state;
     private JsonObject settings;
     private long createdAt;
@@ -45,6 +46,14 @@ public class GameInstance {
 
     public void setPackageSnapshot(PackageSnapshot packageSnapshot) {
         this.packageSnapshot = packageSnapshot;
+    }
+
+    public ApkCheck getApkCheck() {
+        return apkCheck;
+    }
+
+    public void setApkCheck(ApkCheck apkCheck) {
+        this.apkCheck = apkCheck;
     }
 
     public InstanceState getState() {

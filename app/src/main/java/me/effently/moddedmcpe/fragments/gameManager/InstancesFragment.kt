@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.R
 import me.effently.moddedmcpe.utils.InstanceUIHelper
 import org.endercore.android.EnderCore
+import org.endercore.android.operator.ApkVerifier
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.InstanceState
@@ -192,12 +193,18 @@ class InstancesFragment : Fragment() {
             val versionName = instance.packageSnapshot?.versionName ?: "Unknown"
             val apkSizeMB = instance.packageSnapshot?.apkSize?.let { String.format(java.util.Locale.US, "%.2f MB", it / (1024.0 * 1024.0)) } ?: "Unknown"
             val sourceType = instance.source?.type?.name ?: "Unknown"
+            val apkCheck = instance.apkCheck
+            val notChecked = "Not checked"
 
             val textInfo = """
                 Name: ${instance.name}
                 Version: $versionName
                 APK Size: $apkSizeMB
                 Source Type: $sourceType
+                APK SHA-256: ${apkCheck?.apkSha256 ?: notChecked}
+                Signer: ${apkCheck?.signerName ?: notChecked}
+                Signer SHA-256: ${apkCheck?.signerSha256 ?: notChecked}
+                Signed by Mojang: ${apkCheck?.let { if (ApkVerifier.isSignedByMojang(it)) "Yes" else "No" } ?: notChecked}
                 State: ${instance.state}
                 Last played: ${if (instance.lastPlayedAt != null) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(instance.lastPlayedAt!!)) else "Never"}
                 
@@ -360,12 +367,13 @@ class InstancesFragment : Fragment() {
                             }
                         }
 
-                        override fun onSuccess() {
+                        override fun onSuccess(instance: GameInstance) {
                             tempFile.delete()
                             activity?.runOnUiThread {
                                 if (!isAdded) return@runOnUiThread
                                 dialog.dismiss()
                                 Toast.makeText(context, R.string.toast_import_success, Toast.LENGTH_LONG).show()
+                                InstanceUIHelper.showSignerWarning(requireContext(), instance)
                                 loadInstances()
                             }
                         }

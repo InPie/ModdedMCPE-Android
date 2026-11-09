@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import me.effently.moddedmcpe.InitializingActivity
 import me.effently.moddedmcpe.MyApplication
 import me.effently.moddedmcpe.R
+import org.endercore.android.operator.ApkVerifier
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
 import org.endercore.android.operator.instance.model.RemoteVersion
@@ -73,6 +74,17 @@ object InstanceUIHelper {
         }, onFinish)
     }
 
+    // Only for APKs whose signer the launcher has checked
+    fun showSignerWarning(context: Context, instance: GameInstance) {
+        val check = instance.apkCheck ?: return
+        if (ApkVerifier.isSignedByMojang(check)) return
+        AlertDialog.Builder(context)
+            .setTitle(R.string.dialog_apk_signer_title)
+            .setMessage(context.getString(R.string.dialog_apk_signer_message, check.signerName, check.signerSha256))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     private fun showNoInternetDialog(context: Context) {
         AlertDialog.Builder(context)
             .setTitle("No Internet")
@@ -105,11 +117,12 @@ object InstanceUIHelper {
                 }
             }
 
-            override fun onSuccess() {
+            override fun onSuccess(instance: GameInstance) {
                 activity.runOnUiThread {
                     if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                     dialog.dismiss()
                     Toast.makeText(activity, R.string.toast_download_success, Toast.LENGTH_LONG).show()
+                    showSignerWarning(activity, instance)
                     onFinish()
                 }
             }
