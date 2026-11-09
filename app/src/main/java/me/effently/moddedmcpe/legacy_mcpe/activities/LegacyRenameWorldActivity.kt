@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import androidx.activity.OnBackPressedCallback
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -20,15 +21,16 @@ class LegacyRenameWorldActivity : ToolbarActivity() {
         super.onCreate(savedInstanceState)
         title = getString(R.string.legacy_rename_world_title)
         setContentView(createContent())
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishCancelled()
+            }
+        })
     }
 
     override fun onSupportNavigateUp(): Boolean {
         finishCancelled()
         return true
-    }
-
-    override fun onBackPressed() {
-        finishCancelled()
     }
 
     private fun createContent(): View {

@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Message
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.exception.LauncherException
@@ -18,6 +19,11 @@ class InitializingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_initializing)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Toast.makeText(this@InitializingActivity, R.string.app_loading_summary, Toast.LENGTH_LONG).show()
+            }
+        })
         object : Thread() {
             override fun run() {
                 super.run()
@@ -52,10 +58,6 @@ class InitializingActivity : AppCompatActivity() {
                 }
             }
         }.start()
-    }
-
-    override fun onBackPressed() {
-        Toast.makeText(this, R.string.app_loading_summary, Toast.LENGTH_LONG).show()
     }
 
     fun startGameActivity() {

@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import androidx.activity.OnBackPressedCallback
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
@@ -28,15 +29,16 @@ class LegacyCreateWorldActivity : ToolbarActivity() {
         profile = LegacyMcpe.resolveProfile(instanceId)
         title = getString(R.string.legacy_create_world_title)
         setContentView(createContent())
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishCancelled()
+            }
+        })
     }
 
     override fun onSupportNavigateUp(): Boolean {
         finishCancelled()
         return true
-    }
-
-    override fun onBackPressed() {
-        finishCancelled()
     }
 
     private fun createContent(): View {

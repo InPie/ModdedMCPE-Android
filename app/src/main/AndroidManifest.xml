@@ -2,9 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Game activities handle the back key in onBackPressed and onKeyDown, which Android 16
+         skips with predictive back. Games keep their orientation on large screens. -->
     <application
         android:name="me.effently.moddedmcpe.MyApplication"
         android:allowBackup="false"
+        android:appCategory="game"
+        android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
