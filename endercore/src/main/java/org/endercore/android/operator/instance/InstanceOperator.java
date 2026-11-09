@@ -513,6 +513,7 @@ public class InstanceOperator {
                 repository.saveInstance(imported);
             } catch (Exception e) {
                 discardFailedImport(newId);
+                FileUtils.removeFiles(tempDir);
                 callback.onError(e);
                 return;
             } finally {
