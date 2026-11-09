@@ -71,6 +71,18 @@ public class EnderCoreStartupTest {
     }
 
     @Test
+    public void autoLicenseIsOffByDefault() throws Exception {
+        assertFalse(startCore().getOptionsManager().getAutoLicense());
+    }
+
+    @Test
+    public void savedAutoLicenseIsKept() throws Exception {
+        TestFiles.write(optionsFile, "{\"auto_license\":true}");
+
+        assertTrue(startCore().getOptionsManager().getAutoLicense());
+    }
+
+    @Test
     public void damagedNModManifestDoesNotBreakStart() throws Exception {
         TestFiles.write(optionsFile, "{\"installed_nmods\":[{\"uuid\":\"" + NMOD_UUID + "\",\"enabled\":true}]}");
         TestFiles.write(new File(folder.getRoot(), "launcher_data/nmods/" + NMOD_UUID + "/nmod_manifest.json"), "{\"uuid\": ");

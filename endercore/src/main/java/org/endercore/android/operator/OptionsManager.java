@@ -138,7 +138,7 @@ public final class OptionsManager {
 
     private final static class OptionsJsonBean {
         private boolean use_nmods = false;
-        private boolean auto_license = true;
+        private boolean auto_license = false;
         private boolean redirect_game_dir = true;
         private boolean unlock_mjscript = false;
         private NModOptionsElement[] installed_nmods = new NModOptionsElement[0];

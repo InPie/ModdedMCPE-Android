@@ -59,6 +59,11 @@ class OptionsActivity : ToolbarActivity() {
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
+            val options = EnderCore.getInstance().optionsManager
+            setSwitch("auto_license", options.autoLicense)
+            setSwitch("redirect_directory", options.redirectGameDir)
+            setSwitch("unlock_mjscript", options.unlockMjscript)
+            setSwitch("use_nmods", options.useNMods)
 
             // @warn: don't support rn, add this settings in the near future!
             lockForcedSwitch("redirect_directory")
@@ -112,6 +117,11 @@ class OptionsActivity : ToolbarActivity() {
         override fun onPause() {
             super.onPause()
             preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+
+        // The switches show the values from the options file, which the launcher reads
+        private fun setSwitch(key: String, checked: Boolean) {
+            findPreference<SwitchPreferenceCompat>(key)?.isChecked = checked
         }
 
         private fun lockForcedSwitch(key: String) {
