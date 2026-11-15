@@ -7,12 +7,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -137,10 +139,11 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i(TAG, "Starting to patch Resources.");
             Resources resourcesOriginal = super.getResources();
             patchResourceAssetManager = buildPatchedResourceAssetManager(patchAssetsPath);
-            patchResources = new Resources(
+            patchResources = new GameResources(
                     patchResourceAssetManager != null ? patchResourceAssetManager : patchAssetManager,
                     resourcesOriginal.getDisplayMetrics(),
-                    resourcesOriginal.getConfiguration());
+                    resourcesOriginal.getConfiguration(),
+                    super.getPackageName());
             Log.i(TAG, "Resources patching succeed.");
             Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
@@ -173,6 +176,29 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             return patchAssetManager;
         }
         return super.getAssets();
+    }
+
+    // The game looks up its resources by getPackageName(), which is the launcher's package here,
+    // so those lookups try the game's package first. 1.26.70 inflates its accessibility popup this way.
+    private static final class GameResources extends Resources {
+        private final String launcherPackageName;
+
+        GameResources(AssetManager assets, DisplayMetrics metrics, Configuration configuration, String launcherPackageName) {
+            super(assets, metrics, configuration);
+            this.launcherPackageName = launcherPackageName;
+        }
+
+        @Override
+        public int getIdentifier(String name, String defType, String defPackage) {
+            String gamePackageName = GameContextBridge.getGamePackageName();
+            if (gamePackageName != null && launcherPackageName.equals(defPackage)) {
+                int identifier = super.getIdentifier(name, defType, gamePackageName);
+                if (identifier != 0) {
+                    return identifier;
+                }
+            }
+            return super.getIdentifier(name, defType, defPackage);
+        }
     }
 
     @Override

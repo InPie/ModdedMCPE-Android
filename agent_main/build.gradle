@@ -115,6 +115,7 @@ def registerDexTasks = { String variantName ->
                 include "com/google/firebase/FirebaseOptions*.class"
                 include "junit/framework/**/*.class" // for 0.15
                 include "com/mojang/minecraftpe/AgentMainActivity.class"
+                include 'com/mojang/minecraftpe/AgentMainActivity$*.class'
                 include "com/mojang/minecraftpe/GameContextBridge.class"
                 include "com/mojang/minecraftpe/NotificationListenerService.class" // for 1.19+
                 include "com/mojang/minecraftpe/BrazeManager.class" // for 1.19+

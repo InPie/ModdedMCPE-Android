@@ -73,6 +73,12 @@ android {
         buildConfig = true
     }
 
+    // The game process merges the launcher's resources with the game's, which use package id 0x7f.
+    // With the same id the game's resources can't be found by name and ids of the two collide.
+    androidResources {
+        additionalParameters += ["--package-id", "0x7e", "--allow-reserved-package-id"]
+    }
+
     defaultConfig {
         buildConfigField "String", "BUILD_DATE", '"' + getCurrentDate() + '"'
     }
