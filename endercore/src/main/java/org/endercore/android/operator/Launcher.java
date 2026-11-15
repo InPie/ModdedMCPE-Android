@@ -15,6 +15,7 @@ import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
 import org.endercore.android.utils.CrashHandler;
+import org.endercore.android.utils.ElfFile;
 import org.endercore.android.utils.LaunchContext;
 import org.endercore.android.utils.Patcher;
 
@@ -22,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import dalvik.system.DexClassLoader;
@@ -60,6 +62,7 @@ public final class Launcher {
     private final static String NAME_MINECRAFTPE = GamePackage.GAME_LIBRARY;
     private final static String NAME_ENDERCORE = "libendercore.so";
     private final static String NAME_MJSCRIPT = "libmjscript.so";
+    private final static String NAME_GAME_GROUP = "libendercore_game.so";
     private final static String LIB_CPP_SHARED = "c++_shared";
     private final static String LIB_YURAI = "yurai";
     private final static String LIB_SUBSTRATE = "substrate";
@@ -165,6 +168,9 @@ public final class Launcher {
             }
             try {
                 File nativeLibDir = new File(fileEnvironment.getCodeCacheDirPathForNativeLib());
+                if (!loadsLibraryFromGameClass(gamePackage.getVersionName())) {
+                    loadGameLibraryGroup(nativeLibDir);
+                }
 
                 Log.d(TAG, "Loading C++ Shared...");
                 if (new File(nativeLibDir, NAME_CPP_SHARED).exists()) {
@@ -242,7 +248,7 @@ public final class Launcher {
                     listener.onLoadNativeLibrary(NAME_MJSCRIPT);
                     System.loadLibrary(LIB_MJSCRIPT);
                 }
-            } catch (Error | ClassNotFoundException error) {
+            } catch (Error | ClassNotFoundException | IOException error) {
                 throw new LauncherException("Load game libraries failed.", error);
             }
             listener.onLoadNativeLibrariesFinish();
@@ -427,6 +433,33 @@ public final class Launcher {
         }
 
         System.loadLibrary(LIB_MINECRAFTPE);
+    }
+
+    // 0.1 to 0.9 load their libraries from the static initializer of MainActivity
+    private static boolean loadsLibraryFromGameClass(String versionName) {
+        return isMcpeVersion(versionName, "0.1.", "0.2.", "0.3.", "0.4.", "0.5.", "0.6.", "0.7.", "0.8.", "0.9.");
+    }
+
+    // Links libminecraftpe.so and the libraries the game ships in one linker call, as the game's own
+    // loader does. The linker can't find them by name in the instance folder, so a generated library
+    // needs them all and points DT_RUNPATH there. When each is loaded separately, the linker resolves
+    // their symbols apart: then libMallocRedirect.so (1.26.70+) replaces malloc for the game but not
+    // for libc++_shared.so, and memory is freed by the wrong allocator.
+    private void loadGameLibraryGroup(File nativeLibDir) throws IOException {
+        List<String> group = new ArrayList<>();
+        group.add(NAME_MINECRAFTPE);
+        for (int i = 0; i < group.size(); i++) {
+            for (String dependency : ElfFile.readNeededLibraries(new File(nativeLibDir, group.get(i)))) {
+                if (!group.contains(dependency) && new File(nativeLibDir, dependency).isFile()) {
+                    group.add(dependency);
+                }
+            }
+        }
+        File groupLibrary = new File(nativeLibDir, NAME_GAME_GROUP);
+        ElfFile.writeNeedingLibrary(groupLibrary, new File(nativeLibDir, NAME_MINECRAFTPE), NAME_GAME_GROUP,
+                nativeLibDir.getAbsolutePath(), group);
+        listener.onLoadNativeLibrary(NAME_GAME_GROUP);
+        System.load(groupLibrary.getAbsolutePath());
     }
 
     private static boolean isMcpeVersion(String versionName, String... prefixes) {
