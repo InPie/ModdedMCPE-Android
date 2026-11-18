@@ -226,7 +226,13 @@ class InstancesFragment : Fragment() {
                             info.addProperty("managedApk", operator.getManagedApkFile(instance.id).absolutePath)
                             info.addProperty("cacheDir", EnderCore.instance.fileEnvironment.getInstanceCacheDirPath(instance.id))
                             info.addProperty("nmodsCacheDir", EnderCore.instance.fileEnvironment.getInstanceNModsCacheDirPath(instance.id))
-                            info.addProperty("prepared", operator.isInstancePrepared(instance))
+                            // An instance that can't be launched has no game package to check
+                            try {
+                                info.addProperty("prepared", operator.isInstancePrepared(instance))
+                            } catch (e: Exception) {
+                                info.addProperty("prepared", false)
+                                info.addProperty("notPreparedReason", e.message ?: e.javaClass.name)
+                            }
                             val jsonStr = debugGson.toJson(info)
                             
                             withContext(Dispatchers.Main) {
