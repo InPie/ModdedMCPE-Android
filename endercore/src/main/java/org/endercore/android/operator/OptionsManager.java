@@ -59,14 +59,6 @@ public final class OptionsManager {
         return optionsJsonBean.auto_license;
     }
 
-    public void setRedirectGameDir(boolean val) {
-        optionsJsonBean.redirect_game_dir = true; //val;
-    }
-
-    public boolean getRedirectGameDir() {
-        return true; //optionsJsonBean.redirect_game_dir;
-    }
-
     public void setUnlockMjscript(boolean val) {
         optionsJsonBean.unlock_mjscript = false; //val;
     }
@@ -139,7 +131,6 @@ public final class OptionsManager {
     private final static class OptionsJsonBean {
         private boolean use_nmods = false;
         private boolean auto_license = false;
-        private boolean redirect_game_dir = true;
         private boolean unlock_mjscript = false;
         private NModOptionsElement[] installed_nmods = new NModOptionsElement[0];
     }

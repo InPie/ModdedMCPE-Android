@@ -31,7 +31,6 @@
     <string name="app_options_title_nmods">NMods</string>
     <string name="app_options_use_nmods">Использовать NMods</string>
     <string name="app_options_auto_license">Обойти проверку лицензии</string>
-    <string name="app_options_redirect_game_directory">Перенаправить каталог игры</string>
     <string name="app_options_unlock_mjscript">Скриптовый движок (еще не реализован)</string>
     <string name="app_options_manage_nmods">Мененджер NMods</string>
     <string name="app_options_install_new_nmods">Установить NMods</string>

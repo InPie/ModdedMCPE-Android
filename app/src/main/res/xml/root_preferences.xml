@@ -9,11 +9,6 @@
             app:defaultValue="false"/>
 
         <SwitchPreferenceCompat
-            app:key="redirect_directory"
-            app:title="@string/app_options_redirect_game_directory"
-            app:defaultValue="true"/>
-
-        <SwitchPreferenceCompat
             app:key="unlock_mjscript"
             app:title="@string/app_options_unlock_mjscript"
             app:defaultValue="false" />

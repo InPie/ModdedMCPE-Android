@@ -61,12 +61,10 @@ class OptionsActivity : ToolbarActivity() {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val options = EnderCore.getInstance().optionsManager
             setSwitch("auto_license", options.autoLicense)
-            setSwitch("redirect_directory", options.redirectGameDir)
             setSwitch("unlock_mjscript", options.unlockMjscript)
             setSwitch("use_nmods", options.useNMods)
 
             // @warn: don't support rn, add this settings in the near future!
-            lockForcedSwitch("redirect_directory")
             lockForcedSwitch("unlock_mjscript")
             // lockForcedSwitch("use_nmods")
             findPreference<Preference>("manage")!!.onPreferenceClickListener = Preference.OnPreferenceClickListener {
@@ -88,9 +86,6 @@ class OptionsActivity : ToolbarActivity() {
                             when (key) {
                                 "auto_license" -> {
                                     EnderCore.getInstance().optionsManager.autoLicense = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.autoLicense)
-                                }
-                                "redirect_directory" -> {
-                                    EnderCore.getInstance().optionsManager.redirectGameDir = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.redirectGameDir)
                                 }
                                 "unlock_mjscript" -> {
                                     EnderCore.getInstance().optionsManager.unlockMjscript = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.unlockMjscript)
