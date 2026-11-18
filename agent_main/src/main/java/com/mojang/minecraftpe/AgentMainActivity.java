@@ -70,6 +70,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     public static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
     private static final String IAB_BROADCAST_ACTION = "com.android.vending.billing.PURCHASES_UPDATED";
     private static final int PICK_IMAGE_REQUEST = 0x4D51;
+    private static final String CLASS_PLAY_GAMES_SDK = "com.google.android.gms.games.PlayGamesSdk"; // for 1.26.62+
     // legacy mcpe 0.1-0.6
     public static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
@@ -148,10 +149,27 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
             Log.i(TAG, "Patching finished.Activity creating.");
+            initializePlayGames(); // for 1.26.62+
             super.onCreate(savedInstanceState);
             applyImmersiveMode();
         }
     }
+
+    // -- for 1.26.62+ begin --
+    // The game's manifest starts Play Games from PlayGamesInitProvider, a provider the launcher doesn't declare.
+    // Without it the game aborts on its first Play Games call.
+    private void initializePlayGames() {
+        try {
+            Class<?> playGamesSdk = Class.forName(CLASS_PLAY_GAMES_SDK, true, getClassLoader());
+            playGamesSdk.getMethod("initialize", Context.class).invoke(null, getApplicationContext());
+            Log.i(TAG, "Play Games initialized.");
+        } catch (ClassNotFoundException e) {
+            Log.d(TAG, "The game has no Play Games SDK.");
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            Log.e(TAG, "Failed to initialize Play Games.", e);
+        }
+    }
+    // -- for 1.26.62+ end --
 
     @Override
     protected void onResume() {

@@ -171,6 +171,13 @@
         <service android:name="com.mojang.minecraftpe.packagesource.googleplay.ApkXDownloaderService" />
         <receiver android:name="com.mojang.minecraftpe.packagesource.googleplay.ApkXDownloaderAlarmReceiver" />
 
+        <!-- for 1.26.62+: Play Games opens it when sign-in needs the user -->
+        <activity
+            android:name="com.google.android.gms.games.internal.v2.resolution.GamesResolutionActivity"
+            android:exported="false"
+            android:process=":game"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <activity
             android:name="com.microsoft.xbox.idp.ui.AuthFlowActivity"
             android:process=":game"
