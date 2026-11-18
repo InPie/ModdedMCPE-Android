@@ -31,6 +31,8 @@
     <string name="app_options_title_nmods">NMods</string>
     <string name="app_options_use_nmods">Use NMods</string>
     <string name="app_options_auto_license">License the game automatically</string>
+    <string name="app_options_shared_sign_in">Shared Xbox sign-in</string>
+    <string name="app_options_shared_sign_in_summary">One Xbox account in all instances. When off, each instance has its own sign-in again.</string>
     <string name="app_options_unlock_mjscript">Script Engine (Not yet implemented)</string>
     <string name="app_options_manage_nmods">Manage NMods</string>
     <string name="app_options_install_new_nmods">Install NMods</string>

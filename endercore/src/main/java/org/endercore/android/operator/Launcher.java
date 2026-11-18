@@ -400,7 +400,9 @@ public final class Launcher {
     // The game process runs one instance, from here on its storage is that of the instance
     private void installGameStorage(IFileEnvironment fileEnvironment) {
         InstanceStorage storage = new InstanceStorage(new File(fileEnvironment.getInstanceDirPath(fileEnvironment.getActiveWorkspaceId())));
-        GameStorage.install(new GameStorage(storage, null));
+        File sharedSignInDir = core.getOptionsManager().getSharedSignIn()
+                ? new File(fileEnvironment.getSharedSignInDirPath()) : null;
+        GameStorage.install(new GameStorage(storage, sharedSignInDir));
     }
 
     public void setGameInitializationListener(IInitializationListener listener) {

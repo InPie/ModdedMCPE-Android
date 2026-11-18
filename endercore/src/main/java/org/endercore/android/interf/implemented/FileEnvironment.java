@@ -14,6 +14,7 @@ public class FileEnvironment implements IFileEnvironment {
 
     public final static String DIR_NMODS = "nmods";
     public final static String DIR_INSTANCES = "instances";
+    public final static String DIR_SHARED_SIGN_IN = "shared_sign_in";
     public final static String DIR_NATIVE_LIBS = "native_libs";
     public final static String DIR_DEX_LIBS = "dex_libs";
     public final static String DIR_DEX_OPT = "opt";
@@ -48,6 +49,11 @@ public class FileEnvironment implements IFileEnvironment {
     @Override
     public String getInstanceDirPath(String instanceId) {
         return getInstancesDirPath() + File.separator + instanceId;
+    }
+
+    @Override
+    public String getSharedSignInDirPath() {
+        return getEnderCoreDirPath() + File.separator + DIR_SHARED_SIGN_IN;
     }
 
     @Override

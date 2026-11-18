@@ -9,6 +9,12 @@
             app:defaultValue="false"/>
 
         <SwitchPreferenceCompat
+            app:key="shared_sign_in"
+            app:title="@string/app_options_shared_sign_in"
+            app:summary="@string/app_options_shared_sign_in_summary"
+            app:defaultValue="false"/>
+
+        <SwitchPreferenceCompat
             app:key="unlock_mjscript"
             app:title="@string/app_options_unlock_mjscript"
             app:defaultValue="false" />

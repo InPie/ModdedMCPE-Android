@@ -9,6 +9,9 @@ public interface IFileEnvironment {
 
     String getInstanceDirPath(String instanceId);
 
+    // Sign-in data that all instances read when the launcher shares it
+    String getSharedSignInDirPath();
+
     String getOptionsFilePath();
 
     String getNModsDirPath();

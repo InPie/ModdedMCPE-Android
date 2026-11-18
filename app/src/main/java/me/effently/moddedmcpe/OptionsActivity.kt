@@ -61,6 +61,7 @@ class OptionsActivity : ToolbarActivity() {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
             val options = EnderCore.getInstance().optionsManager
             setSwitch("auto_license", options.autoLicense)
+            setSwitch("shared_sign_in", options.sharedSignIn)
             setSwitch("unlock_mjscript", options.unlockMjscript)
             setSwitch("use_nmods", options.useNMods)
 
@@ -86,6 +87,9 @@ class OptionsActivity : ToolbarActivity() {
                             when (key) {
                                 "auto_license" -> {
                                     EnderCore.getInstance().optionsManager.autoLicense = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.autoLicense)
+                                }
+                                "shared_sign_in" -> {
+                                    EnderCore.getInstance().optionsManager.sharedSignIn = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.sharedSignIn)
                                 }
                                 "unlock_mjscript" -> {
                                     EnderCore.getInstance().optionsManager.unlockMjscript = sharedPreferences.getBoolean(key, EnderCore.getInstance().optionsManager.unlockMjscript)

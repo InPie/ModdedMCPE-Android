@@ -59,6 +59,15 @@ public final class OptionsManager {
         return optionsJsonBean.auto_license;
     }
 
+    public void setSharedSignIn(boolean val) {
+        optionsJsonBean.shared_sign_in = val;
+    }
+
+    // All instances read the same Xbox sign-in instead of their own
+    public boolean getSharedSignIn() {
+        return optionsJsonBean.shared_sign_in;
+    }
+
     public void setUnlockMjscript(boolean val) {
         optionsJsonBean.unlock_mjscript = false; //val;
     }
@@ -132,6 +141,7 @@ public final class OptionsManager {
         private boolean use_nmods = false;
         private boolean auto_license = false;
         private boolean unlock_mjscript = false;
+        private boolean shared_sign_in = false;
         private NModOptionsElement[] installed_nmods = new NModOptionsElement[0];
     }
 }

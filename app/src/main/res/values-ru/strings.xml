@@ -31,6 +31,8 @@
     <string name="app_options_title_nmods">NMods</string>
     <string name="app_options_use_nmods">Использовать NMods</string>
     <string name="app_options_auto_license">Обойти проверку лицензии</string>
+    <string name="app_options_shared_sign_in">Общий вход в Xbox</string>
+    <string name="app_options_shared_sign_in_summary">Один аккаунт Xbox во всех инстансах. Если выключить, у каждого инстанса снова будет свой вход.</string>
     <string name="app_options_unlock_mjscript">Скриптовый движок (еще не реализован)</string>
     <string name="app_options_manage_nmods">Мененджер NMods</string>
     <string name="app_options_install_new_nmods">Установить NMods</string>
