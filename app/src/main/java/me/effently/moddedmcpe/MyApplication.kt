@@ -24,6 +24,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import org.endercore.android.EnderCore
 import org.endercore.android.mod.script.ScriptController
+import org.endercore.android.operator.instance.GameStorageContext
 import org.endercore.android.utils.CrashHandler
 import java.lang.ref.WeakReference
 
@@ -40,6 +41,11 @@ class MyApplication : Application() {
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile
     private var xboxPatchInstalled = false
+
+    // In the game process the game reaches its storage through this context too
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(GameStorageContext(base))
+    }
 
     override fun onCreate() {
         super.onCreate()

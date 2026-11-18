@@ -98,6 +98,7 @@ public final class FileUtils {
         }
     }
 
+    // Links are skipped, the code that made them makes them again
     public static void copyDirectory(File sourceDir, File destinationDir) throws IOException {
         File[] children = sourceDir.listFiles();
         if (children == null) {
@@ -108,12 +109,52 @@ public final class FileUtils {
         }
         for (File child : children) {
             File target = new File(destinationDir, child.getName());
+            if (isSymbolicLink(child)) {
+                continue;
+            }
             if (child.isDirectory()) {
                 copyDirectory(child, target);
             } else {
                 copy(child, target);
             }
         }
+    }
+
+    // Moves a file or folder. Folders that exist at both places are merged, a file that exists at both is an error.
+    public static void moveMerging(File from, File to) throws IOException {
+        if (!from.exists() && !isSymbolicLink(from)) {
+            return;
+        }
+        if (!to.exists() && !isSymbolicLink(to)) {
+            File parent = to.getAbsoluteFile().getParentFile();
+            if (!parent.isDirectory() && !parent.mkdirs()) {
+                throw new IOException("Failed to create directory: " + parent.getAbsolutePath());
+            }
+            moveReplacing(from, to);
+            return;
+        }
+        if (isSymbolicLink(from) || isSymbolicLink(to) || !from.isDirectory() || !to.isDirectory()) {
+            throw new IOException("Both " + from.getAbsolutePath() + " and " + to.getAbsolutePath() + " exist.");
+        }
+        File[] children = from.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                moveMerging(child, new File(to, child.getName()));
+            }
+        }
+        if (!from.delete()) {
+            throw new IOException("Failed to remove " + from.getAbsolutePath());
+        }
+    }
+
+    // The canonical path of a link leads to its target
+    public static boolean isSymbolicLink(File file) throws IOException {
+        File parent = file.getAbsoluteFile().getParentFile();
+        if (parent == null) {
+            return false;
+        }
+        File inResolvedParent = new File(parent.getCanonicalFile(), file.getName());
+        return !inResolvedParent.getCanonicalFile().equals(inResolvedParent);
     }
 
     public static File resolveInside(File dir, String relativePath) throws IOException {
@@ -124,13 +165,18 @@ public final class FileUtils {
         return file;
     }
 
+    // Removes links, not the files they lead to
     public static void removeFiles(File path) {
+        if (removesAsLink(path)) {
+            path.delete();
+            return;
+        }
         if (!path.exists())
             return;
         File[] listFiles = path.listFiles();
         if (listFiles != null) {
             for (File file : listFiles) {
-                if (file.isDirectory())
+                if (file.isDirectory() && !removesAsLink(file))
                     removeFiles(file);
                 else {
                     if (!file.delete()) {
@@ -143,6 +189,15 @@ public final class FileUtils {
         if (!path.delete()) {
             path.setWritable(true);
             path.delete();
+        }
+    }
+
+    // A folder that can't be checked is removed as a link: that fails while it has files, and nothing outside it is touched
+    private static boolean removesAsLink(File file) {
+        try {
+            return isSymbolicLink(file);
+        } catch (IOException e) {
+            return true;
         }
     }
 

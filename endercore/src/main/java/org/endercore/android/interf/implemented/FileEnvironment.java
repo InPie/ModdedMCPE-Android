@@ -9,12 +9,11 @@ import java.io.File;
 public class FileEnvironment implements IFileEnvironment {
     private final String codeCacheDirPath;
     private final String enderCoreDirPath;
-    private final String gameDirPath;
 
     public final static String DIR_DATA_ROOT = "launcher_data";
-    public final static String DIR_GAME_DATA = "minecraft_game";
 
     public final static String DIR_NMODS = "nmods";
+    public final static String DIR_INSTANCES = "instances";
     public final static String DIR_NATIVE_LIBS = "native_libs";
     public final static String DIR_DEX_LIBS = "dex_libs";
     public final static String DIR_DEX_OPT = "opt";
@@ -28,7 +27,6 @@ public class FileEnvironment implements IFileEnvironment {
     public FileEnvironment(Context context) {
         codeCacheDirPath = context.getCodeCacheDir().getPath();
         enderCoreDirPath = context.getDir(DIR_DATA_ROOT, 0).getPath();
-        gameDirPath = context.getDir(DIR_GAME_DATA, 0).getPath();
     }
 
 
@@ -44,7 +42,12 @@ public class FileEnvironment implements IFileEnvironment {
 
     @Override
     public String getInstancesDirPath() {
-        return getEnderCoreDirPath() + java.io.File.separator + "instances";
+        return getEnderCoreDirPath() + File.separator + DIR_INSTANCES;
+    }
+
+    @Override
+    public String getInstanceDirPath(String instanceId) {
+        return getInstancesDirPath() + File.separator + instanceId;
     }
 
     @Override
@@ -78,12 +81,6 @@ public class FileEnvironment implements IFileEnvironment {
     public String getCodeCacheDirPathForNativeLib() {
         checkWorkspace();
         return getInstanceCacheDirPath(activeInstanceId) + File.separator + DIR_NATIVE_LIBS;
-    }
-
-    @Override
-    public String getInnerGameStorageDir() {
-        checkWorkspace();
-        return getInstancesDirPath() + File.separator + activeInstanceId + File.separator + "data";
     }
 
     @Override
@@ -121,11 +118,11 @@ public class FileEnvironment implements IFileEnvironment {
 
     @Override
     public String getInstanceCacheDirPath(String instanceId) {
-        return getInstancesDirPath() + File.separator + instanceId + File.separator + "cache";
+        return getInstanceDirPath(instanceId) + File.separator + "cache";
     }
 
     @Override
     public String getInstanceNModsCacheDirPath(String instanceId) {
-        return getInstancesDirPath() + File.separator + instanceId + File.separator + "nmods_cache";
+        return getInstanceDirPath(instanceId) + File.separator + "nmods_cache";
     }
 }

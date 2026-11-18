@@ -26,6 +26,8 @@ android {
 }
 
 dependencies {
+    // The launcher's classes, the game process has them when the agent is loaded
+    compileOnly project(':endercore')
     compileOnly 'com.google.firebase:firebase-iid:21.1.0'
     compileOnly 'com.google.firebase:firebase-common:20.0.0'
     compileOnly 'com.google.android.gms:play-services-tasks:17.2.1'
@@ -159,13 +161,12 @@ afterEvaluate {
         it.finalizedBy(buildDexRelease)
     }
 
-    // priority
-    def endercoreProject = project(':endercore')
-    endercoreProject.tasks.configureEach { task ->
-        if (task.name.toLowerCase().contains("release")) {
-            task.mustRunAfter(buildDexRelease)
-        } else if (task.name.toLowerCase().contains("debug")) {
-            task.mustRunAfter(buildDexDebug)
+    // The dex files are assets of endercore, which packs them after they are built
+    project(':endercore').tasks.configureEach { task ->
+        if (task.name.endsWith("ReleaseAssets")) {
+            task.dependsOn(buildDexRelease)
+        } else if (task.name.endsWith("DebugAssets")) {
+            task.dependsOn(buildDexDebug)
         }
     }
 }

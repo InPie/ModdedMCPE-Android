@@ -2,9 +2,9 @@ package me.effently.moddedmcpe.legacy_mcpe
 
 import android.content.Context
 import android.util.Log
-import com.mojang.minecraftpe.AgentMainActivity
 import org.endercore.android.EnderCore
 import org.endercore.android.operator.instance.InstanceRepository
+import org.endercore.android.operator.instance.InstanceStorage
 import org.endercore.android.utils.LaunchContext
 import java.io.File
 
@@ -14,7 +14,7 @@ enum class LegacyMcpeProfile {
 }
 
 object LegacyMcpe {
-    const val EXTRA_INPUT_VALUES = AgentMainActivity.EXTRA_LEGACY_INPUT_VALUES
+    const val EXTRA_INPUT_VALUES = LaunchContext.EXTRA_LEGACY_INPUT_VALUES
 
     private const val TAG = "Modded-MCPE-UI-LegacyMcpe"
 
@@ -24,7 +24,7 @@ object LegacyMcpe {
 
     fun optionsFile(instanceId: String): File {
         val repository = InstanceRepository(EnderCore.instance.fileEnvironment)
-        return File(File(repository.getInstanceDir(instanceId), "data"), "options.txt")
+        return InstanceStorage(repository.getInstanceDir(instanceId)).legacyOptionsFile
     }
 
     fun resolveProfile(instanceId: String?): LegacyMcpeProfile {

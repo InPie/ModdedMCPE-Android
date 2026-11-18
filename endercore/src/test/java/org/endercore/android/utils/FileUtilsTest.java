@@ -7,6 +7,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import org.endercore.android.TestFiles;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -90,5 +91,59 @@ public class FileUtilsTest {
         assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, "../mod-other/b.txt"));
         assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, "a/../../b.txt"));
         assertThrows(IOException.class, () -> FileUtils.resolveInside(dir, ""));
+    }
+
+    @Test
+    public void moveMergingJoinsFolders() throws Exception {
+        TestFiles.write(new File(folder.getRoot(), "from/a/one.txt"), "one");
+        TestFiles.write(new File(folder.getRoot(), "to/a/two.txt"), "two");
+
+        FileUtils.moveMerging(new File(folder.getRoot(), "from"), new File(folder.getRoot(), "to"));
+
+        assertEquals("one", TestFiles.read(new File(folder.getRoot(), "to/a/one.txt")));
+        assertEquals("two", TestFiles.read(new File(folder.getRoot(), "to/a/two.txt")));
+        assertFalse(new File(folder.getRoot(), "from").exists());
+    }
+
+    @Test
+    public void moveMergingKeepsBothFilesOfOneName() throws Exception {
+        File from = new File(folder.getRoot(), "from/one.txt");
+        File to = new File(folder.getRoot(), "to/one.txt");
+        TestFiles.write(from, "new");
+        TestFiles.write(to, "old");
+
+        assertThrows(IOException.class, () -> FileUtils.moveMerging(from.getParentFile(), to.getParentFile()));
+
+        assertEquals("new", TestFiles.read(from));
+        assertEquals("old", TestFiles.read(to));
+    }
+
+    // Making links needs extra rights on Windows
+    private File linkTo(File target, File link) {
+        try {
+            Files.createSymbolicLink(link.toPath(), target.toPath());
+        } catch (IOException | UnsupportedOperationException e) {
+            Assume.assumeNoException(e);
+        }
+        return link;
+    }
+
+    @Test
+    public void linksAreRemovedAndCopiedWithoutTheirTargets() throws Exception {
+        File target = new File(folder.getRoot(), "shared/sign-in.txt");
+        TestFiles.write(target, "keep");
+        File dir = folder.newFolder("instance");
+        TestFiles.write(new File(dir, "world.txt"), "world");
+        linkTo(target.getParentFile(), new File(dir, "xal"));
+
+        assertTrue(FileUtils.isSymbolicLink(new File(dir, "xal")));
+        assertFalse(FileUtils.isSymbolicLink(new File(dir, "world.txt")));
+        File copy = new File(folder.getRoot(), "copy");
+        FileUtils.copyDirectory(dir, copy);
+        FileUtils.removeFiles(dir);
+
+        assertArrayEquals(new String[]{"world.txt"}, copy.list());
+        assertFalse(dir.exists());
+        assertEquals("keep", TestFiles.read(target));
     }
 }

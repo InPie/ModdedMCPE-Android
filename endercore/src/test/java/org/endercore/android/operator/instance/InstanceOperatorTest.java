@@ -333,4 +333,48 @@ public class InstanceOperatorTest {
 
         assertFalse(operator.isInstancePrepared(instance, gamePackage));
     }
+
+    private GameInstance instanceWithGameData() throws Exception {
+        GameInstance instance = saveInstance("source", InstanceState.READY, InstanceSourceType.MANAGED_APK);
+        instance.setStorageLayout(InstanceStorage.LAYOUT);
+        operator.getRepository().saveInstance(instance);
+        File dir = operator.getRepository().getInstanceDir("source");
+        TestFiles.write(operator.getManagedApkFile("source"), "apk");
+        TestFiles.write(new File(dir, "data/files/options.txt"), "options");
+        TestFiles.write(new File(dir, "external/games/world.txt"), "world");
+        TestFiles.write(new File(dir, "sign_in/xal/token"), "token");
+        return instance;
+    }
+
+    @Test
+    public void duplicateCopiesGameDataWithoutSignIn() throws Exception {
+        GameInstance source = instanceWithGameData();
+
+        String id = operator.duplicateInstance(source);
+
+        File dir = operator.getRepository().getInstanceDir(id);
+        assertEquals("options", TestFiles.read(new File(dir, "data/files/options.txt")));
+        assertEquals("world", TestFiles.read(new File(dir, "external/games/world.txt")));
+        assertFalse(new File(dir, "sign_in").exists());
+        assertEquals(InstanceStorage.LAYOUT, operator.getRepository().getInstance(id).getStorageLayout());
+    }
+
+    @Test
+    public void exportLeavesSignInOut() throws Exception {
+        instanceWithGameData();
+        File zip = new File(folder.getRoot(), "export.zip");
+
+        operator.exportInstanceZip("source", zip);
+
+        List<String> names = new java.util.ArrayList<>();
+        try (java.util.zip.ZipFile file = new java.util.zip.ZipFile(zip)) {
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = file.entries();
+            while (entries.hasMoreElements()) {
+                names.add(entries.nextElement().getName());
+            }
+        }
+        assertTrue(names.contains("external/games/world.txt"));
+        assertTrue(names.contains("data/files/options.txt"));
+        assertFalse(names.contains("sign_in/xal/token"));
+    }
 }

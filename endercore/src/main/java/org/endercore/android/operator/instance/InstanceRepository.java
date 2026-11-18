@@ -39,7 +39,7 @@ public class InstanceRepository {
     }
 
     public File getInstanceDir(String instanceId) {
-        return new File(fileEnvironment.getInstancesDirPath(), instanceId);
+        return new File(fileEnvironment.getInstanceDirPath(instanceId));
     }
 
     public File getInstanceFile(String instanceId) {

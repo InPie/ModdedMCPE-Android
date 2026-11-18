@@ -12,6 +12,8 @@ public class GameInstance {
     private JsonObject settings;
     private long createdAt;
     private Long lastPlayedAt;
+    // InstanceStorage.LAYOUT of the instance folder, 0 for layout 1
+    private int storageLayout;
 
     public GameInstance() {
     }
@@ -86,5 +88,13 @@ public class GameInstance {
 
     public void setLastPlayedAt(Long lastPlayedAt) {
         this.lastPlayedAt = lastPlayedAt;
+    }
+
+    public int getStorageLayout() {
+        return storageLayout;
+    }
+
+    public void setStorageLayout(int storageLayout) {
+        this.storageLayout = storageLayout;
     }
 }

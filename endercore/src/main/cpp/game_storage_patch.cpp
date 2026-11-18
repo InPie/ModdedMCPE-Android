@@ -1,12 +1,26 @@
+// Storage paths of the instance for game code that doesn't ask Context for them. Java code and
+// NativeActivity get the instance folders from GameStorageContext.
+//  - 0.6 - 0.14 call Environment.getExternalStorageDirectory() through JNI. The JNIEnv function
+//    table of every thread answers that call with the instance's shared storage.
+//  - 1.0 - 1.17 build their data path from the static string AppPlatform_android::ANDROID_APPDATA_PATH.
+
+#include "game_storage_patch.h"
+
 #include <android/log.h>
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
-#include <jni.h>
+#include <dlfcn.h>
 #include <string>
 
 #define LOG_TAG "EnderCore-GameStoragePatch-Native"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+static const char* const APPDATA_PATH_SYMBOL = "_ZN19AppPlatform_android20ANDROID_APPDATA_PATHE";
+// std::string::assign(const char*) in libc++_shared.so, which 1.16+ link
+static const char* const LIBCXX_STRING_ASSIGN_SYMBOL =
+        "_ZNSt6__ndk112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE6assignEPKc";
 
 static std::string g_externalStorageRoot;
 
@@ -24,16 +38,6 @@ static jobject (*old_CallStaticObjectMethodA)(JNIEnv*, jclass, jmethodID, const 
 typedef jint (*AttachCurrentThreadFn)(JavaVM*, JNIEnv**, void*);
 static AttachCurrentThreadFn old_AttachCurrentThread = nullptr;
 static AttachCurrentThreadFn old_AttachCurrentThreadAsDaemon = nullptr;
-
-extern "C" void game_storage_patch__set_external_storage_root(const char* path) {
-    if (path && path[0]) {
-        g_externalStorageRoot = path;
-        LOGD("External storage root set to: %s", g_externalStorageRoot.c_str());
-    } else {
-        g_externalStorageRoot.clear();
-        LOGE("External storage root is empty.");
-    }
-}
 
 static void clearException(JNIEnv* env, const char* where) {
     if (env && env->ExceptionCheck()) {
@@ -61,9 +65,6 @@ static void initIds(JNIEnv* env) {
 
     if (!g_getExternalStorageDirectory) {
         clearException(env, "GetStaticMethodID(Environment.getExternalStorageDirectory)");
-    } else {
-        LOGD("Cached Environment.getExternalStorageDirectory methodID=%p",
-             g_getExternalStorageDirectory);
     }
 
     env->DeleteLocalRef(cls);
@@ -111,9 +112,6 @@ static bool shouldRedirect(JNIEnv* env, jmethodID methodID) {
 }
 
 static jobject redirectExternalStorage(JNIEnv* env) {
-    LOGD("Redirect Environment.getExternalStorageDirectory() -> %s",
-         g_externalStorageRoot.c_str());
-
     return makeFile(env, g_externalStorageRoot.c_str());
 }
 
@@ -173,7 +171,7 @@ static jobject new_CallStaticObjectMethod(
     return result;
 }
 
-extern "C" void game_storage_patch_env(JNIEnv* env) {
+static void patchEnv(JNIEnv* env) {
     if (!env)
         return;
 
@@ -197,7 +195,6 @@ extern "C" void game_storage_patch_env(JNIEnv* env) {
                 );
 
         g_jniTableReady = true;
-        LOGD("JNIEnv table prepared.");
     }
 
     env->functions = &g_jniTable;
@@ -212,7 +209,7 @@ static jint new_AttachCurrentThread(JavaVM* vm, JNIEnv** env, void* args) {
     jint result = old_AttachCurrentThread(vm, env, args);
 
     if (result == JNI_OK && env && *env)
-        game_storage_patch_env(*env);
+        patchEnv(*env);
 
     return result;
 }
@@ -224,12 +221,12 @@ static jint new_AttachCurrentThreadAsDaemon(JavaVM* vm, JNIEnv** env, void* args
     jint result = old_AttachCurrentThreadAsDaemon(vm, env, args);
 
     if (result == JNI_OK && env && *env)
-        game_storage_patch_env(*env);
+        patchEnv(*env);
 
     return result;
 }
 
-extern "C" void game_storage_patch_vm(JavaVM* vm) {
+static void patchVm(JavaVM* vm) {
     if (!vm)
         return;
 
@@ -251,20 +248,103 @@ extern "C" void game_storage_patch_vm(JavaVM* vm) {
                 );
 
         g_vmTableReady = true;
-        LOGD("JavaVM table prepared.");
     }
 
     vm->functions = &g_vmTable;
+}
+
+// Path of a java.io.File returned by a no-argument method of the activity, or by one taking a String
+static std::string getActivityPath(JNIEnv* env, jobject activity, const char* method, const char* signature,
+                                   bool takesString) {
+    std::string path;
+    jclass activityClass = env->GetObjectClass(activity);
+    jmethodID getter = env->GetMethodID(activityClass, method, signature);
+    jobject file = nullptr;
+    if (getter) {
+        file = takesString ? env->CallObjectMethod(activity, getter, static_cast<jstring>(nullptr))
+                           : env->CallObjectMethod(activity, getter);
+    }
+    clearException(env, method);
+
+    if (file) {
+        jclass fileClass = env->GetObjectClass(file);
+        jmethodID getAbsolutePath = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+        jstring jpath = getAbsolutePath
+                        ? static_cast<jstring>(env->CallObjectMethod(file, getAbsolutePath)) : nullptr;
+        clearException(env, "File.getAbsolutePath");
+        if (jpath) {
+            const char* chars = env->GetStringUTFChars(jpath, nullptr);
+            path = chars;
+            env->ReleaseStringUTFChars(jpath, chars);
+            env->DeleteLocalRef(jpath);
+        }
+        env->DeleteLocalRef(fileClass);
+        env->DeleteLocalRef(file);
+    }
+    env->DeleteLocalRef(activityClass);
+    return path;
+}
+
+// GNU STL (1.0 - 1.5) keeps a std::string as a pointer to its characters, which follow this header.
+// A negative reference count marks the characters as never shared.
+struct GnuStlStringHeader {
+    size_t length;
+    size_t capacity;
+    int refcount;
+};
+
+static void setAppDataPath(void* gameLibrary, const std::string& dataDir) {
+    void* appDataPath = gameLibrary ? dlsym(gameLibrary, APPDATA_PATH_SYMBOL) : nullptr;
+    if (!appDataPath) {
+        LOGD("The game has no ANDROID_APPDATA_PATH.");
+        return;
+    }
+    std::string value = dataDir + "/";
+
+    typedef void* (*StringAssign)(void*, const char*);
+    StringAssign assign = reinterpret_cast<StringAssign>(dlsym(gameLibrary, LIBCXX_STRING_ASSIGN_SYMBOL));
+    if (assign) {
+        assign(appDataPath, value.c_str());
+        LOGD("ANDROID_APPDATA_PATH (libc++): %s", value.c_str());
+        return;
+    }
+
+    char* block = static_cast<char*>(malloc(sizeof(GnuStlStringHeader) + value.size() + 1));
+    GnuStlStringHeader* header = reinterpret_cast<GnuStlStringHeader*>(block);
+    header->length = value.size();
+    header->capacity = value.size();
+    header->refcount = -1;
+    char* chars = block + sizeof(GnuStlStringHeader);
+    memcpy(chars, value.c_str(), value.size() + 1);
+    *reinterpret_cast<char**>(appDataPath) = chars;
+    LOGD("ANDROID_APPDATA_PATH (GNU STL): %s", chars);
 }
 
 extern "C" void game_storage_patch_init(JavaVM* vm) {
     if (!vm)
         return;
 
-    game_storage_patch_vm(vm);
+    patchVm(vm);
 
     JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK && env) {
-        game_storage_patch_env(env);
+        patchEnv(env);
     }
+}
+
+extern "C" void game_storage_patch_activity(ANativeActivity* activity, void* gameLibrary) {
+    JNIEnv* env = activity->env;
+    g_externalStorageRoot = getActivityPath(env, activity->clazz, "getExternalFilesDir",
+                                            "(Ljava/lang/String;)Ljava/io/File;", true);
+    LOGD("Shared storage: %s", g_externalStorageRoot.c_str());
+
+    std::string dataDir = getActivityPath(env, activity->clazz, "getDataDir", "()Ljava/io/File;", false);
+    if (dataDir.empty()) {
+        LOGE("The activity has no data folder.");
+    } else {
+        setAppDataPath(gameLibrary, dataDir);
+    }
+
+    patchVm(activity->vm);
+    patchEnv(env);
 }

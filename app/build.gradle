@@ -91,8 +91,6 @@ android {
 dependencies {
     // Compile endercore, and integrate with app
     api project(':endercore')
-    // Compile agent_main, but don't integrate
-    compileOnly project(':agent_main')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.7.0'

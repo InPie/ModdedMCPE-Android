@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import com.mojang.minecraftpe.AgentMainActivity;
-
 import org.endercore.android.EnderCore;
 import org.endercore.android.exception.LauncherException;
 import org.endercore.android.exception.NModException;
@@ -13,6 +11,8 @@ import org.endercore.android.interf.IFileEnvironment;
 import org.endercore.android.interf.IInitializationListener;
 import org.endercore.android.interf.implemented.InitializationListener;
 import org.endercore.android.mod.nmod.NMod;
+import org.endercore.android.operator.instance.GameStorage;
+import org.endercore.android.operator.instance.InstanceStorage;
 import org.endercore.android.utils.CPUArch;
 import org.endercore.android.utils.FileUtils;
 import org.endercore.android.utils.NModJsonBean;
@@ -387,14 +387,20 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-DEX", patchDexPath);
             launchIntent.putExtra("ENDERCORE-PATCH-LIBS", patchLibPath);
             launchIntent.putExtra("ENDERCORE-PATCH-OPT", fileEnvironment.getCodeCacheDirPathForDexOpt());
-            launchIntent.putExtra("ENDERCORE-PATCH-DATA", fileEnvironment.getInnerGameStorageDir());
             launchIntent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, fileEnvironment.getActiveWorkspaceId());
-            launchIntent.putExtra(AgentMainActivity.EXTRA_RESOLUTION_SCALE, resolutionScale);
+            launchIntent.putExtra(LaunchContext.EXTRA_RESOLUTION_SCALE, resolutionScale);
+            installGameStorage(fileEnvironment);
             context.startActivity(launchIntent);
             Log.d(TAG, "Game started.");
         } catch (Exception e) {
             throw new LauncherException("Start game failed.", e);
         }
+    }
+
+    // The game process runs one instance, from here on its storage is that of the instance
+    private void installGameStorage(IFileEnvironment fileEnvironment) {
+        InstanceStorage storage = new InstanceStorage(new File(fileEnvironment.getInstanceDirPath(fileEnvironment.getActiveWorkspaceId())));
+        GameStorage.install(new GameStorage(storage, null));
     }
 
     public void setGameInitializationListener(IInitializationListener listener) {

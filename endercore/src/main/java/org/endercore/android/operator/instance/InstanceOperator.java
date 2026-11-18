@@ -193,6 +193,11 @@ public class InstanceOperator {
 
     public GamePackage prepareInstance(GameInstance instance) throws Exception {
         fileEnvironment.setActiveWorkspace(instance.getId());
+        if (instance.getStorageLayout() < InstanceStorage.LAYOUT) {
+            getStorage(instance.getId()).migrateFromLayout1();
+            instance.setStorageLayout(InstanceStorage.LAYOUT);
+            repository.saveInstance(instance);
+        }
         GamePackage gamePackage = resolveGamePackage(instance);
         GamePackageBuilder builder = newBuilder(instance.getId());
 
@@ -251,6 +256,7 @@ public class InstanceOperator {
         
         duplicate.setPackageSnapshot(instance.getPackageSnapshot());
         duplicate.setApkCheck(instance.getApkCheck());
+        duplicate.setStorageLayout(instance.getStorageLayout());
 
         try {
             copyInstanceFiles(instance, duplicate);
@@ -303,11 +309,17 @@ public class InstanceOperator {
             }
         }
 
-        File srcDataDir = new File(repository.getInstanceDir(instance.getId()), "data");
-        if (srcDataDir.exists() && srcDataDir.isDirectory()) {
-            File destDataDir = new File(repository.getInstanceDir(newId), "data");
-            FileUtils.copyDirectory(srcDataDir, destDataDir);
+        File[] sourceDirs = getStorage(instance.getId()).getGameDataDirs();
+        File[] destinationDirs = getStorage(newId).getGameDataDirs();
+        for (int i = 0; i < sourceDirs.length; i++) {
+            if (sourceDirs[i].isDirectory()) {
+                FileUtils.copyDirectory(sourceDirs[i], destinationDirs[i]);
+            }
         }
+    }
+
+    public InstanceStorage getStorage(String instanceId) {
+        return new InstanceStorage(repository.getInstanceDir(instanceId));
     }
 
     public void deleteInstance(String instanceId) {
@@ -560,9 +572,11 @@ public class InstanceOperator {
         }).start();
     }
 
+    // Without the build caches and sign-in data
     private void addToZip(File rootDir, File file, ZipOutputStream output) throws IOException {
         String relativePath = rootDir.toURI().relativize(file.toURI()).getPath();
-        if (relativePath.startsWith("cache/") || relativePath.startsWith("nmods_cache/")) {
+        if (relativePath.startsWith("cache/") || relativePath.startsWith("nmods_cache/")
+                || relativePath.startsWith(InstanceStorage.DIR_SIGN_IN + "/") || FileUtils.isSymbolicLink(file)) {
             return;
         }
 

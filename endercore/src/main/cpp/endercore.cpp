@@ -3,155 +3,38 @@
 #include <dlfcn.h>
 #include <cstdio>
 #include <cstring>
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
 #include <android/log.h>
 #include <android/native_activity.h>
 
-#include <unistd.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <ucontext.h>
+#include "game_storage_patch.h"
 
 #define LOG_TAG "EnderCore-Native"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 extern "C" void legacy_compatibility_init();
-extern "C" void game_storage_patch_init(JavaVM* vm);
-extern "C" void game_storage_patch_vm(JavaVM* vm);
-extern "C" void game_storage_patch_env(JNIEnv* env);
-extern "C" void game_storage_patch__set_external_storage_root(const char* path);
 
 JavaVM *g_jvm = nullptr;
 jclass g_crashHandlerClass = nullptr;
 jmethodID g_onNativeCrashMethod = nullptr;
 void* g_mcpeHandle = nullptr;
 
-struct gnustl_string_rep {
-    size_t length;
-    size_t capacity;
-    int refcount;
-};
-
 static void (*android_main_minecraft)(struct android_app *app);
 
 static void (*ANativeActivity_onCreate_minecraft)(ANativeActivity *activity, void *savedState,
                                                   size_t savedStateSize);
-
-static void logNativeAssetProbe(AAssetManager *assetManager, const char *path) {
-    if (assetManager == nullptr) {
-        LOGE("Native asset probe failed: assetManager is null, path=%s", path);
-        return;
-    }
-
-    AAsset *asset = AAssetManager_open(assetManager, path, AASSET_MODE_BUFFER);
-    if (asset == nullptr) {
-        LOGE("Native asset probe failed: %s", path);
-        return;
-    }
-
-    off_t length = AAsset_getLength(asset);
-    LOGD("Native asset probe OK: %s, length=%ld", path, static_cast<long>(length));
-    AAsset_close(asset);
-}
-
-static void logNativeAssetState(ANativeActivity *activity) {
-    AAssetManager *assetManager = activity == nullptr ? nullptr : activity->assetManager;
-    LOGD("Native Activity assetManager=%p", assetManager);
-    logNativeAssetProbe(assetManager, "images/font/default8.png");
-    logNativeAssetProbe(assetManager, "images/gui/title.png");
-    logNativeAssetProbe(assetManager, "resourcepacks/vanilla/models/mobs.json");
-    logNativeAssetProbe(assetManager, "skins/skins.json");
-    logNativeAssetProbe(assetManager, "images/mob/skins/Base/Vanilla.json");
-    logNativeAssetProbe(assetManager, "skins/Base/base.json");
-}
 
 extern "C" void android_main(struct android_app *app) {
     LOGD("Forward android_main to mcpe");
     android_main_minecraft(app);
 }
 
-static void patchNativeActivity(ANativeActivity *activity) {
-    JNIEnv *env = activity->env;
-    jobject activityObj = activity->clazz;
-
-    jclass activityClass = env->GetObjectClass(activityObj);
-
-    // patch AssetManager
-    jmethodID getAssetManagerMethod = env->GetMethodID(activityClass, "getPatchAssetManager", "()Landroid/content/res/AssetManager;");
-    if (getAssetManagerMethod) {
-        jobject assetManagerObj = env->CallObjectMethod(activityObj, getAssetManagerMethod);
-        if (assetManagerObj) {
-            AAssetManager *patchedManager = AAssetManager_fromJava(env, assetManagerObj);
-            if (patchedManager) {
-                LOGD("Patching ANativeActivity->assetManager from %p to %p", activity->assetManager, patchedManager);
-                activity->assetManager = patchedManager;
-            }
-        }
-    } else {
-        LOGE("Failed to find getPatchAssetManager method");
-    }
-
-    // patch internal data path
-    jmethodID getInternalPathMethod = env->GetMethodID(activityClass, "getPatchInternalDataPath", "()Ljava/lang/String;");
-    if (getInternalPathMethod) {
-        jstring pathStr = (jstring)env->CallObjectMethod(activityObj, getInternalPathMethod);
-        if (pathStr) {
-            const char *path = env->GetStringUTFChars(pathStr, nullptr);
-            LOGD("Patching ANativeActivity->internalDataPath to %s", path);
-            activity->internalDataPath = strdup(path);
-            // common hook methods for ~v0.6 - v0.14 for custom game data path (JNI hooking)
-            game_storage_patch__set_external_storage_root(path);
-
-            // MCPE 1.0+ AppPlatform_android::ANDROID_APPDATA_PATH binary patch
-            if (g_mcpeHandle) {
-                void* sym = dlsym(g_mcpeHandle, "_ZN19AppPlatform_android20ANDROID_APPDATA_PATHE");
-                if (sym) {
-                    std::string newPath = std::string(path) + "/";
-                    size_t len = newPath.length();
-                    char* spoof_buf = (char*)malloc(sizeof(gnustl_string_rep) + len + 1);
-                    gnustl_string_rep* rep = (gnustl_string_rep*)spoof_buf;
-                    rep->length = len;
-                    rep->capacity = len;
-                    rep->refcount = -1; // leaked refcount
-                    char* str_ptr = spoof_buf + sizeof(gnustl_string_rep);
-                    strcpy(str_ptr, newPath.c_str());
-                    
-                    *(char**)sym = str_ptr;
-                    LOGD("Patched ANDROID_APPDATA_PATH to %s", str_ptr);
-                } else {
-                    LOGD("Patch ANDROID_APPDATA_PATH skipped.");
-                }
-            }
-
-            env->ReleaseStringUTFChars(pathStr, path);
-        }
-    }
-
-    // patch external data path
-    jmethodID getExternalPathMethod = env->GetMethodID(activityClass, "getPatchExternalDataPath", "()Ljava/lang/String;");
-    if (getExternalPathMethod) {
-        jstring pathStr = (jstring)env->CallObjectMethod(activityObj, getExternalPathMethod);
-        if (pathStr) {
-            const char *path = env->GetStringUTFChars(pathStr, nullptr);
-            LOGD("Patching ANativeActivity->externalDataPath to %s", path);
-            activity->externalDataPath = strdup(path);
-            env->ReleaseStringUTFChars(pathStr, path);
-        }
-    }
-
-    game_storage_patch_vm(activity->vm);
-    game_storage_patch_env(env);
-    
-    env->DeleteLocalRef(activityClass);
-}
-
+// NativeActivity versions (0.1 - 1.26.6x) start here. NativeActivity already passes the assets and
+// folders it gets from AgentMainActivity.
 extern "C" void
 ANativeActivity_onCreate(ANativeActivity *activity, void *savedState, size_t savedStateSize) {
-    LOGD("Forward ANativeActivity_onCreate to mcpe (v3)");
-    patchNativeActivity(activity);
-    logNativeAssetState(activity);
+    LOGD("Forward ANativeActivity_onCreate to mcpe");
+    game_storage_patch_activity(activity, g_mcpeHandle);
     ANativeActivity_onCreate_minecraft(activity, savedState, savedStateSize);
 }
 

@@ -7,6 +7,8 @@ public interface IFileEnvironment {
 
     String getInstancesDirPath();
 
+    String getInstanceDirPath(String instanceId);
+
     String getOptionsFilePath();
 
     String getNModsDirPath();
@@ -16,8 +18,6 @@ public interface IFileEnvironment {
     String getCodeCacheDirPathForDex();
 
     String getCodeCacheDirPathForNativeLib();
-
-    String getInnerGameStorageDir();
 
     String getCodeCacheDirPathForDexOpt();
 

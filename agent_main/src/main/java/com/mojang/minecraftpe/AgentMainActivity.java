@@ -24,6 +24,10 @@ import android.view.WindowManager;
 
 import androidx.core.graphics.Insets;
 
+import org.endercore.android.operator.instance.GameStorage;
+import org.endercore.android.operator.instance.GameStorageContext;
+import org.endercore.android.utils.LaunchContext;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,7 +57,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private AssetManager patchAssetManager = null;
     private Resources patchResources = null;
     private AssetManager patchResourceAssetManager = null;
-    private String instanceDataPath = null;
     private String instanceId = null;
     private long pendingSkinPickerCallback = 0L;
     private float resolutionScale = 1f; // for 1.26.62+
@@ -72,8 +75,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private int getImageDataLogCount = 0;
 
     private static final String TAG = "EnderCore-AgentMain";
-    public static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
-    public static final String EXTRA_RESOLUTION_SCALE = "org.endercore.android.extra.RESOLUTION_SCALE";
     private static final String IAB_BROADCAST_ACTION = "com.android.vending.billing.PURCHASES_UPDATED";
     private static final int PICK_IMAGE_REQUEST = 0x4D51;
     // -- for 1.26.62+ begin --
@@ -81,27 +82,31 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private static final String CLASS_GAME_ACTIVITY = "com.google.androidgamesdk.GameActivity";
     // -- for 1.26.62+ end --
     // legacy mcpe 0.1-0.6
-    public static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
     private static final int DIALOG_MAINMENU_OPTIONS = 3;
     private static final int DIALOG_RENAME_MP_WORLD = 4;
+
+    // Files, preferences and databases of the game go to the instance
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(new GameStorageContext(base));
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         prepareGameWindow();
 
         ArrayList<String> patchAssetsPath = getIntent().getStringArrayListExtra("ENDERCORE-PATCH-ASSETS");
-        instanceDataPath = getIntent().getStringExtra("ENDERCORE-PATCH-DATA");
-        instanceId = getIntent().getStringExtra(EXTRA_INSTANCE_ID);
-        
-        if (instanceDataPath != null) {
-            new File(instanceDataPath).mkdirs();
-        }
+        instanceId = getIntent().getStringExtra(LaunchContext.EXTRA_INSTANCE_ID);
 
         if(patchAssetsPath == null)
         {
             Log.e(TAG,"Value ENDERCORE-PATCH-ASSETS in Intent defines to be null.");
             Log.e(TAG,"Force close AgentMainActivity.");
+            finish();
+        }
+        else if (GameStorage.getInstalled() == null) {
+            Log.e(TAG, "The instance storage isn't set up, the game would use the launcher's own folders.");
             finish();
         }
         else {
@@ -187,7 +192,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     // back up to the window, so the surface, the content rect and touch coordinates all get the smaller size.
     // The screen size, DPI, insets and keyboard height the game asks for shrink by the same factor.
     private float readResolutionScale() {
-        float scale = getIntent().getFloatExtra(EXTRA_RESOLUTION_SCALE, 1f);
+        float scale = getIntent().getFloatExtra(LaunchContext.EXTRA_RESOLUTION_SCALE, 1f);
         if (!(scale > 0f && scale < 1f)) {
             return 1f;
         }
@@ -391,20 +396,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         getWindow().getDecorView().setSystemUiVisibility(IMMERSIVE_SYSTEM_UI_FLAGS);
     }
 
+    // 0.11 - 1.17 return shared storage here, 1.26 the external files folder. Both are external/ of the instance.
     public String getExternalStoragePath() {
-        return getPatchExternalDataPath();
+        return getExternalFilesDir(null).getAbsolutePath();
     }
 
     public String getInstanceID() {
         return instanceId;
-    }
-
-    private File getInstanceDir() {
-        if (instanceDataPath == null) {
-            return null;
-        }
-        File dataDir = new File(instanceDataPath);
-        return dataDir.getParentFile();
     }
 
     private String getGameVersionName() {
@@ -578,48 +576,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
 
 
-    /////////////////////////////////////////////////////
-    // ------------ PATH OVERRIDES 0.14<= ------------ //
-    /////////////////////////////////////////////////////
-
-    // --- Legacy path overrides: for 0.14 and below ---
-    // and just in case ...
-    @Override
-    public File getFilesDir() {
-        if (instanceDataPath != null) {
-            File f = new File(instanceDataPath);
-            if (!f.exists()) f.mkdirs();
-            return f;
-        }
-        return super.getFilesDir();
-    }
-
-    @Override
-    public File getCacheDir() {
-        if (instanceDataPath != null) {
-            File cache = new File(instanceDataPath, "cache");
-            if (!cache.exists()) cache.mkdirs();
-            return cache;
-        }
-        return super.getCacheDir();
-    }
-
-    /*
-     * Called by Native code (endercore.cpp):
-     */
-    //  get our patched AssetManager
-    public AssetManager getPatchAssetManager() {
-        return patchAssetManager != null ? patchAssetManager : getAssets();
-    }
-    //  get the instance internal data path
-    public String getPatchInternalDataPath() {
-        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
-    }
-    //  get the instance external data path
-    public String getPatchExternalDataPath() {
-        return instanceDataPath != null ? instanceDataPath : getFilesDir().getAbsolutePath();
-    }
-
     void pickImage(long callback) {
         pendingSkinPickerCallback = callback;
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -647,8 +603,6 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             pendingSkinPickerCallback = 0L;
         }
     }
-
-    // --- END: Legacy path overrides ---
 
 
 
@@ -680,7 +634,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
 
         Intent intent = new Intent();
-        intent.putExtra(EXTRA_INSTANCE_ID, instanceId);
+        intent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, instanceId);
 
         if (dialogId == DIALOG_CREATE_NEW_WORLD) {
             intent.setClassName(getPackageName(), "me.effently.moddedmcpe.legacy_mcpe.activities.LegacyCreateWorldActivity");
@@ -714,7 +668,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
             if (requestCode == DIALOG_CREATE_NEW_WORLD || requestCode == DIALOG_RENAME_MP_WORLD) {
                 if (resultCode == RESULT_OK && data != null) {
-                    legacyUserInputText = data.getStringArrayExtra(EXTRA_LEGACY_INPUT_VALUES);
+                    legacyUserInputText = data.getStringArrayExtra(LaunchContext.EXTRA_LEGACY_INPUT_VALUES);
                     legacyUserInputStatus = 1;
                 } else {
                     legacyUserInputText = null;
@@ -768,11 +722,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private Properties readLegacyOptions() {
         Properties options = new Properties();
-        if (instanceDataPath == null) {
-            return options;
-        }
-
-        File optionsFile = new File(instanceDataPath, "options.txt");
+        File optionsFile = GameStorage.getInstalled().getStorage().getLegacyOptionsFile();
         if (!optionsFile.isFile()) {
             return options;
         }
@@ -969,12 +919,14 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
                 } catch (Exception ignored) {}
             }
 
-            // check data directory
+            // "forced" means look into the game's own files: shared storage, then the files folder
             if (bitmap == null && forced) {
-                // "forced" means look into game data dir
-                File external = new File(instanceDataPath, filename);
-                if (external.exists()) {
-                    bitmap = BitmapFactory.decodeFile(external.getAbsolutePath());
+                for (File dir : new File[]{getExternalFilesDir(null), getFilesDir()}) {
+                    File file = new File(dir, filename);
+                    if (file.exists()) {
+                        bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                        break;
+                    }
                 }
             }
         }
