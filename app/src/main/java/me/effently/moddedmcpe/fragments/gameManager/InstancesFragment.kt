@@ -29,11 +29,13 @@ import org.endercore.android.EnderCore
 import org.endercore.android.operator.ApkVerifier
 import org.endercore.android.operator.instance.InstanceOperator
 import org.endercore.android.operator.instance.model.GameInstance
+import org.endercore.android.operator.instance.model.GameResolution
 import org.endercore.android.operator.instance.model.InstanceState
 import java.io.File
 import java.io.IOException
 import java.text.DateFormat
 import java.util.Date
+import kotlin.math.abs
 
 import android.provider.OpenableColumns
 import org.endercore.android.operator.instance.model.InstanceSourceType
@@ -114,6 +116,7 @@ class InstancesFragment : Fragment() {
                 add(R.string.btn_play to { playInstance(instance) })
             add(R.string.btn_info to { showInstanceInfo(instance) })
             add(R.string.btn_rename to { renameInstance(instance) })
+            add(R.string.btn_resolution to { chooseResolution(instance) })
             add(R.string.btn_duplicate to { duplicateInstance(instance) })
             add(R.string.btn_export_zip to { exportInstance(instance) })
             add(R.string.btn_delete to { deleteInstance(instance) })
@@ -164,28 +167,53 @@ class InstancesFragment : Fragment() {
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val newName = input.text.toString().trim()
                 if (newName.isNotEmpty() && newName != instance.name) {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        val updatedInstance = operator.repository.getInstance(instance.id) ?: instance
+                    updateInstance(instance) { updatedInstance ->
                         updatedInstance.name = newName
                         if (updatedInstance.settings == null) {
                             updatedInstance.settings = JsonObject()
                         }
                         updatedInstance.settings.addProperty("customName", true)
-                        val error = try {
-                            operator.repository.saveInstance(updatedInstance)
-                            null
-                        } catch (e: IOException) { e }
-                        withContext(Dispatchers.Main) {
-                            if (error != null) {
-                                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_LONG).show()
-                            }
-                            loadInstances()
-                        }
                     }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun chooseResolution(instance: GameInstance) {
+        val scales = GameResolution.SCALES
+        val current = GameResolution.getScale(instance)
+        val checked = scales.indices.minByOrNull { abs(scales[it] - current) } ?: 0
+        val labels = scales.map { scale ->
+            val percent = getString(R.string.resolution_percent, GameResolution.toPercent(scale))
+            if (scale == GameResolution.DEFAULT_SCALE) getString(R.string.resolution_default, percent) else percent
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.dialog_resolution_title)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                dialog.dismiss()
+                updateInstance(instance) { GameResolution.setScale(it, scales[which]) }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    // Applies the change to the saved copy of the instance and reloads the list
+    private fun updateInstance(instance: GameInstance, change: (GameInstance) -> Unit) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val updatedInstance = operator.repository.getInstance(instance.id) ?: instance
+            change(updatedInstance)
+            val error = try {
+                operator.repository.saveInstance(updatedInstance)
+                null
+            } catch (e: IOException) { e }
+            withContext(Dispatchers.Main) {
+                if (error != null) {
+                    Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+                loadInstances()
+            }
+        }
     }
 
     private fun showInstanceInfo(instance: GameInstance) {
@@ -201,6 +229,7 @@ class InstancesFragment : Fragment() {
                 Version: $versionName
                 APK Size: $apkSizeMB
                 Source Type: $sourceType
+                Resolution: ${GameResolution.toPercent(GameResolution.getScale(instance))}%
                 APK SHA-256: ${apkCheck?.apkSha256 ?: notChecked}
                 Signer: ${apkCheck?.signerName ?: notChecked}
                 Signer SHA-256: ${apkCheck?.signerSha256 ?: notChecked}

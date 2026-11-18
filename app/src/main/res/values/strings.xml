@@ -115,6 +115,10 @@
     <string name="dialog_arch_help_message">This launcher is built for %1$s, so versions for this architecture are shown.\n\nNote: 64-bit processes cannot run 32-bit libraries (and vice versa).</string>
     <string name="btn_rename">Rename</string>
     <string name="dialog_rename_title">Rename instance</string>
+    <string name="btn_resolution">Resolution</string>
+    <string name="dialog_resolution_title">Game resolution (1.26 and newer)</string>
+    <string name="resolution_percent" translatable="false">%1$d%%</string>
+    <string name="resolution_default">%1$s (default)</string>
     <string name="dialog_rename_hint">New name</string>
     <string name="text_duplicating">Duplicating...</string>
     <string name="text_deleting">Deleting...</string>

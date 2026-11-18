@@ -5,6 +5,8 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.os.Bundle;
 
+import androidx.core.graphics.Insets;
+
 public abstract class MainActivity extends NativeActivity {
 
     @Override
@@ -36,6 +38,41 @@ public abstract class MainActivity extends NativeActivity {
     public void initializeXboxLive(long xalInitArgs, long xblInitArgs) {
         throw new RuntimeException("Stub!");
     }
+
+    public int getScreenWidth() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public int getScreenHeight() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public float getKeyboardHeight() {
+        throw new RuntimeException("Stub!");
+    }
+
+    // -- for 1.26.62+ begin --
+    public int getPlatformDpi() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public int getDisplayWidth() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public int getDisplayHeight() {
+        throw new RuntimeException("Stub!");
+    }
+
+    // Declared by com.google.androidgamesdk.GameActivity
+    public Insets getWindowInsets(int type) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public Insets getWaterfallInsets() {
+        throw new RuntimeException("Stub!");
+    }
+    // -- for 1.26.62+ end --
 
     native void nativeOnPickImageCanceled(long callback);
 

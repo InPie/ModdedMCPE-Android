@@ -11,11 +11,15 @@ import org.endercore.android.EnderCore
 import org.endercore.android.exception.LauncherException
 import org.endercore.android.interf.implemented.InitializationListener
 import org.endercore.android.operator.instance.InstanceOperator
+import org.endercore.android.operator.instance.model.GameResolution
 import org.endercore.android.utils.LaunchContext
 import java.io.PrintWriter
 import java.io.StringWriter
 
 class InitializingActivity : AppCompatActivity() {
+    @Volatile
+    private var resolutionScale = 1f
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_initializing)
@@ -43,6 +47,7 @@ class InitializingActivity : AppCompatActivity() {
                     val instance = operator.repository.getInstance(instanceId)
                         ?: throw LauncherException("Instance not found: $instanceId")
                     val launchTarget = operator.prepareInstance(instance)
+                    resolutionScale = GameResolution.getScale(instance)
 
                     core.launcher.initializeGame(this@InitializingActivity, launchTarget)
                 } catch (e: LauncherException) {
@@ -62,7 +67,7 @@ class InitializingActivity : AppCompatActivity() {
 
     fun startGameActivity() {
         try {
-            EnderCore.instance.launcher.startGame(this)
+            EnderCore.instance.launcher.startGame(this, resolutionScale)
             finish()
         } catch (e: LauncherException) {
             startFatalActivity(e)

@@ -16,9 +16,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+
+import androidx.core.graphics.Insets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -52,6 +56,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private String instanceDataPath = null;
     private String instanceId = null;
     private long pendingSkinPickerCallback = 0L;
+    private float resolutionScale = 1f; // for 1.26.62+
 
     // legacy mcpe 0.1-0.6
     private int legacyUserInputStatus = -1;
@@ -68,9 +73,13 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
 
     private static final String TAG = "EnderCore-AgentMain";
     public static final String EXTRA_INSTANCE_ID = "org.endercore.android.extra.INSTANCE_ID";
+    public static final String EXTRA_RESOLUTION_SCALE = "org.endercore.android.extra.RESOLUTION_SCALE";
     private static final String IAB_BROADCAST_ACTION = "com.android.vending.billing.PURCHASES_UPDATED";
     private static final int PICK_IMAGE_REQUEST = 0x4D51;
-    private static final String CLASS_PLAY_GAMES_SDK = "com.google.android.gms.games.PlayGamesSdk"; // for 1.26.62+
+    // -- for 1.26.62+ begin --
+    private static final String CLASS_PLAY_GAMES_SDK = "com.google.android.gms.games.PlayGamesSdk";
+    private static final String CLASS_GAME_ACTIVITY = "com.google.androidgamesdk.GameActivity";
+    // -- for 1.26.62+ end --
     // legacy mcpe 0.1-0.6
     public static final String EXTRA_LEGACY_INPUT_VALUES = "me.effently.moddedmcpe.extra.LEGACY_INPUT_VALUES";
     private static final int DIALOG_CREATE_NEW_WORLD = 1;
@@ -149,8 +158,12 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
             Log.i(TAG, "Patching finished.Activity creating.");
-            initializePlayGames(); // for 1.26.62+
+            // -- for 1.26.62+ begin --
+            initializePlayGames();
+            resolutionScale = readResolutionScale();
             super.onCreate(savedInstanceState);
+            scaleGameSurface();
+            // -- for 1.26.62+ end --
             applyImmersiveMode();
         }
     }
@@ -169,7 +182,132 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.e(TAG, "Failed to initialize Play Games.", e);
         }
     }
+
+    // Games on GameActivity draw into a SurfaceView. A lower resolution shrinks that view and scales it
+    // back up to the window, so the surface, the content rect and touch coordinates all get the smaller size.
+    // The screen size, DPI, insets and keyboard height the game asks for shrink by the same factor.
+    private float readResolutionScale() {
+        float scale = getIntent().getFloatExtra(EXTRA_RESOLUTION_SCALE, 1f);
+        if (!(scale > 0f && scale < 1f)) {
+            return 1f;
+        }
+        if (!isGameActivity()) {
+            Log.i(TAG, "The game doesn't use GameActivity, it renders at full resolution.");
+            return 1f;
+        }
+        Log.i(TAG, "Resolution scale: " + scale);
+        return scale;
+    }
+
+    private boolean isGameActivity() {
+        try {
+            return Class.forName(CLASS_GAME_ACTIVITY, false, getClassLoader()).isInstance(this);
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    private void scaleGameSurface() {
+        if (resolutionScale == 1f) {
+            return;
+        }
+        final SurfaceView surfaceView = findSurfaceView(getWindow().getDecorView());
+        if (surfaceView == null || !(surfaceView.getParent() instanceof View)) {
+            Log.e(TAG, "Game surface not found, the resolution stays full.");
+            return;
+        }
+        ((View) surfaceView.getParent()).addOnLayoutChangeListener(
+                (container, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
+                        container.post(() -> fitGameSurface(surfaceView, right - left, bottom - top)));
+    }
+
+    private void fitGameSurface(SurfaceView surfaceView, int width, int height) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        int scaledWidth = Math.max(1, scaled(width));
+        int scaledHeight = Math.max(1, scaled(height));
+        surfaceView.setPivotX(0f);
+        surfaceView.setPivotY(0f);
+        surfaceView.setScaleX((float) width / scaledWidth);
+        surfaceView.setScaleY((float) height / scaledHeight);
+        ViewGroup.LayoutParams params = surfaceView.getLayoutParams();
+        if (params.width != scaledWidth || params.height != scaledHeight) {
+            params.width = scaledWidth;
+            params.height = scaledHeight;
+            surfaceView.setLayoutParams(params);
+        }
+    }
+
+    private static SurfaceView findSurfaceView(View view) {
+        if (view instanceof SurfaceView) {
+            return (SurfaceView) view;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                SurfaceView found = findSurfaceView(group.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private int scaled(int value) {
+        return Math.round(value * resolutionScale);
+    }
+
+    private Insets scaled(Insets insets) {
+        if (insets == null || resolutionScale == 1f) {
+            return insets;
+        }
+        return Insets.of(scaled(insets.left), scaled(insets.top), scaled(insets.right), scaled(insets.bottom));
+    }
+
+    @Override
+    public int getPlatformDpi() {
+        return scaled(super.getPlatformDpi());
+    }
+
+    @Override
+    public int getDisplayWidth() {
+        return scaled(super.getDisplayWidth());
+    }
+
+    @Override
+    public int getDisplayHeight() {
+        return scaled(super.getDisplayHeight());
+    }
+
+    @Override
+    public Insets getWindowInsets(int type) {
+        return scaled(super.getWindowInsets(type));
+    }
+
+    @Override
+    public Insets getWaterfallInsets() {
+        return scaled(super.getWaterfallInsets());
+    }
     // -- for 1.26.62+ end --
+
+    // All versions ask for the screen size, 1.0+ also for the keyboard height.
+    // The values change only while resolutionScale is below 1.
+    @Override
+    public int getScreenWidth() {
+        return scaled(super.getScreenWidth());
+    }
+
+    @Override
+    public int getScreenHeight() {
+        return scaled(super.getScreenHeight());
+    }
+
+    @Override
+    public float getKeyboardHeight() {
+        return super.getKeyboardHeight() * resolutionScale;
+    }
 
     @Override
     protected void onResume() {

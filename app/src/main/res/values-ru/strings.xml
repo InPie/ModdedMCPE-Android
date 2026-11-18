@@ -115,6 +115,9 @@
     <string name="dialog_arch_help_message">Текущий лаунчер собран для %1$s, поэтому показаны версии именно для этой архитектуры.\n\nОбратите внимание: на 64-битных процессах невозможно запустить 32-битные библиотеки (и наоборот).</string>
     <string name="btn_rename">Переименовать</string>
     <string name="dialog_rename_title">Переименовать инстанс</string>
+    <string name="btn_resolution">Разрешение</string>
+    <string name="dialog_resolution_title">Разрешение игры (1.26 и новее)</string>
+    <string name="resolution_default">%1$s (по умолчанию)</string>
     <string name="dialog_rename_hint">Новое имя</string>
     <string name="text_duplicating">Дублирование...</string>
     <string name="text_deleting">Удаление...</string>

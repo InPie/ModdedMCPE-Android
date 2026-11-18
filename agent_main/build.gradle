@@ -29,6 +29,8 @@ dependencies {
     compileOnly 'com.google.firebase:firebase-iid:21.1.0'
     compileOnly 'com.google.firebase:firebase-common:20.0.0'
     compileOnly 'com.google.android.gms:play-services-tasks:17.2.1'
+    // Insets of GameActivity, the class comes from the game at runtime
+    compileOnly 'androidx.core:core:1.13.0'
 }
 
 tasks.withType(org.gradle.api.tasks.compile.JavaCompile).configureEach {

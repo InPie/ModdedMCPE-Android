@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.mojang.minecraftpe.AgentMainActivity;
+
 import org.endercore.android.EnderCore;
 import org.endercore.android.exception.LauncherException;
 import org.endercore.android.exception.NModException;
@@ -364,7 +366,7 @@ public final class Launcher {
         return nModExceptions;
     }
 
-    public void startGame(Context context) throws LauncherException {
+    public void startGame(Context context, float resolutionScale) throws LauncherException {
         if (!initializedGame)
             throw new RuntimeException("Game isn't initialized.Please initialize game (Launcher.initializeGame) before start game.");
         try {
@@ -387,6 +389,7 @@ public final class Launcher {
             launchIntent.putExtra("ENDERCORE-PATCH-OPT", fileEnvironment.getCodeCacheDirPathForDexOpt());
             launchIntent.putExtra("ENDERCORE-PATCH-DATA", fileEnvironment.getInnerGameStorageDir());
             launchIntent.putExtra(LaunchContext.EXTRA_INSTANCE_ID, fileEnvironment.getActiveWorkspaceId());
+            launchIntent.putExtra(AgentMainActivity.EXTRA_RESOLUTION_SCALE, resolutionScale);
             context.startActivity(launchIntent);
             Log.d(TAG, "Game started.");
         } catch (Exception e) {
