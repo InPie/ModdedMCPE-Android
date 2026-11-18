@@ -95,11 +95,7 @@
     <string name="toast_export_error">Ошибка экспорта: %1$s</string>
     <string name="toast_import_success">Импортирован.</string>
     <string name="dialog_apk_signer_title">APK подписан не Mojang</string>
-    <string name="dialog_apk_signer_message">APK цел, но подписан другим ключом:
-%1$s
-SHA-256: %2$s
-
-Такой APK мог быть изменён. Запускайте его, только если доверяете источнику.</string>
+    <string name="dialog_apk_signer_message">APK цел, но подписан другим ключом:\n%1$s\nSHA-256: %2$s\n\nТакой APK мог быть изменён. Запускайте его, только если доверяете источнику.</string>
     <string name="toast_import_error">Ошибка импортирования: %1$s</string>
     <string name="dialog_import_apk_title">Импортирование APK</string>
     <string name="dialog_import_zip_title">Импортирование ZIP</string>

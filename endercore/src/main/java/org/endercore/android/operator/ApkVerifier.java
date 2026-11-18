@@ -22,14 +22,20 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.security.auth.x500.X500Principal;
 
 public final class ApkVerifier {
     // CN=Mojang AB, O=Mojang AB, C=SE, found on the original APKs of 0.6.1 to 1.5.1.2
     private static final Set<String> MOJANG_CERTIFICATES = Collections.singleton(
             "31be40096f931cd7f11d5e262d2b2c437c44385fb4ecbc1013d95a7435816f9c");
+    // Without it the e-mail of the AOSP test keys is printed as an OID
+    private static final Map<String, String> NAME_KEYWORDS = Collections.singletonMap(
+            "1.2.840.113549.1.9.1", "EMAILADDRESS");
 
     private ApkVerifier() {
     }
@@ -72,7 +78,7 @@ public final class ApkVerifier {
         try {
             X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
                     .generateCertificate(new ByteArrayInputStream(encoded));
-            check.setSignerName(certificate.getSubjectX500Principal().getName());
+            check.setSignerName(certificate.getSubjectX500Principal().getName(X500Principal.RFC1779, NAME_KEYWORDS));
         } catch (CertificateException e) {
             throw new LauncherException("APK signing certificate can't be read.", e);
         }
