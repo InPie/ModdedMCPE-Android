@@ -475,7 +475,22 @@ class InstancesFragment : Fragment() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_instance, parent, false)
-            return ViewHolder(view)
+            val holder = ViewHolder(view)
+            setClickAction(holder, holder.itemView, onItemClick)
+            setClickAction(holder, holder.btnPlay, onPlayClick)
+            setClickAction(holder, holder.btnDelete, onDeleteClick)
+            return holder
+        }
+
+        // The instance is taken from the list at the moment of the click. A row isn't bound again when
+        // only the settings of its instance change, so the instance it was bound with can be out of date.
+        private fun setClickAction(holder: ViewHolder, view: View, action: (GameInstance) -> Unit) {
+            view.setOnClickListener {
+                val position = holder.adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    action(getItem(position))
+                }
+            }
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -486,9 +501,6 @@ class InstancesFragment : Fragment() {
             holder.btnPlay.text = context.getString(
                 if (instance.state == InstanceState.DOWNLOAD_FAILED) R.string.btn_download else R.string.btn_play
             )
-            holder.itemView.setOnClickListener { onItemClick(instance) }
-            holder.btnPlay.setOnClickListener { onPlayClick(instance) }
-            holder.btnDelete.setOnClickListener { onDeleteClick(instance) }
         }
 
         private fun getInstanceStatusText(context: android.content.Context, instance: GameInstance): String {
