@@ -117,7 +117,7 @@
     <string name="btn_rename">Rename</string>
     <string name="dialog_rename_title">Rename instance</string>
     <string name="btn_resolution">Resolution</string>
-    <string name="dialog_resolution_title">Game resolution (1.26 and newer)</string>
+    <string name="dialog_resolution_title">Game resolution</string>
     <string name="resolution_percent" translatable="false">%1$d%%</string>
     <string name="resolution_default">%1$s (default)</string>
     <string name="dialog_rename_hint">New name</string>

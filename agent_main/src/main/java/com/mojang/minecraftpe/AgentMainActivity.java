@@ -16,9 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -59,7 +57,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
     private AssetManager patchResourceAssetManager = null;
     private String instanceId = null;
     private long pendingSkinPickerCallback = 0L;
-    private float resolutionScale = 1f; // for 1.26.62+
+    private ResolutionScale resolution = new ResolutionScale(1f);
 
     // legacy mcpe 0.1-0.6
     private int legacyUserInputStatus = -1;
@@ -163,12 +161,14 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.i(TAG, "Paths: code=" + getPackageCodePath() + ", resource=" + getPackageResourcePath());
             // logAssetState();
             Log.i(TAG, "Patching finished.Activity creating.");
-            // -- for 1.26.62+ begin --
-            initializePlayGames();
-            resolutionScale = readResolutionScale();
+            initializePlayGames(); // for 1.26.62+
+            // NativeActivity reads the scale in super.onCreate, GameActivity creates its surface there
+            resolution = new ResolutionScale(getIntent().getFloatExtra(LaunchContext.EXTRA_RESOLUTION_SCALE, 1f));
+            Log.i(TAG, "Resolution scale: " + resolution.getFactor());
             super.onCreate(savedInstanceState);
-            scaleGameSurface();
-            // -- for 1.26.62+ end --
+            if (isGameActivity()) {
+                resolution.fitSurface(this); // for 1.26.62+
+            }
             applyImmersiveMode();
         }
     }
@@ -187,22 +187,7 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
             Log.e(TAG, "Failed to initialize Play Games.", e);
         }
     }
-
-    // Games on GameActivity draw into a SurfaceView. A lower resolution shrinks that view and scales it
-    // back up to the window, so the surface, the content rect and touch coordinates all get the smaller size.
-    // The screen size, DPI, insets and keyboard height the game asks for shrink by the same factor.
-    private float readResolutionScale() {
-        float scale = getIntent().getFloatExtra(LaunchContext.EXTRA_RESOLUTION_SCALE, 1f);
-        if (!(scale > 0f && scale < 1f)) {
-            return 1f;
-        }
-        if (!isGameActivity()) {
-            Log.i(TAG, "The game doesn't use GameActivity, it renders at full resolution.");
-            return 1f;
-        }
-        Log.i(TAG, "Resolution scale: " + scale);
-        return scale;
-    }
+    // -- for 1.26.62+ end --
 
     private boolean isGameActivity() {
         try {
@@ -212,107 +197,74 @@ public class AgentMainActivity extends com.mojang.minecraftpe.MainActivity {
         }
     }
 
-    private void scaleGameSurface() {
-        if (resolutionScale == 1f) {
-            return;
-        }
-        final SurfaceView surfaceView = findSurfaceView(getWindow().getDecorView());
-        if (surfaceView == null || !(surfaceView.getParent() instanceof View)) {
-            Log.e(TAG, "Game surface not found, the resolution stays full.");
-            return;
-        }
-        ((View) surfaceView.getParent()).addOnLayoutChangeListener(
-                (container, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-                        container.post(() -> fitGameSurface(surfaceView, right - left, bottom - top)));
+    // libendercore.so reads it before the game's ANativeActivity_onCreate
+    public float getResolutionScale() {
+        return resolution.getFactor();
     }
 
-    private void fitGameSurface(SurfaceView surfaceView, int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        int scaledWidth = Math.max(1, scaled(width));
-        int scaledHeight = Math.max(1, scaled(height));
-        surfaceView.setPivotX(0f);
-        surfaceView.setPivotY(0f);
-        surfaceView.setScaleX((float) width / scaledWidth);
-        surfaceView.setScaleY((float) height / scaledHeight);
-        ViewGroup.LayoutParams params = surfaceView.getLayoutParams();
-        if (params.width != scaledWidth || params.height != scaledHeight) {
-            params.width = scaledWidth;
-            params.height = scaledHeight;
-            surfaceView.setLayoutParams(params);
-        }
-    }
-
-    private static SurfaceView findSurfaceView(View view) {
-        if (view instanceof SurfaceView) {
-            return (SurfaceView) view;
-        }
-        if (view instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) view;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                SurfaceView found = findSurfaceView(group.getChildAt(i));
-                if (found != null) {
-                    return found;
-                }
-            }
-        }
-        return null;
-    }
-
-    private int scaled(int value) {
-        return Math.round(value * resolutionScale);
-    }
-
-    private Insets scaled(Insets insets) {
-        if (insets == null || resolutionScale == 1f) {
-            return insets;
-        }
-        return Insets.of(scaled(insets.left), scaled(insets.top), scaled(insets.right), scaled(insets.bottom));
-    }
-
-    @Override
-    public int getPlatformDpi() {
-        return scaled(super.getPlatformDpi());
-    }
-
-    @Override
-    public int getDisplayWidth() {
-        return scaled(super.getDisplayWidth());
-    }
-
-    @Override
-    public int getDisplayHeight() {
-        return scaled(super.getDisplayHeight());
-    }
-
-    @Override
-    public Insets getWindowInsets(int type) {
-        return scaled(super.getWindowInsets(type));
-    }
-
-    @Override
-    public Insets getWaterfallInsets() {
-        return scaled(super.getWaterfallInsets());
-    }
-    // -- for 1.26.62+ end --
-
-    // All versions ask for the screen size, 1.0+ also for the keyboard height.
-    // The values change only while resolutionScale is below 1.
+    // The sizes the game asks for. Each version asks only for some of them.
     @Override
     public int getScreenWidth() {
-        return scaled(super.getScreenWidth());
+        return resolution.scale(super.getScreenWidth());
     }
 
     @Override
     public int getScreenHeight() {
-        return scaled(super.getScreenHeight());
+        return resolution.scale(super.getScreenHeight());
     }
 
     @Override
-    public float getKeyboardHeight() {
-        return super.getKeyboardHeight() * resolutionScale;
+    public float getPixelsPerMillimeter() { // up to 1.17
+        return resolution.scale(super.getPixelsPerMillimeter());
     }
+
+    @Override
+    public float getKeyboardHeight() { // for 0.12+
+        return resolution.scale(super.getKeyboardHeight());
+    }
+
+    // -- for 1.17+ begin --
+    @Override
+    public int getDisplayWidth() {
+        return resolution.scale(super.getDisplayWidth());
+    }
+
+    @Override
+    public int getDisplayHeight() {
+        return resolution.scale(super.getDisplayHeight());
+    }
+    // -- for 1.17+ end --
+
+    // -- for 1.16+ begin --
+    // The game's layout listener passes the size of its view here, and the game lays out its interface
+    // for it. On NativeActivity the view is the window's root view, so the size shrinks here. On
+    // GameActivity it is the game surface, which fitSurface has shrunk already.
+    @Override
+    void nativeResize(int width, int height) {
+        if (isGameActivity()) {
+            super.nativeResize(width, height);
+        } else {
+            super.nativeResize(resolution.scale(width), resolution.scale(height));
+        }
+    }
+    // -- for 1.16+ end --
+
+    // -- for 1.26.62+ begin --
+    @Override
+    public int getPlatformDpi() {
+        return resolution.scale(super.getPlatformDpi());
+    }
+
+    @Override
+    public Insets getWindowInsets(int type) {
+        return resolution.scale(super.getWindowInsets(type));
+    }
+
+    @Override
+    public Insets getWaterfallInsets() {
+        return resolution.scale(super.getWaterfallInsets());
+    }
+    // -- for 1.26.62+ end --
 
     @Override
     protected void onResume() {

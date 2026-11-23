@@ -121,6 +121,7 @@ def registerDexTasks = { String variantName ->
                 include "com/mojang/minecraftpe/AgentMainActivity.class"
                 include 'com/mojang/minecraftpe/AgentMainActivity$*.class'
                 include "com/mojang/minecraftpe/GameContextBridge.class"
+                include "com/mojang/minecraftpe/ResolutionScale.class"
                 include "com/mojang/minecraftpe/NotificationListenerService.class" // for 1.19+
                 include "com/mojang/minecraftpe/BrazeManager.class" // for 1.19+
                 include "com/google/android/gms/common/internal/StringResourceValueReader.class"

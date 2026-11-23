@@ -117,7 +117,7 @@
     <string name="btn_rename">Переименовать</string>
     <string name="dialog_rename_title">Переименовать инстанс</string>
     <string name="btn_resolution">Разрешение</string>
-    <string name="dialog_resolution_title">Разрешение игры (1.26 и новее)</string>
+    <string name="dialog_resolution_title">Разрешение игры</string>
     <string name="resolution_default">%1$s (по умолчанию)</string>
     <string name="dialog_rename_hint">Новое имя</string>
     <string name="text_duplicating">Дублирование...</string>

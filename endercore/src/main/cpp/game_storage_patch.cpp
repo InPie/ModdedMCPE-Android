@@ -1,12 +1,13 @@
-// Storage paths of the instance for game code that doesn't ask Context for them. Java code and
-// NativeActivity get the instance folders from GameStorageContext.
-//  - 0.6 - 0.14 call Environment.getExternalStorageDirectory() through JNI. The JNIEnv function
-//    table of every thread answers that call with the instance's shared storage.
-//  - 1.0 - 1.17 build their data path from the static string AppPlatform_android::ANDROID_APPDATA_PATH.
-
-#include "game_storage_patch.h"
+// Instance folders for the game code that finds its folders without asking Context. Java code and
+// NativeActivity get them from GameStorageContext, the rest is here:
+//  - 0.6 - 0.10 ask Environment.getExternalStorageDirectory() through JNI (0.11 already asks the activity
+//    for getExternalStoragePath). Their JNI calls go through a patched function table, see patchEnv.
+//  - 1.0 - 1.17 build paths of their files from AppPlatform_android::ANDROID_APPDATA_PATH,
+//    see setAppDataPath.
 
 #include <android/log.h>
+#include <android/native_activity.h>
+#include <jni.h>
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
@@ -39,6 +40,7 @@ typedef jint (*AttachCurrentThreadFn)(JavaVM*, JNIEnv**, void*);
 static AttachCurrentThreadFn old_AttachCurrentThread = nullptr;
 static AttachCurrentThreadFn old_AttachCurrentThreadAsDaemon = nullptr;
 
+// Logs and clears the Java exception a JNI call left, since the next JNI call must not find one pending
 static void clearException(JNIEnv* env, const char* where) {
     if (env && env->ExceptionCheck()) {
         LOGE("JNI exception at %s", where);
@@ -47,6 +49,7 @@ static void clearException(JNIEnv* env, const char* where) {
     }
 }
 
+// Finds Environment.getExternalStorageDirectory once: the game's calls to it are told by its method id
 static void initIds(JNIEnv* env) {
     if (!env || g_getExternalStorageDirectory)
         return;
@@ -70,6 +73,7 @@ static void initIds(JNIEnv* env) {
     env->DeleteLocalRef(cls);
 }
 
+// new java.io.File(path), or null if it can't be made
 static jobject makeFile(JNIEnv* env, const char* path) {
     jclass fileClass = env->FindClass("java/io/File");
     if (!fileClass) {
@@ -101,6 +105,7 @@ static jobject makeFile(JNIEnv* env, const char* path) {
     return file;
 }
 
+// True for a call of Environment.getExternalStorageDirectory once the instance folder is known
 static bool shouldRedirect(JNIEnv* env, jmethodID methodID) {
     if (g_externalStorageRoot.empty())
         return false;
@@ -111,10 +116,14 @@ static bool shouldRedirect(JNIEnv* env, jmethodID methodID) {
            && methodID == g_getExternalStorageDirectory;
 }
 
+// The instance's external/ folder, which the game gets as its shared storage
 static jobject redirectExternalStorage(JNIEnv* env) {
     return makeFile(env, g_externalStorageRoot.c_str());
 }
 
+// The game calls static Java methods returning an object through these three. A call of
+// Environment.getExternalStorageDirectory() gets the instance's external/ folder, any other call goes
+// to the real JNI function.
 static jobject new_CallStaticObjectMethodV(
         JNIEnv* env,
         jclass clazz,
@@ -171,6 +180,8 @@ static jobject new_CallStaticObjectMethod(
     return result;
 }
 
+// Gives this thread's JNIEnv a copy of the JNI function table with the three calls above replaced.
+// The copy is made once and is shared by all threads.
 static void patchEnv(JNIEnv* env) {
     if (!env)
         return;
@@ -202,6 +213,7 @@ static void patchEnv(JNIEnv* env) {
     initIds(env);
 }
 
+// Threads the game attaches to Java later get the patched table as well
 static jint new_AttachCurrentThread(JavaVM* vm, JNIEnv** env, void* args) {
     if (!old_AttachCurrentThread)
         return JNI_ERR;
@@ -226,6 +238,8 @@ static jint new_AttachCurrentThreadAsDaemon(JavaVM* vm, JNIEnv** env, void* args
     return result;
 }
 
+// Replaces AttachCurrentThread and AttachCurrentThreadAsDaemon of the JavaVM, so every thread attached
+// from now on gets the patched JNIEnv
 static void patchVm(JavaVM* vm) {
     if (!vm)
         return;
@@ -253,7 +267,8 @@ static void patchVm(JavaVM* vm) {
     vm->functions = &g_vmTable;
 }
 
-// Path of a java.io.File returned by a no-argument method of the activity, or by one taking a String
+// Absolute path of the java.io.File that a method of the activity returns. The method takes no arguments
+// or a String, which gets null. Empty if there is no such method or it returned no file.
 static std::string getActivityPath(JNIEnv* env, jobject activity, const char* method, const char* signature,
                                    bool takesString) {
     std::string path;
@@ -293,6 +308,10 @@ struct GnuStlStringHeader {
     int refcount;
 };
 
+// Sets AppPlatform_android::ANDROID_APPDATA_PATH to the instance's data/ folder, so the game keeps
+// its com.mojang.minecraftpe folder there. The string is written in the layout of the C++ library
+// the game was built with: 1.16+ link libc++_shared.so and get its own std::string::assign,
+// 1.0 - 1.5 have GNU STL built in and get a new block of characters with its header.
 static void setAppDataPath(void* gameLibrary, const std::string& dataDir) {
     void* appDataPath = gameLibrary ? dlsym(gameLibrary, APPDATA_PATH_SYMBOL) : nullptr;
     if (!appDataPath) {
@@ -320,7 +339,9 @@ static void setAppDataPath(void* gameLibrary, const std::string& dataDir) {
     LOGD("ANDROID_APPDATA_PATH (GNU STL): %s", chars);
 }
 
-extern "C" void game_storage_patch_init(JavaVM* vm) {
+// Called from JNI_OnLoad: patches the JNI of the thread that loads the library and of the threads
+// attached after it
+void game_storage_patch_init(JavaVM* vm) {
     if (!vm)
         return;
 
@@ -332,7 +353,9 @@ extern "C" void game_storage_patch_init(JavaVM* vm) {
     }
 }
 
-extern "C" void game_storage_patch_activity(ANativeActivity* activity, void* gameLibrary) {
+// Called before ANativeActivity_onCreate of the game. Reads the instance folders from the activity,
+// which gets them from GameStorageContext, and points the game to them.
+void game_storage_patch_activity(ANativeActivity* activity, void* gameLibrary) {
     JNIEnv* env = activity->env;
     g_externalStorageRoot = getActivityPath(env, activity->clazz, "getExternalFilesDir",
                                             "(Ljava/lang/String;)Ljava/io/File;", true);

@@ -1,3 +1,7 @@
+// 0.8 and older call pthread_join for threads they started detached. A detached thread frees itself
+// when it ends, and since Android 8 pthread_join aborts the process when it gets a thread that is gone.
+// Here the join of such a thread returns at once, as if the thread had just ended.
+
 #include <android/log.h>
 #include <pthread.h>
 #include <vector>
@@ -13,6 +17,7 @@ static int (*real_pthread_join)(pthread_t thread, void **retval) = nullptr;
 static pthread_mutex_t g_detachedThreadsMutex = PTHREAD_MUTEX_INITIALIZER;
 static std::vector<pthread_t> g_detachedMinecraftThreads;
 
+// Remembers a thread the game started detached, until the game joins it
 static void trackDetachedMinecraftThread(pthread_t thread) {
     pthread_mutex_lock(&g_detachedThreadsMutex);
     for (pthread_t existing : g_detachedMinecraftThreads) {
@@ -25,6 +30,7 @@ static void trackDetachedMinecraftThread(pthread_t thread) {
     pthread_mutex_unlock(&g_detachedThreadsMutex);
 }
 
+// True if the game started this thread detached. The thread is forgotten then.
 static bool consumeDetachedMinecraftThread(pthread_t thread) {
     pthread_mutex_lock(&g_detachedThreadsMutex);
     for (auto it = g_detachedMinecraftThreads.begin(); it != g_detachedMinecraftThreads.end(); ++it) {
@@ -38,6 +44,7 @@ static bool consumeDetachedMinecraftThread(pthread_t thread) {
     return false;
 }
 
+// pthread_create of the game: notes the threads started detached
 static int mcpe_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                                void *(*start_routine)(void *), void *arg) {
     if (real_pthread_create == nullptr)
@@ -56,6 +63,7 @@ static int mcpe_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     return result;
 }
 
+// pthread_join of the game: a detached thread is reported as ended with no result, others are joined
 static int mcpe_pthread_join(pthread_t thread, void **retval) {
     if (consumeDetachedMinecraftThread(thread)) {
         LOGD("Ignored pthread_join on detached MCPE pthread: %lu",
@@ -71,17 +79,15 @@ static int mcpe_pthread_join(pthread_t thread, void **retval) {
     return real_pthread_join(thread, retval);
 }
 
-extern "C" void legacy_compatibility_init() {
-    xhook_enable_sigsegv_protection(1);
-
+// Called from JNI_OnLoad, before its xhook_refresh
+void legacy_compatibility_register_hooks() {
     int createResult = xhook_register(".*libminecraftpe\\.so$", "pthread_create",
                                       (void*) &mcpe_pthread_create,
                                       (void**) &real_pthread_create);
     int joinResult = xhook_register(".*libminecraftpe\\.so$", "pthread_join",
                                     (void*) &mcpe_pthread_join,
                                     (void**) &real_pthread_join);
-    int refreshResult = xhook_refresh(0);
 
-    LOGD("MCPE pthread compat hooks registered: pthread_create=%d, pthread_join=%d, refresh=%d",
-         createResult, joinResult, refreshResult);
+    LOGD("MCPE pthread compat hooks registered: pthread_create=%d, pthread_join=%d",
+         createResult, joinResult);
 }

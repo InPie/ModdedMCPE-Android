@@ -47,6 +47,7 @@ add_library( endercore
              SHARED
              endercore.cpp
              game_storage_patch.cpp
+             game_resolution_patch.cpp
              crashhandler.cpp
              legacy_compatibility.cpp )
 

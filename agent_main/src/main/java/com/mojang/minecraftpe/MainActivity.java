@@ -51,16 +51,22 @@ public abstract class MainActivity extends NativeActivity {
         throw new RuntimeException("Stub!");
     }
 
-    // -- for 1.26.62+ begin --
-    public int getPlatformDpi() {
+    public float getPixelsPerMillimeter() {
         throw new RuntimeException("Stub!");
     }
 
+    // -- for 1.17+ begin --
     public int getDisplayWidth() {
         throw new RuntimeException("Stub!");
     }
 
     public int getDisplayHeight() {
+        throw new RuntimeException("Stub!");
+    }
+    // -- for 1.17+ end --
+
+    // -- for 1.26.62+ begin --
+    public int getPlatformDpi() {
         throw new RuntimeException("Stub!");
     }
 
@@ -73,6 +79,8 @@ public abstract class MainActivity extends NativeActivity {
         throw new RuntimeException("Stub!");
     }
     // -- for 1.26.62+ end --
+
+    native void nativeResize(int width, int height); // for 1.16+
 
     native void nativeOnPickImageCanceled(long callback);
 
