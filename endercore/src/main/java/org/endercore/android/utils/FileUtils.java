@@ -98,7 +98,7 @@ public final class FileUtils {
         }
     }
 
-    // Links are skipped, the code that made them makes them again
+    // @link: links will be skipped, the code that made them makes them again
     public static void copyDirectory(File sourceDir, File destinationDir) throws IOException {
         File[] children = sourceDir.listFiles();
         if (children == null) {
@@ -120,7 +120,8 @@ public final class FileUtils {
         }
     }
 
-    // Moves a file or folder. Folders that exist at both places are merged, a file that exists at both is an error.
+    // Moves a file or folder:
+    // folders that exist at both places are merged, a file that exists at both is an error;
     public static void moveMerging(File from, File to) throws IOException {
         if (!from.exists() && !isSymbolicLink(from)) {
             return;
@@ -165,7 +166,7 @@ public final class FileUtils {
         return file;
     }
 
-    // Removes links, not the files they lead to
+    // @link: removes links (not the files they lead to)
     public static void removeFiles(File path) {
         if (removesAsLink(path)) {
             path.delete();
@@ -192,7 +193,8 @@ public final class FileUtils {
         }
     }
 
-    // A folder that can't be checked is removed as a link: that fails while it has files, and nothing outside it is touched
+    // @link: folder that can't be checked is removed as a link:
+    // that fails while it has files, and nothing outside it is touched
     private static boolean removesAsLink(File file) {
         try {
             return isSymbolicLink(file);

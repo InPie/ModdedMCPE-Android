@@ -13,7 +13,7 @@
 
 Supported minecraft versions: (what has been tested and is working)  
  + Minecraft Pocket Edition: 0.1.1 - 1.1.5.1⠀(all known versions)*  
- + Minecraft Bedrock: 1.2.9,⠀1.5,⠀1.16.201.01,⠀1.17.41.01  
+ + Minecraft Bedrock: 1.2,⠀1.5,⠀1.16.201.01,⠀1.17.41.01  
 
 *\*instead of 0.2-0.5, another broken archive builds*  
 *\*\*app is built for armv7a, an armv8a (arm64) version is possible without support for versions below 1.14 and isn't ready rn*
@@ -67,7 +67,7 @@ adb shell am start -n me.effently.moddedmcpe/.MainActivity
  + Sign your name in the project files /app/src/res/values/strings.xml: tag "app_contributors".  
 
 ## Other launchers
- + LeviLauncher is a launcher for **modern** Minecraft: Bedrock Edition for [Android (LeviLaunchroid)](https://github.com/LiteLDev/LeviLaunchroid) and for [Windows (simply LeviLauncher)](<https://github.com/LiteLDev/LeviLauncher)>).  
+ + LeviLauncher is a launcher only for modern Minecraft: Bedrock Edition for [Android (LeviLaunchroid)](https://github.com/LiteLDev/LeviLaunchroid) and for [Windows (simply LeviLauncher)](<https://github.com/LiteLDev/LeviLauncher)>).  
  + [Ninecraft](https://github.com/MCPI-Revival/Ninecraft) is mcpe 0.1.0 - 0.11.1 launcher for linux and windows (desktop).  
  + [NostalgiaLauncher](https://github.com/NLauncher/NostalgiaLauncherDesktop) is mcpe 0.1.0 - 0.11.1 launcher for linux and windows with advanced features, is based on Ninecraft.  
  + [MCLauncher](https://github.com/MCMrARM/mc-w10-version-launcher) is a bedrock launcher for windows.  

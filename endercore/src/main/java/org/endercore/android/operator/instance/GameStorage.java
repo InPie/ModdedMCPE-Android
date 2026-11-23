@@ -24,7 +24,7 @@ public final class GameStorage {
     // Fallback names of preferences in the launcher's own folder
     private static final String SHARED_SIGN_IN_PREFERENCES_PREFIX = "shared_sign_in.";
     private static final String INSTANCE_PREFERENCES_PREFIX = "instance.";
-    // Preferences of the sign-in libraries: MSA (1.0 - 1.12), ADAL (1.16 - 1.17), XAL (1.16+)
+    // Preferences of the sign-in libraries: MSA (0.15 - 1.12), ADAL (1.16 - 1.17), XAL (1.16+)
     private static final String[] SIGN_IN_PREFERENCES = {
             "com.microsoft.onlineid", "com.microsoft.aad.adal.", "com.microsoft.xal."
     };
